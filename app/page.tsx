@@ -16,7 +16,7 @@ const initialFormData: TaxpayerInput = {
   quartier: "CADJEHOUN",
   superficie: 500,
   valeurLocative: 300,
-  startYear: new Date().getFullYear() - 1, // Ex: 2023 si année courante 2024
+  startYear: new Date().getFullYear() - 3, // Ex: 2023 si année courante 2024
 };
 
 export default function Home() {
@@ -75,7 +75,7 @@ export default function Home() {
       quartier: "",
       superficie: "",
       valeurLocative: "",
-      startYear: new Date().getFullYear() - 1,
+      startYear: new Date().getFullYear() - 3,
     });
   };
 
