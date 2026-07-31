@@ -79,7 +79,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
             <span className="font-bold text-blue-900">{calculations.surf > 0 ? `${calculations.surf} m²` : "0 m²"}</span>
           </div>
           <div>
-            <span className="font-bold uppercase text-gray-700">Valeur Locative (VA) : </span>
+            <span className="font-bold uppercase text-gray-700">Valeur Administrative  (VA) : </span>
             <span className="font-bold text-blue-900">{calculations.valeurLocative > 0 ? `${formatMoney(calculations.valeurLocative)} FCFA` : "0 FCFA"}</span>
           </div>
         </div>

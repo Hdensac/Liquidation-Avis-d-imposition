@@ -68,7 +68,7 @@ export const generateExcelLiquidation = async (
   worksheet.getCell(`B${infoRow3}`).value = calculations.surf;
   worksheet.getCell(`B${infoRow3}`).numFmt = '#,##0" m²"';
 
-  worksheet.getCell(`D${infoRow3}`).value = "Valeur Locative (VA) :";
+  worksheet.getCell(`D${infoRow3}`).value = "Valeur Administrative (VA) :";
   worksheet.getCell(`D${infoRow3}`).font = { bold: true };
   worksheet.getCell(`E${infoRow3}`).value = calculations.valeurLocative;
   worksheet.getCell(`E${infoRow3}`).numFmt = '#,##0" FCFA"';

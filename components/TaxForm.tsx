@@ -180,7 +180,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Valeur Locative (VA en FCFA) <span className="text-red-500">*</span>
+                Valeur Administraive  (VA en FCFA) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"

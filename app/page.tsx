@@ -15,7 +15,7 @@ const initialFormData: TaxpayerInput = {
   arrondissement: "12ème ARRONDISSEMENT",
   quartier: "CADJEHOUN",
   superficie: 500,
-  valeurLocative: 1500,
+  valeurLocative: 300,
   startYear: new Date().getFullYear() - 1, // Ex: 2023 si année courante 2024
 };
 
