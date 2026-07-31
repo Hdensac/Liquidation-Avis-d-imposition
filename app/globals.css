@@ -9,18 +9,23 @@
   }
 }
 
-/* Styles pour le rendu et l'impression A4 */
+/* Styles pour le rendu et l'impression A4 stricte 1 page */
 .a4-document {
   width: 210mm;
-  min-height: 297mm;
+  max-height: 297mm;
   padding: 15mm 20mm;
   margin: 0 auto;
   background-color: white;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
   body {
     background-color: white;
   }
@@ -29,8 +34,11 @@
   }
   .a4-document {
     box-shadow: none;
-    padding: 10mm 15mm;
-    width: 100%;
-    margin: 0;
+    padding: 12mm 15mm;
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
+    page-break-after: avoid;
+    page-break-before: avoid;
   }
 }

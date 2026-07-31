@@ -87,7 +87,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <span className="uppercase font-extrabold text-sm">SURF</span>
+            <span className="uppercase font-extrabold text-sm">SURFACE</span>
             <span className="font-mono text-sm underline font-extrabold">
               {calculations.surf > 0 ? calculations.surf : ""}
             </span>

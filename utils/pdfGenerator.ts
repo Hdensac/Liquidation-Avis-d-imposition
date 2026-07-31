@@ -10,42 +10,42 @@ export const generatePDFFromElement = async (
     throw new Error(`Élément #${elementId} introuvable pour l'impression PDF.`);
   }
 
-  // Configuration de haute résolution pour la capture
+  // Capture de l'élément HTML
   const canvas = await html2canvas(element, {
-    scale: 2, // Résolution Retina 2x
+    scale: 2, // Haute résolution
     useCORS: true,
     logging: false,
     backgroundColor: "#ffffff",
   });
 
   const imgData = canvas.toDataURL("image/png");
-  
-  // Format standard A4 (210mm x 297mm)
+
+  // Document A4 portrait (210mm x 297mm)
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",
   });
 
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = pdf.internal.pageSize.getHeight();
-  
-  const imgWidth = pdfWidth;
-  const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+  const pdfWidth = pdf.internal.pageSize.getWidth();   // 210 mm
+  const pdfHeight = pdf.internal.pageSize.getHeight(); // 297 mm
 
-  let heightLeft = imgHeight;
-  let position = 0;
+  // Calcul du ratio pour adapter parfaitement sur UNE SEULE PAGE A4
+  const imgWidth = canvas.width;
+  const imgHeight = canvas.height;
 
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pdfHeight;
+  const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
 
-  // Si le contenu dépasse une page A4
-  while (heightLeft >= 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
-  }
+  const finalWidth = imgWidth * ratio;
+  const finalHeight = imgHeight * ratio;
 
+  // Centrage horizontal et vertical (si besoin) sur la page A4 unique
+  const imgX = (pdfWidth - finalWidth) / 2;
+  const imgY = 10; // Marge haute fixe de 10mm
+
+  // Ajouter l'image sur une seule et unique page
+  pdf.addImage(imgData, "PNG", imgX, imgY, finalWidth, finalHeight);
+
+  // Télécharger le PDF A4 sur 1 page
   pdf.save(filename);
 };
