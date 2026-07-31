@@ -27,13 +27,15 @@ export default function Home() {
     const surf = typeof formData.superficie === "number" ? formData.superficie : 0;
     const valeurLocative = typeof formData.valeurLocative === "number" ? formData.valeurLocative : 0;
 
-    // Format Adresse & Description textuellement : PARCELLE DE [surf] M² [COMMUNE]/[ARRONDISSEMENT]/[QUARTIER]
+    // Format Adresse & Description avec "SISE A" : PARCELLE DE [surf] M² SISE A [COMMUNE]/[ARRONDISSEMENT]/[QUARTIER]
     const communeStr = formData.commune ? formData.commune.toUpperCase() : "";
     const arrStr = formData.arrondissement ? formData.arrondissement.toUpperCase() : "";
     const quartStr = formData.quartier ? formData.quartier.toUpperCase() : "";
     
     const locationStr = [communeStr, arrStr, quartStr].filter(Boolean).join("/");
-    const adresseDescription = `PARCELLE DE ${surf} M² ${locationStr}`;
+    const adresseDescription = locationStr
+      ? `PARCELLE DE ${surf} M² SISE A ${locationStr}`
+      : `PARCELLE DE ${surf} M²`;
 
     // Base imposable (par ligne) = SURF * VA
     const baseImposable = surf * valeurLocative;

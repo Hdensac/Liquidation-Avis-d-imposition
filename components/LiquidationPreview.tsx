@@ -34,7 +34,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
         {/* Date du jour en haut à droite */}
         <div className="flex justify-between items-start">
           <div className="text-left text-[11px] font-medium text-gray-600">
-            {/* Espace libre à gauche si besoin */}
+            {/* Espace vide à gauche */}
           </div>
           <div className="text-right text-xs font-semibold text-gray-800">
             Date : {currentDateStr}
@@ -53,7 +53,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </h1>
         </div>
 
-        {/* Section Infos Contribuable & Adresse conforme à la capture */}
+        {/* Section Infos Contribuable & Adresse */}
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-12 gap-2 text-xs font-semibold items-center">
             <div className="col-span-5 flex items-center gap-1">
@@ -94,11 +94,11 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </div>
         </div>
 
-        {/* Tableau des Exercices (Bordures noires nettes) */}
+        {/* Tableau des Exercices (Rendu anti-chevauchement des bordures PDF) */}
         <div className="w-full">
-          <table className="w-full border-collapse border-2 border-black text-xs">
+          <table className="w-full border-collapse text-xs border-2 border-black bg-white">
             <thead>
-              <tr className="border-b-2 border-black text-center font-extrabold bg-white">
+              <tr className="text-center font-extrabold bg-white border-b-2 border-black">
                 <th className="border-r border-black p-2.5 w-20">Exercice</th>
                 <th className="border-r border-black p-2.5 w-32 uppercase">NATURE D' IMPOTS</th>
                 <th className="border-r border-black p-2.5">Description</th>
@@ -109,27 +109,31 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
             </thead>
             <tbody>
               {calculations.exercises.map((ex, idx) => (
-                <tr key={ex.year} className="border-b border-black text-center">
-                  <td className="border-r border-black p-2.5 font-bold font-mono text-sm">{ex.year}</td>
-                  <td className="border-r border-black p-2.5 font-bold">{ex.taxNature}</td>
+                <tr key={ex.year} className="text-center">
+                  <td className="border-r border-b border-black p-2.5 font-bold font-mono text-sm">
+                    {ex.year}
+                  </td>
+                  <td className="border-r border-b border-black p-2.5 font-bold">
+                    {ex.taxNature}
+                  </td>
                   
-                  {/* Fusion verticale de la description sur la 1ère ligne */}
+                  {/* Fusion verticale propre sans ligne parasite */}
                   {idx === 0 && (
                     <td
                       rowSpan={4}
-                      className="border-r border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
+                      className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
                     >
                       {calculations.adresseDescription}
                     </td>
                   )}
 
-                  <td className="border-r border-black p-2.5 text-right font-mono font-bold text-sm">
+                  <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
                     {formatMoney(ex.baseImposable)}
                   </td>
-                  <td className="border-r border-black p-2.5 font-bold text-sm">
+                  <td className="border-r border-b border-black p-2.5 font-bold text-sm">
                     {(ex.taux * 100).toFixed(0)}%
                   </td>
-                  <td className="p-2.5 text-right font-bold font-mono text-sm">
+                  <td className="border-b border-black p-2.5 text-right font-bold font-mono text-sm">
                     {formatMoney(ex.droitSimple)}
                   </td>
                 </tr>
@@ -138,7 +142,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </table>
         </div>
 
-        {/* Bloc centralisé en bas pour le Total Dû (Cadre noir comme sur la capture) */}
+        {/* Bloc centralisé en bas pour le Total Dû (Cadre noir net) */}
         <div className="pt-8 flex justify-center items-center">
           <div className="border-2 border-black px-12 py-2 text-center bg-white shadow-sm">
             <span className="text-lg font-extrabold font-mono tracking-wider">
