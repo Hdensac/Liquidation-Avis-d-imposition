@@ -7,7 +7,6 @@ export const generateExcelLiquidation = async (
 ) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Système de Liquidation d'Impôt Foncier";
-  workbook.lastModifiedBy = "Système de Liquidation";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet("Liquidation TFU-FNB", {
@@ -16,116 +15,119 @@ export const generateExcelLiquidation = async (
 
   // Largeurs des colonnes (A à F)
   worksheet.columns = [
-    { key: "year", width: 12 },          // Col A
-    { key: "taxNature", width: 14 },     // Col B
-    { key: "description", width: 45 },   // Col C
-    { key: "base", width: 22 },          // Col D
-    { key: "taux", width: 12 },          // Col E
-    { key: "droitSimple", width: 25 },   // Col F
+    { key: "exercice", width: 14 },        // Col A : Exercice
+    { key: "nature", width: 20 },          // Col B : NATURE D' IMPOTS
+    { key: "description", width: 45 },     // Col C : Description
+    { key: "base", width: 20 },            // Col D : Base
+    { key: "taux", width: 12 },            // Col E : Taux
+    { key: "droitSimple", width: 22 },     // Col F : Droit simple
   ];
 
-  // 1. Titre & En-tête
-  worksheet.mergeCells("A1:F1");
-  const titleCell = worksheet.getCell("A1");
-  titleCell.value = "RÉPUBLIQUE DU BÉNIN - DIRECTION GÉNÉRALE DES IMPÔTS";
-  titleCell.font = { name: "Calibri", size: 11, bold: true };
-  titleCell.alignment = { horizontal: "center" };
+  // 1. Date du jour en haut à droite (F1)
+  const currentDateStr = new Date().toLocaleDateString("fr-FR");
+  worksheet.getCell("F1").value = `Date : ${currentDateStr}`;
+  worksheet.getCell("F1").font = { name: "Calibri", size: 10, bold: true };
+  worksheet.getCell("F1").alignment = { horizontal: "right" };
 
+  // 2. Sous-titre officiel centré (A2:F2)
   worksheet.mergeCells("A2:F2");
   const subTitleCell = worksheet.getCell("A2");
-  subTitleCell.value = "LIQUIDATION  (TFU)";
-  subTitleCell.font = { name: "Calibri", size: 14, bold: true, color: { argb: "FF1E3A8A" } };
+  subTitleCell.value = "Impôt Foncier Unique (TFU / FNB)";
+  subTitleCell.font = { name: "Calibri", size: 11, italic: true };
   subTitleCell.alignment = { horizontal: "center" };
 
-  worksheet.addRow([]); // Ligne vide (Ligne 3)
+  // 3. Titre Principal : LIQUIDATION (A4:F4)
+  worksheet.mergeCells("A4:F4");
+  const titleCell = worksheet.getCell("A4");
+  titleCell.value = "LIQUIDATION";
+  titleCell.font = { name: "Calibri", size: 16, bold: true };
+  titleCell.alignment = { horizontal: "center" };
 
-  // 2. Infos Contribuable
-  const infoStartRow = 4;
-  worksheet.getCell(`A${infoStartRow}`).value = "Nom & Prénoms :";
-  worksheet.getCell(`A${infoStartRow}`).font = { bold: true };
-  worksheet.mergeCells(`B${infoStartRow}:C${infoStartRow}`);
-  worksheet.getCell(`B${infoStartRow}`).value = formData.fullname || "";
+  // 4. Infos Contribuable (Ligne 6 & 7)
+  const row6 = 6;
+  worksheet.getCell(`A${row6}`).value = "NOM & PRENOMS :";
+  worksheet.getCell(`A${row6}`).font = { bold: true };
+  worksheet.getCell(`B${row6}`).value = formData.fullname || "";
+  worksheet.getCell(`B${row6}`).font = { bold: true };
 
-  worksheet.getCell(`D${infoStartRow}`).value = "N° IFU / NPI :";
-  worksheet.getCell(`D${infoStartRow}`).font = { bold: true };
-  worksheet.mergeCells(`E${infoStartRow}:F${infoStartRow}`);
-  worksheet.getCell(`E${infoStartRow}`).value = formData.ifuNpi || "";
+  worksheet.getCell(`C${row6}`).value = "N° IFU/NPI :";
+  worksheet.getCell(`C${row6}`).font = { bold: true };
+  worksheet.getCell(`D${row6}`).value = formData.ifuNpi || "";
+  worksheet.getCell(`D${row6}`).font = { bold: true };
 
-  const infoRow2 = 5;
-  worksheet.getCell(`A${infoRow2}`).value = "Téléphone :";
-  worksheet.getCell(`A${infoRow2}`).font = { bold: true };
-  worksheet.mergeCells(`B${infoRow2}:C${infoRow2}`);
-  worksheet.getCell(`B${infoRow2}`).value = formData.phone || "";
+  worksheet.getCell(`E${row6}`).value = "Tél :";
+  worksheet.getCell(`E${row6}`).font = { bold: true };
+  worksheet.getCell(`F${row6}`).value = formData.phone || "";
+  worksheet.getCell(`F${row6}`).font = { bold: true };
 
-  worksheet.getCell(`D${infoRow2}`).value = "Adresse :";
-  worksheet.getCell(`D${infoRow2}`).font = { bold: true };
-  worksheet.mergeCells(`E${infoRow2}:F${infoRow2}`);
-  worksheet.getCell(`E${infoRow2}`).value = `${formData.commune} / ${formData.arrondissement} / ${formData.quartier}`;
+  // Ligne Adresse (Ligne 7)
+  const row7 = 7;
+  worksheet.getCell(`A${row7}`).value = "ADRESSE :";
+  worksheet.getCell(`A${row7}`).font = { bold: true };
+  worksheet.mergeCells(`B${row7}:F${row7}`);
+  worksheet.getCell(`B${row7}`).value = calculations.adresseDescription;
+  worksheet.getCell(`B${row7}`).font = { bold: true };
 
-  const infoRow3 = 6;
-  worksheet.getCell(`A${infoRow3}`).value = "Superficie (SURF) :";
-  worksheet.getCell(`A${infoRow3}`).font = { bold: true };
-  worksheet.getCell(`B${infoRow3}`).value = calculations.surf;
-  worksheet.getCell(`B${infoRow3}`).numFmt = '#,##0" m²"';
+  // Ligne VA & SURF (Ligne 9)
+  const row9 = 9;
+  worksheet.getCell(`A${row9}`).value = "VA";
+  worksheet.getCell(`A${row9}`).font = { bold: true, size: 12 };
+  worksheet.getCell(`B${row9}`).value = calculations.valeurLocative;
+  worksheet.getCell(`B${row9}`).font = { bold: true, size: 11 };
+  worksheet.getCell(`B${row9}`).numFmt = "#,##0";
 
-  worksheet.getCell(`D${infoRow3}`).value = "Valeur Administrative (VA) :";
-  worksheet.getCell(`D${infoRow3}`).font = { bold: true };
-  worksheet.getCell(`E${infoRow3}`).value = calculations.valeurLocative;
-  worksheet.getCell(`E${infoRow3}`).numFmt = '#,##0" FCFA"';
+  worksheet.getCell(`E${row9}`).value = "SURF";
+  worksheet.getCell(`E${row9}`).font = { bold: true, size: 12 };
+  worksheet.getCell(`E${row9}`).alignment = { horizontal: "right" };
+  worksheet.getCell(`F${row9}`).value = calculations.surf;
+  worksheet.getCell(`F${row9}`).font = { bold: true, size: 12, underline: true };
+  worksheet.getCell(`F${row9}`).alignment = { horizontal: "right" };
 
-  worksheet.addRow([]); // Ligne vide (Ligne 7 font)
-
-  // 3. En-tête du Tableau (Ligne 8)
-  const headerRowIndex = 8;
+  // 5. En-tête du Tableau (Ligne 11)
+  const headerRowIndex = 11;
   const headers = [
-    "Année",
-    "Nature",
-    "Adresse & Description du Bien Imposable",
-    "Base Imposable (FCFA)",
+    "Exercice",
+    "NATURE D' IMPOTS",
+    "Description",
+    "Base",
     "Taux",
-    "Droit Simple (FCFA)",
+    "Droit simple",
   ];
   
   const headerRow = worksheet.getRow(headerRowIndex);
   headerRow.values = headers;
-  headerRow.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
-  headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  headerRow.font = { name: "Calibri", size: 11, bold: true };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
   
-  // Style d'en-tête bleu foncé
   ["A", "B", "C", "D", "E", "F"].forEach((col) => {
     const cell = worksheet.getCell(`${col}${headerRowIndex}`);
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF1E3A8A" },
-    };
     cell.border = {
-      top: { style: "thin" },
+      top: { style: "medium" },
       left: { style: "thin" },
-      bottom: { style: "thin" },
+      bottom: { style: "medium" },
       right: { style: "thin" },
     };
   });
 
-  // 4. Lignes des 4 Exercices (Lignes 9 à 12)
-  const startTableDataRow = 9;
+  // 6. Lignes des 4 Exercices (Lignes 12 à 15)
+  const startTableDataRow = 12;
   calculations.exercises.forEach((ex, index) => {
     const currentRow = startTableDataRow + index;
     const row = worksheet.getRow(currentRow);
     
-    // Formule Excel dynamique pour la base imposable: SURF * VA (B6 * E6)
-    const baseFormula = `=B6*E6`;
+    // Formule Excel dynamique pour la base imposable: SURF * VA (F9 * B9)
+    const baseFormula = `=F9*B9`;
     // Formule Excel dynamique pour le droit simple: Base * Taux
     const droitFormula = `=D${currentRow}*E${currentRow}`;
 
     row.getCell(1).value = ex.year;
     row.getCell(2).value = ex.taxNature;
-    // La colonne 3 (Description) sera fusionnée ci-dessous
+    // Col 3 fusionnée plus bas
     row.getCell(4).value = { formula: baseFormula, result: ex.baseImposable };
     row.getCell(5).value = ex.taux;
     row.getCell(6).value = { formula: droitFormula, result: ex.droitSimple };
 
-    // Formatage des nombres
+    // Alignment et formatage
     row.getCell(1).alignment = { horizontal: "center" };
     row.getCell(2).alignment = { horizontal: "center" };
     row.getCell(4).numFmt = "#,##0";
@@ -135,7 +137,7 @@ export const generateExcelLiquidation = async (
     row.getCell(6).numFmt = "#,##0";
     row.getCell(6).alignment = { horizontal: "right" };
 
-    // Bordures
+    // Style de bordures
     ["A", "B", "C", "D", "E", "F"].forEach((col) => {
       worksheet.getCell(`${col}${currentRow}`).border = {
         top: { style: "thin" },
@@ -146,43 +148,34 @@ export const generateExcelLiquidation = async (
     });
   });
 
-  // Fusionner verticalement la cellule Description pour les 4 lignes (C9:C12)
+  // Fusionner verticalement la cellule Description pour les 4 lignes (C12:C15)
   const endTableDataRow = startTableDataRow + 3;
   worksheet.mergeCells(`C${startTableDataRow}:C${endTableDataRow}`);
   const descCell = worksheet.getCell(`C${startTableDataRow}`);
   descCell.value = calculations.adresseDescription;
-  descCell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+  descCell.font = { bold: true };
+  descCell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
 
-  // 5. Total Général Dû avec Formule Excel =SOMME(F9:F12)
-  const totalRowIndex = endTableDataRow + 1;
-  worksheet.mergeCells(`A${totalRowIndex}:E${totalRowIndex}`);
-  const totalLabelCell = worksheet.getCell(`A${totalRowIndex}`);
-  totalLabelCell.value = "TOTAL GÉNÉRAL DÛ (FCFA) :";
-  totalLabelCell.font = { bold: true, size: 11 };
-  totalLabelCell.alignment = { horizontal: "right" };
-
-  const totalValueCell = worksheet.getCell(`F${totalRowIndex}`);
-  totalValueCell.value = {
+  // 7. Total Général Dû avec Formule Excel =SOMME(F12:F15) (Centré et encadré en bas)
+  const totalRowIndex = endTableDataRow + 2;
+  worksheet.mergeCells(`C${totalRowIndex}:D${totalRowIndex}`);
+  const totalCell = worksheet.getCell(`C${totalRowIndex}`);
+  totalCell.value = {
     formula: `=SUM(F${startTableDataRow}:F${endTableDataRow})`,
     result: calculations.totalDu,
   };
-  totalValueCell.font = { bold: true, size: 11, color: { argb: "FF1E3A8A" } };
-  totalValueCell.numFmt = '#,##0" FCFA"';
-  totalValueCell.alignment = { horizontal: "right" };
+  totalCell.font = { name: "Calibri", size: 14, bold: true };
+  totalCell.numFmt = "#,##0";
+  totalCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Bordures pour le total
-  ["A", "B", "C", "D", "E", "F"].forEach((col) => {
+  // Cadre noir autour de la case du Total
+  ["C", "D"].forEach((col) => {
     const cell = worksheet.getCell(`${col}${totalRowIndex}`);
     cell.border = {
       top: { style: "medium" },
-      left: { style: "thin" },
+      left: col === "C" ? { style: "medium" } : { style: "thin" },
       bottom: { style: "medium" },
-      right: { style: "thin" },
-    };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFE0E7FF" },
+      right: col === "D" ? { style: "medium" } : { style: "thin" },
     };
   });
 

@@ -8,15 +8,15 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { FileCheck2, Sparkles } from "lucide-react";
 
 const initialFormData: TaxpayerInput = {
-  fullname: "KPANOU Jean",
-  ifuNpi: "3201589471203",
-  phone: "+229 97 00 00 00",
-  commune: "COTONOU",
-  arrondissement: "12ème ARRONDISSEMENT",
-  quartier: "CADJEHOUN",
-  superficie: 500,
+  fullname: "OUSSOU Frédéric",
+  ifuNpi: "201710110349",
+  phone: "197500813",
+  commune: "ZE",
+  arrondissement: "DODJI BATA",
+  quartier: "ATINDOME",
+  superficie: 854,
   valeurLocative: 300,
-  startYear: new Date().getFullYear() - 3, // Ex: 2023 si année courante 2024
+  startYear: 2023,
 };
 
 export default function Home() {
@@ -27,8 +27,13 @@ export default function Home() {
     const surf = typeof formData.superficie === "number" ? formData.superficie : 0;
     const valeurLocative = typeof formData.valeurLocative === "number" ? formData.valeurLocative : 0;
 
-    // Texte d'adresse formaté automatiquement
-    const adresseDescription = `PARCELLE DE ${surf} M² ${formData.commune.toUpperCase()}/${formData.arrondissement.toUpperCase()}/${formData.quartier.toUpperCase()}`;
+    // Format Adresse & Description textuellement : PARCELLE DE [surf] M² [COMMUNE]/[ARRONDISSEMENT]/[QUARTIER]
+    const communeStr = formData.commune ? formData.commune.toUpperCase() : "";
+    const arrStr = formData.arrondissement ? formData.arrondissement.toUpperCase() : "";
+    const quartStr = formData.quartier ? formData.quartier.toUpperCase() : "";
+    
+    const locationStr = [communeStr, arrStr, quartStr].filter(Boolean).join("/");
+    const adresseDescription = `PARCELLE DE ${surf} M² ${locationStr}`;
 
     // Base imposable (par ligne) = SURF * VA
     const baseImposable = surf * valeurLocative;
@@ -75,7 +80,7 @@ export default function Home() {
       quartier: "",
       superficie: "",
       valeurLocative: "",
-      startYear: new Date().getFullYear() - 3,
+      startYear: 2023,
     });
   };
 
@@ -90,16 +95,16 @@ export default function Home() {
               <span>Générateur Automatisé d'Impôt Foncier (TFU / FNB)</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Avis de Liquidation 
+              Avis de Liquidation & Mise en Recouvrement
             </h1>
             <p className="text-slate-400 text-sm mt-1 max-w-2xl">
-              Calcul automatique de la base imposable, déduction des 4 exercices et export instantané en PDF officiel et Excel dynamique.
+              Génération exacte au modèle administratif avec export PDF A4 & Excel dynamique.
             </p>
           </div>
 
           <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-xs font-mono text-slate-300">
             <FileCheck2 className="w-4 h-4 text-emerald-400" />
-            <span>Format conforme DGI Bénin</span>
+            <span>Format conforme DGI</span>
           </div>
         </header>
 
