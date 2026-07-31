@@ -74,13 +74,13 @@ export const generateExcelLiquidation = async (
   worksheet.getCell(`A${row9}`).font = { bold: true, size: 12 };
   worksheet.getCell(`B${row9}`).value = calculations.valeurLocative;
   worksheet.getCell(`B${row9}`).font = { bold: true, size: 11 };
-  worksheet.getCell(`B${row9}`).numFmt = "#,##0";
+  //worksheet.getCell(`B${row9}`).numFmt = "#,##0";
 
-  worksheet.getCell(`E${row9}`).value = "SURF";
+  worksheet.getCell(`E${row9}`).value = "SURFACE";
   worksheet.getCell(`E${row9}`).font = { bold: true, size: 12 };
   worksheet.getCell(`E${row9}`).alignment = { horizontal: "right" };
   worksheet.getCell(`F${row9}`).value = calculations.surf;
-  worksheet.getCell(`F${row9}`).font = { bold: true, size: 12, underline: true };
+  worksheet.getCell(`F${row9}`).font = { bold: true, size: 12, underline: false };
   worksheet.getCell(`F${row9}`).alignment = { horizontal: "right" };
 
   // 5. En-tête du Tableau (Ligne 11)
