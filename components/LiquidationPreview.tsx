@@ -64,7 +64,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               <span>{formData.phone || "___________________________"}</span>
             </div>
             <div>
-              <span className="font-bold uppercase text-gray-700">Localisation : </span>
+              <span className="font-bold uppercase text-gray-700"> Adresse : </span>
               <span>
                 {formData.commune || "COMMUNE"} / {formData.arrondissement || "ARR."} / {formData.quartier || "QUARTIER"}
               </span>
