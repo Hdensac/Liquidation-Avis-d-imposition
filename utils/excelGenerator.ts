@@ -33,7 +33,7 @@ export const generateExcelLiquidation = async (
 
   worksheet.mergeCells("A2:F2");
   const subTitleCell = worksheet.getCell("A2");
-  subTitleCell.value = "LIQUIDATION / AVIS DE MISE EN RECOUVREMENT (TFU / FNB)";
+  subTitleCell.value = "LIQUIDATION  (TFU)";
   subTitleCell.font = { name: "Calibri", size: 14, bold: true, color: { argb: "FF1E3A8A" } };
   subTitleCell.alignment = { horizontal: "center" };
 
@@ -57,7 +57,7 @@ export const generateExcelLiquidation = async (
   worksheet.mergeCells(`B${infoRow2}:C${infoRow2}`);
   worksheet.getCell(`B${infoRow2}`).value = formData.phone || "";
 
-  worksheet.getCell(`D${infoRow2}`).value = "Localisation :";
+  worksheet.getCell(`D${infoRow2}`).value = "Adresse :";
   worksheet.getCell(`D${infoRow2}`).font = { bold: true };
   worksheet.mergeCells(`E${infoRow2}:F${infoRow2}`);
   worksheet.getCell(`E${infoRow2}`).value = `${formData.commune} / ${formData.arrondissement} / ${formData.quartier}`;

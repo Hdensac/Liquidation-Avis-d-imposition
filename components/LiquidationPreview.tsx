@@ -36,16 +36,12 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
             <p className="text-[10px] text-gray-700 font-semibold">DIRECTION GÉNÉRALE DES IMPÔTS</p>
             <p className="text-[9px] text-gray-600">DIRECTION DES IMPÔTS FONCIERS</p>
           </div>
-          <div className="text-right text-[10px] space-y-1">
-            <p className="font-semibold">N° Avis : <span className="font-mono">AMR-{formData.startYear}-{formData.ifuNpi || "0000"}</span></p>
-            <p>Date : {new Date().toLocaleDateString("fr-FR")}</p>
-          </div>
         </div>
 
         {/* Titre Principal */}
         <div className="text-center my-4">
           <h1 className="text-base font-extrabold uppercase tracking-widest border-2 border-black py-2 px-4 inline-block bg-gray-50">
-            LIQUIDATION / AVIS DE MISE EN RECOUVREMENT
+            LIQUIDATION 
           </h1>
           <p className="text-[10px] italic text-gray-600 mt-1">Impôt Foncier Unique (TFU / FNB)</p>
         </div>
@@ -149,7 +145,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
             <p className="text-gray-700">Cet avis doit être acquitté auprès des caisses de la Direction Générale des Impôts ou via les services de paiement électronique homologués.</p>
           </div>
           <div className="text-center space-y-8 pt-2">
-            <p className="font-bold uppercase">Pour le Chef de Centre & P.O.</p>
+            <p className="font-bold uppercase">Le Chef du Service de Gestion</p>
             <p className="italic text-gray-500 font-mono">[Signature & Cachet Officiel]</p>
           </div>
         </div>

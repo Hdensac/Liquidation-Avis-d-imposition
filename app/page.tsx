@@ -90,7 +90,7 @@ export default function Home() {
               <span>Générateur Automatisé d'Impôt Foncier (TFU / FNB)</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Avis de Liquidation & Mise en Recouvrement
+              Avis de Liquidation 
             </h1>
             <p className="text-slate-400 text-sm mt-1 max-w-2xl">
               Calcul automatique de la base imposable, déduction des 4 exercices et export instantané en PDF officiel et Excel dynamique.
