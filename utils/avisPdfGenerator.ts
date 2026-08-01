@@ -81,8 +81,10 @@ function toNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function formatNumber(value: number) {
-  if (value === 0 || !value) return "";
+// Format numbers for display; by default show '-' for zero/invalid unless showZero=true.
+function formatNumber(value: number, showZero = false) {
+  if (!Number.isFinite(value)) return "-";
+  if (!showZero && value === 0) return "-";
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(value));
 }
 
@@ -111,6 +113,10 @@ function getBaseImposable(details: AvisRecouvrementDetails) {
   return toNumber(details.liquidation.superficie) * toNumber(details.liquidation.valeur_locative);
 }
 
+function sanitizeText(s: unknown) {
+  return String(s || "").replace(/&+/g, " ").replace(/[\u0000-\u001f]/g, " ").trim();
+}
+
 function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
   const baseImposable = getBaseImposable(details);
   const rows = details.articles || [];
@@ -136,7 +142,7 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
           .filter(Boolean)
           .join("/"),
       description:
-        article.description ||
+        sanitizeText(article.description) ||
         `PARCELLE DE ${toNumber(details.liquidation.superficie)} M² ${[
           normalizeCommune(details.contribuable.commune),
           normalizeCommune(details.contribuable.arrondissement),
@@ -207,7 +213,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.setFontSize(4.6);
   const avisText = [
     "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois qui suivent la notification du présent avis d'imposition.",
-    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive. Celles qui sont motivées par la gêne ou l'indigence peuvent être présentées à toute époque.",
+    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive. Celles qui sont motivées par la gêne ou l'indigence pe[...]",
     "Tout renseignement sur la nature des impôts faisant l'objet de cet avis d'imposition peut être demandé au Service d'Assiette.",
     "Le paiement des impôts se fait à la Caisse du Receveur des Impôts, soit en numéraire, soit par chèque bancaire certifié et libellé au nom du Receveur des Impôts.",
   ];
@@ -320,14 +326,18 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
   let y = startY + 14;
 
+  // Ensure text color
+  pdf.setTextColor(0, 0, 0);
+
   rows.forEach((row) => {
     const values = [
       String(row.numero_article),
       String(row.exercice),
-      row.nature_impot,
-      row.localisation,
-      row.description,
-      formatNumber(row.base),
+      sanitizeText(row.nature_impot),
+      sanitizeText(row.localisation),
+      sanitizeText(row.description),
+      // Base: always formatted number (show 0 as 0)
+      formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple),
       formatNumber(row.penalite),
@@ -373,7 +383,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
   pdf.setFont("times", "bold");
   pdf.setFontSize(12);
   pdf.text("TOTAL DÛ", MAIN_X + 60, blockY + 5.5, { align: "center" });
-  pdf.text(formatNumber(totalDu), MAIN_X + totalWidth - 15, blockY + 5.5, { align: "right" });
+  pdf.text(formatNumber(totalDu, true), MAIN_X + totalWidth - 15, blockY + 5.5, { align: "right" });
 
   // Formule légale
   pdf.setFont("times", "bold");
