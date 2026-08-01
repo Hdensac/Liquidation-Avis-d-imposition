@@ -5,17 +5,24 @@ import React, { useEffect, useState } from "react";
 import { fetchPendingLiquidations, validatePayment } from "@/actions/liquidationActions";
 import { useToast, ToastContainer } from "./useToast";
 
+type Contribuable = {
+  nom_prenoms: string;
+  ifu_npi: string;
+  telephone: string;
+};
+
 type Liquidation = {
   id: string;
   reference_liq: string;
   status: string;
   created_at: string;
-  contribuable: {
-    nom_prenoms: string;
-    ifu_npi: string;
-    telephone: string;
-  };
+  contribuable: Contribuable[] | Contribuable;
 };
+
+function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
+  if (Array.isArray(c)) return c[0] ?? { nom_prenoms: "-", ifu_npi: "-", telephone: "-" };
+  return c;
+}
 
 export default function PendingLiquidationsTable() {
   const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
@@ -26,7 +33,7 @@ export default function PendingLiquidationsTable() {
     setLoading(true);
     try {
       const data = await fetchPendingLiquidations({});
-      setLiquidations(data as Liquidation[]);
+      setLiquidations(data as unknown as Liquidation[]);
     } catch (e) {
       console.error(e);
       toast.error("Erreur lors du chargement des liquidations en attente.");
@@ -70,9 +77,13 @@ export default function PendingLiquidationsTable() {
         <tbody>
           {liquidations.map((liq) => (
             <tr key={liq.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-              <td className="px-4 py-2">{liq.contribuable.ifu_npi}</td>
-              <td className="px-4 py-2">{liq.contribuable.nom_prenoms}</td>
-              <td className="px-4 py-2">{liq.contribuable.telephone}</td>
+              {(() => { const c = getContribuable(liq.contribuable); return (
+                <>
+                  <td className="px-4 py-2">{c.ifu_npi}</td>
+                  <td className="px-4 py-2">{c.nom_prenoms}</td>
+                  <td className="px-4 py-2">{c.telephone}</td>
+                </>
+              ); })()}
               <td className="px-4 py-2">{liq.reference_liq}</td>
               <td className="px-4 py-2">{new Date(liq.created_at).toLocaleDateString()}</td>
               <td className="px-4 py-2 text-center">

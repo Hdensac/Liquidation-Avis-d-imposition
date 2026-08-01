@@ -5,17 +5,27 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast, ToastContainer } from "./useToast";
 
+type Contribuable = {
+  nom_prenoms: string;
+  ifu_npi: string;
+  telephone: string;
+};
+
 type Recouvrement = {
   id: string;
   reference_liq: string;
   status: string;
   created_at: string;
-  contribuable: {
-    nom_prenoms: string;
-    ifu_npi: string;
-    telephone: string;
-  };
+  // Supabase returns foreign key joins as array
+  contribuable: Contribuable[] | Contribuable;
 };
+
+// Helper to safely get contribuable object (Supabase can return array or object)
+function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
+  if (Array.isArray(c)) return c[0] ?? { nom_prenoms: "-", ifu_npi: "-", telephone: "-" };
+  return c;
+}
+
 
 export default function HistoryTable() {
   const [records, setRecords] = useState<Recouvrement[]>([]);
@@ -32,7 +42,7 @@ export default function HistoryTable() {
         )
         .eq("status", "PAYE");
       if (error) throw error;
-      setRecords(data as Recouvrement[]);
+      setRecords(data as unknown as Recouvrement[]);
     } catch (e) {
       console.error(e);
       toast.error("Erreur lors du chargement de l'historique.");
@@ -64,9 +74,13 @@ export default function HistoryTable() {
         <tbody>
           {records.map((rec) => (
             <tr key={rec.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-              <td className="px-4 py-2">{rec.contribuable.ifu_npi}</td>
-              <td className="px-4 py-2">{rec.contribuable.nom_prenoms}</td>
-              <td className="px-4 py-2">{rec.contribuable.telephone}</td>
+              {(() => { const c = getContribuable(rec.contribuable); return (
+                <>
+                  <td className="px-4 py-2">{c.ifu_npi}</td>
+                  <td className="px-4 py-2">{c.nom_prenoms}</td>
+                  <td className="px-4 py-2">{c.telephone}</td>
+                </>
+              ); })()}
               <td className="px-4 py-2">{rec.reference_liq}</td>
               <td className="px-4 py-2">{new Date(rec.created_at).toLocaleDateString()}</td>
               <td className="px-4 py-2 text-center">{rec.status}</td>
