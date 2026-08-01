@@ -186,7 +186,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "----------------------",
     "DIRECTION DEPARTEMENTALE DES IMPOTS DE L'ATLANTIQUE",
     "******",
-    `CENTRE DES IMPOTS DES PETITES ENTREPRISES D'${commune}`,
+    `CENTRE DES IMPOTS DES PETITES ENTREPRISES D'ALLADA`,
     "----------------------",
     "SERVICE DE GESTION",
   ];
