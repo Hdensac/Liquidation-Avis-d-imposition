@@ -43,7 +43,7 @@ export default function RoleHeader() {
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition">
         <span className="font-medium">Rôle #{role.numero_role}</span>
         <span className="mx-2">|</span>
-        <span>{role.commune}</span>
+        <span>ALLADA</span>
         <span className="mx-2">|</span>
         <span>{role.annee}</span>
       </div>

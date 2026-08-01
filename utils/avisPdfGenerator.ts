@@ -127,14 +127,12 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
   const rows = details.articles || [];
 
   return rows.map((article, index) => {
-    const base = isNumber(article.base) ? article.base : baseImposable;
-    const taux = isNumber(article.taux) ? article.taux : index === 0 ? 0.04 : 0.05;
-    const droitSimple = isNumber(article.droit_simple) ? article.droit_simple : base * taux;
+    const base = toNumber(article.base, baseImposable);
+    const taux = toNumber(article.taux, 0);
+    const droitSimple = toNumber(article.droit_simple, base * taux);
     const penalite = toNumber(article.penalite, 0);
     const acomptePaye = toNumber(article.acompte_paye, 0);
-    const resteDu = isNumber(article.reste_du)
-      ? article.reste_du
-      : Math.max(0, droitSimple + penalite - acomptePaye);
+    const resteDu = toNumber(article.reste_du, Math.max(0, droitSimple + penalite - acomptePaye));
 
     return {
       numero_article: toNumber(article.numero_article, index + 1),

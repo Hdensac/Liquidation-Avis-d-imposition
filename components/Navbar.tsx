@@ -28,7 +28,7 @@ export default function Navbar({
   ],
   activeKey = "new",
   onNavigate,
-  rolePill = "Rôle #1 | COTONOU | 2026",
+  rolePill = "Rôle #1 | ALLADA | 2026",
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
