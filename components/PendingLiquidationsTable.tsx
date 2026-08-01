@@ -173,49 +173,46 @@ export default function PendingLiquidationsTable() {
             </tr>
           </thead>
           <tbody>
-            {filteredLiquidations.map((liq) => (
-            <tr key={liq.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-              {(() => {
-                const c = getContribuable(liq.contribuable);
-                return (
-                  <>
-                    <td className="px-4 py-2">{c.ifu_npi}</td>
-                    <td className="px-4 py-2">{c.nom_prenoms}</td>
-                    <td className="px-4 py-2">{c.telephone}</td>
-                  </>
-                );
-              })()}
-              <td className="px-4 py-2">{liq.reference_liq}</td>
-              <td className="px-4 py-2">{new Date(liq.created_at).toLocaleDateString()}</td>
-              <td className="px-4 py-2 text-center">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <button
-                    onClick={() => handleValidate(liq.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-3 rounded transition transform hover:scale-105"
-                  >
-                    Valider le paiement
-                  </button>
-                  <button
-                    onClick={() => handleDownloadPdf(liq)}
-                    disabled={pdfLoadingId === liq.id}
-                    className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1 px-3 rounded transition transform hover:scale-105"
-                  >
-                    {pdfLoadingId === liq.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                    Telecharger PDF
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-          {filteredLiquidations.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                {searchQuery ? "Aucune liquidation ne correspond à votre recherche." : "Aucun paiement en attente."}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            {filteredLiquidations.map((liq) => {
+              const c = getContribuable(liq.contribuable);
+              return (
+                <tr key={liq.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <td className="px-4 py-2">{c.ifu_npi}</td>
+                  <td className="px-4 py-2">{c.nom_prenoms}</td>
+                  <td className="px-4 py-2">{c.telephone}</td>
+                  <td className="px-4 py-2">{liq.reference_liq}</td>
+                  <td className="px-4 py-2">{new Date(liq.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 text-center">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleValidate(liq.id)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-3 rounded transition transform hover:scale-105"
+                      >
+                        Valider le paiement
+                      </button>
+                      <button
+                        onClick={() => handleDownloadPdf(liq)}
+                        disabled={pdfLoadingId === liq.id}
+                        className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1 px-3 rounded transition transform hover:scale-105"
+                      >
+                        {pdfLoadingId === liq.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        Telecharger PDF
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {filteredLiquidations.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  {searchQuery ? "Aucune liquidation ne correspond à votre recherche." : "Aucun paiement en attente."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {pdfTarget && pdfFormData && pdfCalculations ? (
         <div className="fixed pointer-events-none" style={{ left: "-10000px", top: 0, backgroundColor: "#ffffff" }} aria-hidden="true">
