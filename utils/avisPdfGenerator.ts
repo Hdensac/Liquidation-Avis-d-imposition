@@ -193,8 +193,11 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
 
   let currentY = 10;
   headerLines.forEach((line) => {
-    pdf.text(line, cx, currentY, { align: "center" });
-    currentY += 3.2;
+    const wrapped = pdf.splitTextToSize(line, SIDEBAR_W - 4);
+    wrapped.forEach((subLine: string) => {
+      pdf.text(subLine, cx, currentY, { align: "center" });
+      currentY += 3.2;
+    });
   });
 
   // Dates
