@@ -20,7 +20,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
 
     if (name === "phone") {
       let digits = value.replace(/\D/g, "");
-      if (!digits.startsWith("01")) {
+      if (digits.length > 0 && !digits.startsWith("01")) {
         if (digits.startsWith("0")) {
           digits = "01" + digits.slice(1);
         } else if (digits.startsWith("1")) {
@@ -117,7 +117,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 maxLength={10}
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="01XXXXXXXX"
+                placeholder="Ex: 0197000000"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
             </div>

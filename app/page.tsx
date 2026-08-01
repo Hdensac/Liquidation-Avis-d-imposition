@@ -8,13 +8,13 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { FileCheck2, Sparkles } from "lucide-react";
 
 const initialFormData: TaxpayerInput = {
-  fullname: "OUSSOU Frédéric",
-  ifuNpi: "201710110349",
-  phone: "0197500813",
-  commune: "ZE",
-  arrondissement: "DODJI BATA",
-  quartier: "ATINDOME",
-  superficie: 854,
+  fullname: "",
+  ifuNpi: "",
+  phone: "",
+  commune: "",
+  arrondissement: "",
+  quartier: "",
+  superficie: "",
   valeurLocative: 300,
   startYear: 2023,
 };
