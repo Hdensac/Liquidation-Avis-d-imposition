@@ -68,19 +68,19 @@ export const generateExcelLiquidation = async (
   worksheet.getCell(`B${row7}`).value = calculations.adresseDescription;
   worksheet.getCell(`B${row7}`).font = { bold: true };
 
-  // Ligne VA & SURF (Ligne 9)
+  // Ligne VA & SURFACE (Ligne 9) - Nombres en vert sans soulignement
   const row9 = 9;
   worksheet.getCell(`A${row9}`).value = "VA";
   worksheet.getCell(`A${row9}`).font = { bold: true, size: 12 };
   worksheet.getCell(`B${row9}`).value = calculations.valeurLocative;
-  worksheet.getCell(`B${row9}`).font = { bold: true, size: 11 };
-  //worksheet.getCell(`B${row9}`).numFmt = "#,##0";
+  worksheet.getCell(`B${row9}`).font = { bold: true, size: 12, color: { argb: "FF15803D" } }; // Vert
+  worksheet.getCell(`B${row9}`).numFmt = "#,##0";
 
   worksheet.getCell(`E${row9}`).value = "SURFACE";
   worksheet.getCell(`E${row9}`).font = { bold: true, size: 12 };
   worksheet.getCell(`E${row9}`).alignment = { horizontal: "right" };
   worksheet.getCell(`F${row9}`).value = calculations.surf;
-  worksheet.getCell(`F${row9}`).font = { bold: true, size: 12, underline: false };
+  worksheet.getCell(`F${row9}`).font = { bold: true, size: 12, color: { argb: "FF15803D" } }; // Vert
   worksheet.getCell(`F${row9}`).alignment = { horizontal: "right" };
 
   // 5. En-tête du Tableau (Ligne 11)

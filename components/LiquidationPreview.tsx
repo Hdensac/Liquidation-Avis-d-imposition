@@ -78,17 +78,17 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </div>
         </div>
 
-        {/* Ligne VA et SURF alignée */}
+        {/* Ligne VA et SURFACE : Valeurs en vert sans soulignement */}
         <div className="flex justify-between items-center text-xs font-bold pt-4 pb-2">
           <div className="flex items-center gap-6">
             <span className="uppercase font-extrabold text-sm">VA</span>
-            <span className="font-mono text-sm border-b border-gray-400 px-3">
+            <span className="font-mono text-sm font-extrabold text-green-700 px-1">
               {calculations.valeurLocative > 0 ? formatMoney(calculations.valeurLocative) : ""}
             </span>
           </div>
           <div className="flex items-center gap-6">
             <span className="uppercase font-extrabold text-sm">SURFACE</span>
-            <span className="font-mono text-sm underline font-extrabold">
+            <span className="font-mono text-sm font-extrabold text-green-700 px-1">
               {calculations.surf > 0 ? calculations.surf : ""}
             </span>
           </div>
