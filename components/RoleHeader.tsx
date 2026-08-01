@@ -1,6 +1,7 @@
-// components/RoleHeader.tsx
+"use client";
+
 import React, { useEffect, useState } from "react";
-import { getActiveRole } from "@/actions/liquidationActions";
+import { getActiveRole } from "../actions/liquidationActions";
 
 type RoleInfo = {
   id: string;
