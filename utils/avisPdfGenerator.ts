@@ -310,23 +310,48 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   ];
 
   let x = MAIN_X;
-  pdf.setDrawColor(0);
-  pdf.setFillColor(245, 245, 245); // light grey header
+  pdf.setDrawColor(0, 0, 0);
+  pdf.setFillColor(245, 245, 245);
   pdf.setTextColor(0, 0, 0);
+  pdf.setLineWidth(0.3);
+
+  console.log("[Avis PDF] drawArticlesTable header start", {
+    expectedFill: [245, 245, 245],
+    expectedTextColor: [0, 0, 0],
+    widths,
+  });
 
   headers.forEach((headerLines, index) => {
-    pdf.rect(x, startY, widths[index], 16, "F");
-    pdf.rect(x, startY, widths[index], 16, "S");
+    const cellX = x;
+    const cellW = widths[index];
+    console.log("[Avis PDF] drawArticlesTable header cell", {
+      cellX,
+      cellW,
+      headerLines,
+    });
+
+    pdf.setFillColor(245, 245, 245);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setTextColor(0, 0, 0);
+    pdf.rect(cellX, startY, cellW, 16, "F");
+    pdf.rect(cellX, startY, cellW, 16, "S");
     pdf.setFont("times", "bold");
     pdf.setFontSize(8.5);
 
     if (headerLines.length === 1) {
-      pdf.text(headerLines[0], x + widths[index] / 2, startY + 8.5, { align: "center" });
+      pdf.text(headerLines[0], cellX + cellW / 2, startY + 8.5, { align: "center" });
     } else {
-      pdf.text(headerLines[0], x + widths[index] / 2, startY + 5.5, { align: "center" });
-      pdf.text(headerLines[1], x + widths[index] / 2, startY + 11.5, { align: "center" });
+      pdf.text(headerLines[0], cellX + cellW / 2, startY + 5.5, { align: "center" });
+      pdf.text(headerLines[1], cellX + cellW / 2, startY + 11.5, { align: "center" });
     }
-    x += widths[index];
+    x += cellW;
+  });
+
+  console.log("[Avis PDF] drawArticlesTable header drawn", {
+    headerCount: headers.length,
+    finalX: x,
+    startY,
+    rowY: startY + 16,
   });
 
   let y = startY + 16;
