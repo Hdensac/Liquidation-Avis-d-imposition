@@ -85,7 +85,8 @@ function toNumber(value: unknown, fallback = 0) {
 function formatNumber(value: number, showZero = false) {
   if (!Number.isFinite(value)) return "-";
   if (!showZero && value === 0) return "-";
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(value));
+  const rounded = Math.round(value);
+  return String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
 function formatDateLong(value: Date) {
