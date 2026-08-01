@@ -293,8 +293,8 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 
 function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const startY = 68;
-  // Wider description/localisation and base columns for readability
-  const widths = [15, 14, 22, 50, 60, 22, 12, 22, 18, 20, 24];
+  // Widths must fit into MAIN_W (238 mm in landscape mode)
+  const widths = [15, 14, 18, 42, 56, 20, 10, 20, 15, 15, 13];
   const headers = [
     ["N° des", "articles"],
     ["Exercice"],
