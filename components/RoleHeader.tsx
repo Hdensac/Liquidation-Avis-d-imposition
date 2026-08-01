@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getActiveRole } from "../actions/liquidationActions";
+import ModalCloseRole from "./ModalCloseRole";
 
 type RoleInfo = {
   id: string;
@@ -37,8 +38,6 @@ export default function RoleHeader() {
   if (!role) {
     return <p className="text-center text-gray-500 dark:text-gray-400">Aucun rôle actif trouvé pour le moment.</p>;
   }
-
-  import ModalCloseRole from "./ModalCloseRole";
 
   return (
     <div className="flex items-center justify-center mb-6">
