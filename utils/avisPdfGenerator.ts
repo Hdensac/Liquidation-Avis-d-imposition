@@ -293,20 +293,20 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 
 function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const startY = 68;
-  // Widths must fit into MAIN_W (238 mm in landscape mode)
-  const widths = [15, 14, 18, 42, 56, 20, 10, 20, 15, 15, 13];
+  // Adjusted column widths to sum up exactly to MAIN_W = 238 mm (preventing right side overflow)
+  const widths = [12, 14, 20, 36, 52, 16, 11, 19, 16, 19, 23];
   const headers = [
-    ["N° des", "articles"],
+    ["N°", "Article"],
     ["Exercice"],
-    ["NATURE D' IMPOTS"],
+    ["Nature", "d'Impôt"],
     ["Localisation"],
     ["Description"],
     ["Base"],
     ["Taux"],
-    ["Droit simple"],
+    ["Droit", "Simple"],
     ["Pénalité"],
-    ["Acompte", "payé"],
-    ["Reste dû"],
+    ["Acompte", "Payé"],
+    ["Reste", "Dû"],
   ];
 
   let x = MAIN_X;
@@ -330,7 +330,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     pdf.setDrawColor(0, 0, 0);
     pdf.rect(cellX, startY, cellW, 16, "S");
     pdf.setFont("times", "bold");
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(8);
 
     pdf.setTextColor(0, 0, 0);
     if (headerLines.length === 1) {
