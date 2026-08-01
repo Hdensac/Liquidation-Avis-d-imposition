@@ -68,14 +68,9 @@ export default function NewLiquidationForm() {
         <Send size={18} />
         {loading ? "Enregistrement..." : "Enregistrer & Mettre en attente de paiement"}
       </button>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between no-print px-2">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Apercu en temps reel de la fiche officielle</h2>
-          <span className="text-xs text-slate-500 bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full">Format A4 Imprimable</span>
-        </div>
-        <div className="overflow-x-auto pb-8">
-          <LiquidationPreview formData={formData} calculations={calculations} />
-        </div>
+      {/* Offscreen element kept for PDF generation */}
+      <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none opacity-0" aria-hidden="true">
+        <LiquidationPreview formData={formData} calculations={calculations} />
       </div>
     </div>
   );
