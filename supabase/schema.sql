@@ -187,9 +187,13 @@ BEGIN
   SELECT * INTO v_contrib FROM public.contribuables WHERE id = v_liq.contribuable_id;
 
   -- Obtenir ou créer le Rôle ACTIF
+  -- ORDER BY created_at ASC garantit qu'on prend toujours le même rôle (le plus ancien)
+  -- même si des doublons existent en base, ce qui assure la continuité des numéros d'articles.
   SELECT id, numero_role INTO v_role_id, v_role_num
   FROM public.roles
   WHERE commune = v_contrib.commune AND annee = v_current_year AND status = 'ACTIF'
+  ORDER BY created_at ASC
+  LIMIT 1
   FOR UPDATE;
 
   IF NOT FOUND THEN

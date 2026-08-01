@@ -140,13 +140,12 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   return data;
 }
 
-/** Validate payment and generate recouvrement/avis */
+/** Validate payment and generate recouvrement/avis.
+ *  NOTE: Role creation is handled atomically inside the SQL RPC (FOR UPDATE lock).
+ *  Do NOT call ensureActiveRole here — it would create a race condition
+ *  leading to duplicate ACTIF roles for the same commune.
+ */
 export async function validatePayment(liquidationId: string) {
-  const commune = await fetchLiquidationCommune(liquidationId);
-  if (commune) {
-    await ensureActiveRole(commune);
-  }
-
   const { error, data: result } = await supabase.rpc("valider_paiement_liquidation", {
     p_liquidation_id: liquidationId,
   });
