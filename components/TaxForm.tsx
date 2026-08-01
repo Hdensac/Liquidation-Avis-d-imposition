@@ -190,8 +190,8 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 min="0"
                 step="any"
                 placeholder="Ex: 1500"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
-                required
+                className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed outline-none select-none font-semibold"
+                readOnly
               />
             </div>
             <div>
@@ -205,7 +205,8 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 onChange={handleChange}
                 min="2000"
                 max="2100"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed outline-none select-none"
+                readOnly
               />
             </div>
           </div>
