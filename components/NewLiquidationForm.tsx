@@ -1,3 +1,5 @@
+"use client";
+
 // components/NewLiquidationForm.tsx
 import React, { useState } from "react";
 import TaxForm from "@/components/TaxForm";

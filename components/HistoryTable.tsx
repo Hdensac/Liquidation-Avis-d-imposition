@@ -1,3 +1,5 @@
+"use client";
+
 // components/HistoryTable.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";

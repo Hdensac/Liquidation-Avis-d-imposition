@@ -1,3 +1,5 @@
+"use client";
+
 // components/PendingLiquidationsTable.tsx
 import React, { useEffect, useState } from "react";
 import { fetchPendingLiquidations, validatePayment } from "@/actions/liquidationActions";
