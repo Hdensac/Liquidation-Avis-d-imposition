@@ -38,6 +38,8 @@ export default function RoleHeader() {
     return <p className="text-center text-gray-500 dark:text-gray-400">Aucun rôle actif trouvé pour le moment.</p>;
   }
 
+  import ModalCloseRole from "./ModalCloseRole";
+
   return (
     <div className="flex items-center justify-center mb-6">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition">
@@ -47,6 +49,8 @@ export default function RoleHeader() {
         <span className="mx-2">|</span>
         <span>{role.annee}</span>
       </div>
+      {/* Role closure button */}
+      <ModalCloseRole commune={role.commune} />
     </div>
   );
 }
