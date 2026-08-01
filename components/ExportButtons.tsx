@@ -79,7 +79,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
           {loadingExcel ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Génération Excel...
+              Génération Excel....
             </>
           ) : (
             <>
