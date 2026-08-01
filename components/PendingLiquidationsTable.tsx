@@ -3,7 +3,7 @@
 // components/PendingLiquidationsTable.tsx
 import React, { useEffect, useState } from "react";
 import { fetchPendingLiquidations, validatePayment } from "@/actions/liquidationActions";
-import { toast } from "react-hot-toast";
+import { useToast, ToastContainer } from "./useToast";
 
 type Liquidation = {
   id: string;
@@ -20,6 +20,7 @@ type Liquidation = {
 export default function PendingLiquidationsTable() {
   const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
   const [loading, setLoading] = useState(false);
+  const { toast, toasts } = useToast();
 
   const loadData = async () => {
     setLoading(true);
@@ -54,6 +55,7 @@ export default function PendingLiquidationsTable() {
 
   return (
     <div className="overflow-x-auto">
+      <ToastContainer toasts={toasts} />
       <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow">
         <thead className="bg-gray-200 dark:bg-gray-700">
           <tr>

@@ -3,7 +3,7 @@
 // components/HistoryTable.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "react-hot-toast";
+import { useToast, ToastContainer } from "./useToast";
 
 type Recouvrement = {
   id: string;
@@ -20,6 +20,7 @@ type Recouvrement = {
 export default function HistoryTable() {
   const [records, setRecords] = useState<Recouvrement[]>([]);
   const [loading, setLoading] = useState(false);
+  const { toast, toasts } = useToast();
 
   const loadHistory = async () => {
     setLoading(true);
@@ -48,6 +49,7 @@ export default function HistoryTable() {
 
   return (
     <div className="overflow-x-auto">
+      <ToastContainer toasts={toasts} />
       <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow">
         <thead className="bg-gray-200 dark:bg-gray-700">
           <tr>
