@@ -162,6 +162,51 @@ export async function closeActiveRole(commune: string) {
   return result;
 }
 
+/** Fetch all roles with aggregate stats (nb recouvrements, total droits, dernier article) */
+export async function fetchAllRoles() {
+  const { data, error } = await supabase
+    .from("roles")
+    .select(`
+      id,
+      numero_role,
+      commune,
+      annee,
+      status,
+      created_at,
+      recouvrements (
+        id,
+        articles_recouvrement ( droit_simple, numero_article )
+      )
+    `)
+    .order("annee", { ascending: false })
+    .order("numero_role", { ascending: false });
+
+  if (error) throw error;
+
+  // Compute derived stats client-side to avoid complex SQL
+  return (data ?? []).map((role) => {
+    const recouvrements = role.recouvrements ?? [];
+    const allArticles = recouvrements.flatMap((r: { articles_recouvrement: { droit_simple: number; numero_article: number }[] }) => r.articles_recouvrement ?? []);
+    const totalDroits = allArticles.reduce((sum: number, a: { droit_simple: number }) => sum + (Number(a.droit_simple) || 0), 0);
+    const lastArticle = allArticles.length > 0
+      ? Math.max(...allArticles.map((a: { numero_article: number }) => Number(a.numero_article) || 0))
+      : 0;
+    return {
+      id: role.id as string,
+      numero_role: Number(role.numero_role),
+      commune: role.commune as string,
+      annee: Number(role.annee),
+      status: role.status as "ACTIF" | "CLOTURE",
+      created_at: role.created_at as string,
+      nb_recouvrements: recouvrements.length,
+      total_droits: totalDroits,
+      dernier_article: lastArticle,
+    };
+  });
+}
+
+export type RoleSummary = Awaited<ReturnType<typeof fetchAllRoles>>[number];
+
 // Get the active role for a commune (or create one if the base is still empty)
 export async function getActiveRole(commune?: string) {
   const role = await findActiveRole(commune);

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { getActiveRole } from "../actions/liquidationActions";
-import ModalCloseRole from "./ModalCloseRole";
 
 type RoleInfo = {
   id: string;
@@ -32,24 +31,18 @@ export default function RoleHeader() {
   }, []);
 
   if (loading) {
-    return <p className="text-center text-gray-500 dark:text-gray-400">Chargement du rôle...</p>;
+    return <p className="text-center text-gray-500 dark:text-gray-400 pt-4">Chargement du rôle...</p>;
   }
 
   if (!role) {
-    return <p className="text-center text-gray-500 dark:text-gray-400">Aucun rôle actif trouvé pour le moment.</p>;
+    return <p className="text-center text-gray-500 dark:text-gray-400 pt-4">Aucun rôle actif trouvé.</p>;
   }
 
   return (
-    <div className="flex items-center justify-center mb-6">
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition">
-        <span className="font-medium">Rôle #{role.numero_role}</span>
-        <span className="mx-2">|</span>
-        <span>ALLADA</span>
-        <span className="mx-2">|</span>
-        <span>{role.annee}</span>
+    <div className="flex items-center justify-center mb-6 pt-4">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-full shadow-lg text-sm font-medium tracking-wide">
+        Rôle #{role.numero_role} | {role.commune} | {role.annee}
       </div>
-      {/* Role closure button */}
-      <ModalCloseRole commune={role.commune} />
     </div>
   );
 }
