@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export interface DataAvisPDF {
+// Type attendu par liquidationActions.ts
+export interface AvisRecouvrementDetails {
   commune: string;
   anneeExercice: number;
   directionDepartementale?: string;
@@ -39,28 +40,25 @@ export interface DataAvisPDF {
   totalDu: number;
 }
 
-export const generateAvisPDF = (data: DataAvisPDF) => {
+// Alias pour compatibilité
+export type DataAvisPDF = AvisRecouvrementDetails;
+
+// Fonction principale attendue par HistoryTable.tsx
+export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: 'a4'
   });
 
-  const primaryColor = [40, 40, 40];
-  const tableHeaderBg = [220, 220, 220]; // Gris clair officiel DGI
-
-  // ==========================================
   // 1. BLOC GAUCHE (Entête Administrative & AVIS)
-  // ==========================================
-  
-  // Cadre externe gauche
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
-  doc.rect(8, 8, 55, 194); // Box administrative gauche
+  doc.rect(8, 8, 55, 194);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('REPUBLIQUE DU BENIN', 355, 14, { align: 'center' });
+  doc.text('REPUBLIQUE DU BENIN', 35.5, 14, { align: 'center' });
   doc.text('------------------', 35.5, 17, { align: 'center' });
   doc.text('MINISTERE DE L\'ECONOMIE ET DES FINANCES', 35.5, 21, { align: 'center' });
   doc.text('------------------', 35.5, 24, { align: 'center' });
@@ -76,14 +74,12 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
   doc.text('------------------', 35.5, 60, { align: 'center' });
   doc.text(`RECETTE DES IMPOTS\nD'${data.commune.toUpperCase()}`, 35.5, 64, { align: 'center' });
 
-  // Champs de dates à remplir à la main ou auto
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.text(`Date de notification :\n........../........../20.....`, 11, 75);
   doc.text(`Date de mise en rec. :\n${data.dateMiseEnRecouvrement || '........../........../20.....'}`, 11, 85);
   doc.text(`Date de majoration :\n${data.dateMajoration || '........../........../20.....'}`, 11, 95);
 
-  // Bloc "AVIS AUX CONTRIBUABLES"
   doc.roundedRect(10, 108, 51, 90, 3, 3);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
@@ -98,10 +94,7 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
     "Le paiement des impôts se fait à la caisse du Receveur des Impôts.";
   doc.text(doc.splitTextToSize(textAvis, 47), 12, 126);
 
-  // ==========================================
-  // 2. EN-TÊTE PRINCIPALE (COMMUNE & DESTINATAIRE)
-  // ==========================================
-  
+  // 2. EN-TÊTE PRINCIPALE
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, 165, 16, { align: 'center' });
@@ -110,7 +103,6 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
   doc.setFontSize(9);
   doc.text(`Année : ${data.anneeExercice}`, 280, 22, { align: 'right' });
 
-  // Banner "AVIS DE MISE EN RECOUVREMENT"
   doc.setFillColor(240, 240, 240);
   doc.rect(110, 26, 110, 7, 'F');
   doc.setLineWidth(0.4);
@@ -118,7 +110,7 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
   doc.setFontSize(10);
   doc.text('AVIS DE MISE EN RECOUVREMENT', 165, 31, { align: 'center' });
 
-  // Infos Destinataire
+  // Destinataire
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.text('DESTINATAIRE :', 68, 42);
@@ -134,10 +126,7 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
   doc.setFont('helvetica', 'bold');
   doc.text(data.numeroRole, 100, 61);
 
-  // ==========================================
-  // 3. TABLEAU D'IMPOSITION (autoTable)
-  // ==========================================
-
+  // 3. TABLEAU
   const tableBody = data.lignes.map(l => [
     l.numeroArticle.toString(),
     l.exercice.toString(),
@@ -202,14 +191,9 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
     }
   });
 
-  // Position après le tableau
   const finalY = (doc as any).lastAutoTable.finalY + 3;
 
-  // ==========================================
-  // 4. TOTAL DÛ ET SIGNATURES
-  // ==========================================
-
-  // Cadre TOTAL DÛ
+  // 4. TOTAL DÛ ET SIGNATURE
   doc.setFillColor(235, 235, 235);
   doc.rect(68, finalY, 219, 8, 'FD');
   doc.setFont('helvetica', 'bold');
@@ -217,7 +201,6 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
   doc.text('TOTAL DÛ', 110, finalY + 5.5);
   doc.text(`${data.totalDu.toLocaleString('fr-FR')} FCFA`, 280, finalY + 5.5, { align: 'right' });
 
-  // Formule légale exécutoire
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.text(
@@ -227,7 +210,6 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
     { align: 'center' }
   );
 
-  // Date et Signature
   doc.setFontSize(9);
   doc.text(`${data.commune}, le ${data.dateEmission}`, 230, finalY + 24);
   doc.setFontSize(10);
@@ -237,6 +219,8 @@ export const generateAvisPDF = (data: DataAvisPDF) => {
     doc.text(data.chefServiceNom, 230, finalY + 45);
   }
 
-  // Téléchargement du fichier
   doc.save(`Avis_Recouvrement_${data.ifu}_${data.anneeExercice}.pdf`);
 };
+
+// Export alternatif pour compatibilité
+export const generateAvisPDF = generateAvisRecouvrementPdf;
