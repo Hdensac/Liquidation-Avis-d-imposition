@@ -81,7 +81,7 @@ export default function Home() {
       arrondissement: "",
       quartier: "",
       superficie: "",
-      valeurLocative: "",
+      valeurLocative: "300",
       startYear: 2023,
     });
   };
