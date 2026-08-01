@@ -81,7 +81,7 @@ function toNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-// Format numbers for display; by default show '-' for zero/invalid unless showZero=true.
+// Format numbers for display; show '-' for invalid, showZero toggles display of zero as '0' instead of '-'
 function formatNumber(value: number, showZero = false) {
   if (!Number.isFinite(value)) return "-";
   if (!showZero && value === 0) return "-";
@@ -110,11 +110,16 @@ function normalizeCommune(value?: string) {
 }
 
 function getBaseImposable(details: AvisRecouvrementDetails) {
+  // If liquidation provides valeur_locative and superficie, use them; otherwise fallback to 0
   return toNumber(details.liquidation.superficie) * toNumber(details.liquidation.valeur_locative);
 }
 
 function sanitizeText(s: unknown) {
-  return String(s || "").replace(/&+/g, " ").replace(/[\u0000-\u001f]/g, " ").trim();
+  return String(s || "")
+    .replace(/&+/g, " ")
+    .replace(/[\u0000-\u001f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
@@ -122,11 +127,12 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
   const rows = details.articles || [];
 
   return rows.map((article, index) => {
+    // default taux: first row 4%, others 5% (same logic as before)
     const taux = isNumber(article.taux) ? article.taux : index === 0 ? 0.04 : 0.05;
     const droitSimple = baseImposable * taux;
     const penalite = toNumber(article.penalite, 0);
     const acomptePaye = toNumber(article.acompte_paye, 0);
-    const resteDu = droitSimple + penalite - acomptePaye;
+    const resteDu = Math.max(0, droitSimple + penalite - acomptePaye);
 
     return {
       numero_article: toNumber(article.numero_article, index + 1),
@@ -152,10 +158,10 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
           .join("/")}`,
       base: baseImposable,
       taux,
-      droit_simple: droitSimple,
-      penalite,
-      acompte_paye: acomptePaye,
-      reste_du: resteDu,
+      droit_simple: Math.round(droitSimple),
+      penalite: Math.round(penalite),
+      acompte_paye: Math.round(acomptePaye),
+      reste_du: Math.round(resteDu),
     };
   });
 }
@@ -168,7 +174,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   const cx = SIDEBAR_X + SIDEBAR_W / 2;
 
   pdf.setFont("times", "normal");
-  pdf.setFontSize(6.5);
+  pdf.setFontSize(7);
 
   const headerLines = [
     "REPUBLIQUE DU BENIN",
@@ -179,11 +185,9 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "----------------------",
     "DIRECTION DEPARTEMENTALE DES IMPOTS DE L'ATLANTIQUE",
     "******",
-    "CENTRE DES IMPOTS DES PETITES ENTREPRISES D'ALLADA",
+    `CENTRE DES IMPOTS DES PETITES ENTREPRISES D'${commune}`,
     "----------------------",
     "SERVICE DE GESTION",
-    "----------------------",
-    "RECETTE DES IMPOTS D'ALLADA",
   ];
 
   let currentY = 10;
@@ -206,14 +210,14 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, 70, 3, 3);
 
   pdf.setFont("times", "bold");
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(8);
   pdf.text("AVIS AUX CONTRIBUABLES", cx, boxY + 6, { align: "center" });
 
   pdf.setFont("times", "normal");
-  pdf.setFontSize(4.6);
+  pdf.setFontSize(5);
   const avisText = [
     "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois qui suivent la notification du présent avis d'imposition.",
-    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive. Celles qui sont motivées par la gêne ou l'indigence pe[...]",
+    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive.",
     "Tout renseignement sur la nature des impôts faisant l'objet de cet avis d'imposition peut être demandé au Service d'Assiette.",
     "Le paiement des impôts se fait à la Caisse du Receveur des Impôts, soit en numéraire, soit par chèque bancaire certifié et libellé au nom du Receveur des Impôts.",
   ];
@@ -222,25 +226,21 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   avisText.forEach((paragraph) => {
     const lines = wrap(pdf, paragraph, SIDEBAR_W - 5);
     pdf.text(lines, SIDEBAR_X + 3, tY);
-    tY += lines.length * 2.1 + 1.2;
+    tY += lines.length * 2.4 + 1.2;
   });
 
   // Abréviations
-  pdf.setFontSize(4.4);
+  pdf.setFontSize(4.6);
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
     "VV = Valeur Vénale | VL = Valeur Locative | RN = Revenu Net",
     "PEO = Prélèvement pour Enlèvement des Ordures",
     "TFU : Taxe Foncière Unique",
-    "IRPP/RF = Impôt sur le Revenu des Personnes Physiques (Revenu Foncier)",
-    "PORTB = Prélèvement pour l'Office de Radiodiffusion et Télévision",
-    "Mode de calcul :",
-    "TFU/FNB = VV x taux | TFU/FB = VL x taux",
   ];
 
   let abY = 146;
-  abbrev.forEach((line, idx) => {
-    pdf.setFont("times", idx === 6 ? "bold" : "normal");
+  abbrev.forEach((line) => {
+    pdf.setFont("times", "normal");
     pdf.text(line, SIDEBAR_X + 1, abY);
     abY += 2.8;
   });
@@ -248,16 +248,17 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
 
 function drawStaticHeader(pdf: jsPDF, commune: string, annee: number) {
   pdf.setFont("times", "bold");
-  pdf.setFontSize(14);
+  pdf.setFontSize(16);
   pdf.text(`COMMUNE : ${commune}`, MAIN_X + MAIN_W / 2, 14, { align: "center" });
-  pdf.setFontSize(12);
+  pdf.setFontSize(13);
   pdf.text("TAXE FONCIERE UNIQUE", MAIN_X + MAIN_W / 2, 20, { align: "center" });
-  
+
   pdf.setFontSize(10);
   pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25, { align: "right" });
 
-  // Bannière encadrée
+  // Bannière encadrée (light stroke only)
   pdf.setLineWidth(0.4);
+  pdf.setDrawColor(0);
   pdf.rect(MAIN_X + 30, 28, MAIN_W - 60, 7, "S");
   pdf.setFontSize(11);
   pdf.text("AVIS DE MISE EN RECOUVREMENT", MAIN_X + MAIN_W / 2, 32.8, { align: "center" });
@@ -265,7 +266,7 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number) {
 
 function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
   const commune = normalizeCommune(details.role.commune);
-  const roleLabel = `Role N°${details.role.numero_role}/${commune}/ ${details.role.annee}`;
+  const roleLabel = `Role N°${details.role.numero_role}/${commune}/${details.role.annee}`;
   const addressParts = [
     normalizeCommune(details.contribuable.commune),
     normalizeCommune(details.contribuable.arrondissement),
@@ -283,7 +284,7 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
   pdf.text(details.contribuable.nom_prenoms, MAIN_X + 30, 43);
   pdf.text(details.contribuable.ifu_npi, MAIN_X + 30, 49);
   pdf.text(`Tél : ${details.contribuable.telephone || "-"}`, MAIN_X + 150, 49);
-  pdf.text(wrap(pdf, address, 140), MAIN_X + 30, 55);
+  pdf.text(wrap(pdf, address, 160), MAIN_X + 30, 55);
 
   pdf.setFont("times", "bold");
   pdf.text(roleLabel, MAIN_X + 30, 62);
@@ -291,7 +292,8 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 
 function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const startY = 68;
-  const widths = [15, 14, 26, 38, 42, 18, 12, 18, 15, 18, 22];
+  // Wider description/localisation and base columns for readability
+  const widths = [15, 14, 22, 50, 60, 22, 12, 22, 18, 20, 24];
   const headers = [
     ["N° des", "articles"],
     ["Exercice"],
@@ -308,23 +310,23 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
   let x = MAIN_X;
   pdf.setDrawColor(0);
-  pdf.setFillColor(210, 210, 210); // Gris entête officiel
+  pdf.setFillColor(230, 230, 230); // softer grey header
 
   headers.forEach((headerLines, index) => {
-    pdf.rect(x, startY, widths[index], 14, "FD");
+    pdf.rect(x, startY, widths[index], 16, "FD");
     pdf.setFont("times", "bold");
-    pdf.setFontSize(7.5);
-    
+    pdf.setFontSize(8.5);
+
     if (headerLines.length === 1) {
       pdf.text(headerLines[0], x + widths[index] / 2, startY + 8.5, { align: "center" });
     } else {
       pdf.text(headerLines[0], x + widths[index] / 2, startY + 5.5, { align: "center" });
-      pdf.text(headerLines[1], x + widths[index] / 2, startY + 9.5, { align: "center" });
+      pdf.text(headerLines[1], x + widths[index] / 2, startY + 11.5, { align: "center" });
     }
     x += widths[index];
   });
 
-  let y = startY + 14;
+  let y = startY + 16;
 
   // Ensure text color
   pdf.setTextColor(0, 0, 0);
@@ -339,30 +341,31 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
       // Base: always formatted number (show 0 as 0)
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
-      formatNumber(row.droit_simple),
-      formatNumber(row.penalite),
-      formatNumber(row.acompte_paye),
-      formatNumber(row.reste_du),
+      // Monetary columns: show 0 instead of '-'
+      formatNumber(row.droit_simple, true),
+      formatNumber(row.penalite, true),
+      formatNumber(row.acompte_paye, true),
+      formatNumber(row.reste_du, true),
     ];
 
-    const wrapped = values.map((val, idx) => wrap(pdf, val, widths[idx] - 2));
-    const rowHeight = Math.max(10, ...wrapped.map((lines) => lines.length * 3.2 + 3));
+    const wrapped = values.map((val, idx) => wrap(pdf, val, widths[idx] - 4));
+    const rowHeight = Math.max(12, ...wrapped.map((lines) => lines.length * 4 + 4));
     let currentX = MAIN_X;
 
     values.forEach((_, idx) => {
       pdf.rect(currentX, y, widths[idx], rowHeight);
       pdf.setFont("times", idx <= 1 ? "bold" : "normal");
-      pdf.setFontSize(7.5);
+      pdf.setFontSize(8);
 
       const isCentered = idx <= 2 || idx === 6;
       const isRightAligned = idx === 5 || idx >= 7;
 
-      let textX = currentX + 1.5;
+      let textX = currentX + 2;
       if (isCentered) textX = currentX + widths[idx] / 2;
-      if (isRightAligned) textX = currentX + widths[idx] - 1.5;
+      if (isRightAligned) textX = currentX + widths[idx] - 2;
 
       const align = isCentered ? "center" : isRightAligned ? "right" : "left";
-      pdf.text(wrapped[idx], textX, y + 5.5, { align });
+      pdf.text(wrapped[idx], textX, y + 6, { align });
 
       currentX += widths[idx];
     });
@@ -374,35 +377,33 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 }
 
 function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, totalDu: number, dateEmission: Date) {
-  const blockY = endY + 2;
+  const blockY = endY + 4;
   const totalWidth = MAIN_W;
 
   // Ligne TOTAL DÛ
   pdf.setFillColor(220, 220, 220);
-  pdf.rect(MAIN_X, blockY, totalWidth, 8, "FD");
+  pdf.rect(MAIN_X, blockY, totalWidth, 12, "FD");
   pdf.setFont("times", "bold");
-  pdf.setFontSize(12);
-  pdf.text("TOTAL DÛ", MAIN_X + 60, blockY + 5.5, { align: "center" });
-  pdf.text(formatNumber(totalDu, true), MAIN_X + totalWidth - 15, blockY + 5.5, { align: "right" });
+  pdf.setFontSize(13);
+  pdf.text("TOTAL DÛ", MAIN_X + 70, blockY + 8, { align: "center" });
+  pdf.text(formatNumber(totalDu, true), MAIN_X + totalWidth - 15, blockY + 8, { align: "right" });
 
   // Formule légale
   pdf.setFont("times", "bold");
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(9);
   pdf.text(
     "Rendu exécutoire en vertu des dispositions des articles 596 et 597 du Code Général des Impôts,",
     MAIN_X + totalWidth / 2,
-    blockY + 14,
+    blockY + 20,
     { align: "center" }
   );
 
   // Bloc de Signature
   const place = titleCase(normalizeCommune(details.role.commune));
   pdf.setFontSize(10);
-  pdf.text(`${place}, le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 26, { align: "right" });
+  pdf.text(`${place}, le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 32, { align: "right" });
   pdf.setFontSize(11);
-  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 33, { align: "right" });
-  pdf.setFontSize(10);
-  pdf.text("Hopeson HOUNSINOU", MAIN_X + totalWidth - 10, blockY + 48, { align: "right" });
+  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 39, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
@@ -417,6 +418,9 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
     unit: "mm",
     format: "a4",
   });
+
+  // Ensure text color is black
+  pdf.setTextColor(0, 0, 0);
 
   drawStaticSidebar(pdf, commune);
   drawStaticHeader(pdf, commune, annee);
