@@ -36,8 +36,8 @@ export default function NewLiquidationForm() {
     const quartStr = formData.quartier ? formData.quartier.toUpperCase() : "";
     const locationStr = [communeStr, arrStr, quartStr].filter(Boolean).join("/");
     const adresseDescription = locationStr
-      ? `PARCELLE DE ${surf} M² SISE A ${locationStr}`
-      : `PARCELLE DE ${surf} M²`;
+      ? `PARCELLE DE ${surf} m2 SISE A ${locationStr}`
+      : `PARCELLE DE ${surf} m2`;
     const baseImposable = surf * valeurLocative;
     const exercises: TaxExercise[] = [];
     let totalDu = 0;
@@ -101,3 +101,4 @@ export default function NewLiquidationForm() {
     </div>
   );
 }
+
