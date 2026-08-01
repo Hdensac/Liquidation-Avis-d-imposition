@@ -60,14 +60,14 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
 
       <div className="flex flex-wrap items-center gap-3">
         {/* Bouton Impression Directe */}
-        <button
+        {/* <button
           type="button"
           onClick={handlePrint}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 font-medium text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
         >
           <Printer className="w-4 h-4" />
           Imprimer
-        </button>
+        </button> */}
 
         {/* Bouton Export Excel */}
         <button
