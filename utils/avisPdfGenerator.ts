@@ -1,343 +1,242 @@
-import jsPDF from "jspdf";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-export type AvisRecouvrementArticle = {
-  id: string;
-  numero_article: number;
-  exercice: number;
-  nature_impot: string;
-  localisation: string;
-  description: string;
-  base: number;
-  taux: number;
-  droit_simple: number;
-  penalite: number;
-  acompte_paye: number;
-  reste_du: number;
-};
+export interface DataAvisPDF {
+  commune: string;
+  anneeExercice: number;
+  directionDepartementale?: string;
+  centreImpots?: string;
+  recetteImpots?: string;
+  
+  // Destinataire
+  nomPrenom: string;
+  ifu: string;
+  telephone: string;
+  adresseParcelle: string;
+  numeroRole: string; // Ex: "Role N°1/COTONOU/2026"
+  
+  // Dates
+  dateNotification?: string;
+  dateMiseEnRecouvrement?: string;
+  dateMajoration?: string;
+  dateEmission: string;
+  chefServiceNom?: string;
 
-export type AvisRecouvrementDetails = {
-  recouvrement: {
-    id: string;
-    liquidation_id: string;
-    role_id: string;
-    contribuable_id: string;
-    date_paiement: string;
-  };
-  liquidation: {
-    id: string;
-    reference_liq: string;
-    superficie: number;
-    valeur_locative: number;
-    start_year: number;
-    status: string;
-    created_at: string;
-  };
-  role: {
-    id: string;
-    numero_role: number;
-    commune: string;
-    annee: number;
-    status: string;
-  };
-  contribuable: {
-    id: string;
-    nom_prenoms: string;
-    ifu_npi: string;
-    telephone: string;
-    commune: string;
-    arrondissement: string;
-    quartier: string;
-  };
-  articles: AvisRecouvrementArticle[];
-};
-
-const PAGE_WIDTH = 297;
-const LEFT_COL_X = 8;
-const LEFT_COL_W = 41;
-const MAIN_X = 54;
-const RIGHT_MARGIN = 8;
-const MAIN_W = PAGE_WIDTH - MAIN_X - RIGHT_MARGIN;
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 0,
-  }).format(Math.round(value));
+  // Lignes de calcul
+  lignes: Array<{
+    numeroArticle: number;
+    exercice: number;
+    natureImpot: string;
+    localisation: string;
+    description: string;
+    base: string | number;
+    taux: string;
+    droitSimple: number;
+    penalite: number;
+    acomptePaye: number;
+    resteDu: number;
+  }>;
+  totalDu: number;
 }
 
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function wrapLines(pdf: jsPDF, text: string, width: number) {
-  return pdf.splitTextToSize(String(text ?? ""), width);
-}
-
-function drawCenteredBlock(pdf: jsPDF, lines: string[], x: number, y: number, width: number, fontSize = 8) {
-  pdf.setFont("times", "normal");
-  pdf.setFontSize(fontSize);
-  let currentY = y;
-  lines.forEach((line) => {
-    pdf.text(line, x + width / 2, currentY, { align: "center" });
-    currentY += 4.1;
+export const generateAvisPDF = (data: DataAvisPDF) => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
   });
-  return currentY;
-}
 
-function drawSidebar(pdf: jsPDF, datePaiement: string, commune: string) {
-  pdf.setDrawColor(0);
-  pdf.setLineWidth(0.4);
-  pdf.rect(LEFT_COL_X, 8, LEFT_COL_W, 194);
+  const primaryColor = [40, 40, 40];
+  const tableHeaderBg = [220, 220, 220]; // Gris clair officiel DGI
 
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(9);
-  drawCenteredBlock(
-    pdf,
-    [
-      "REPUBLIQUE DU BENIN",
-      "----------------------",
-      "MINISTERE DE L'ECONOMIE ET",
-      "DES FINANCES",
-      "----------------------",
-      "DIRECTION GENERALE DES",
-      "IMPOTS",
-      "----------------------",
-      "DIRECTION DEPARTEMENTALE",
-      "DES IMPOTS DE L'ATLANTIQUE",
-      "******",
-      "CENTRE DES IMPOTS DES",
-      "PETITES ENTREPRISES",
-      `D'${titleCase(commune)}`,
-      "----------------------",
-      "SERVICE DE GESTION",
-      "----------------------",
-      "RECETTE DES IMPOTS",
-      `D'${titleCase(commune)}`,
-    ],
-    LEFT_COL_X + 1,
-    15,
-    LEFT_COL_W - 2,
-    7.7
+  // ==========================================
+  // 1. BLOC GAUCHE (Entête Administrative & AVIS)
+  // ==========================================
+  
+  // Cadre externe gauche
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  doc.rect(8, 8, 55, 194); // Box administrative gauche
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('REPUBLIQUE DU BENIN', 355, 14, { align: 'center' });
+  doc.text('------------------', 35.5, 17, { align: 'center' });
+  doc.text('MINISTERE DE L\'ECONOMIE ET DES FINANCES', 35.5, 21, { align: 'center' });
+  doc.text('------------------', 35.5, 24, { align: 'center' });
+  doc.text('DIRECTION GENERALE DES IMPOTS', 35.5, 28, { align: 'center' });
+  doc.text('------------------', 35.5, 31, { align: 'center' });
+  
+  doc.setFontSize(6.5);
+  doc.text(`DIRECTION DEPARTEMENTALE\nDES IMPOTS DE L'ATLANTIQUE`, 35.5, 35, { align: 'center' });
+  doc.text('******', 35.5, 41, { align: 'center' });
+  doc.text(`CENTRE DES IMPOTS DES\nPETITES ENTREPRISES\nD'${data.commune.toUpperCase()}`, 35.5, 45, { align: 'center' });
+  doc.text('------------------', 35.5, 53, { align: 'center' });
+  doc.text('SERVICE DE GESTION', 35.5, 57, { align: 'center' });
+  doc.text('------------------', 35.5, 60, { align: 'center' });
+  doc.text(`RECETTE DES IMPOTS\nD'${data.commune.toUpperCase()}`, 35.5, 64, { align: 'center' });
+
+  // Champs de dates à remplir à la main ou auto
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.text(`Date de notification :\n........../........../20.....`, 11, 75);
+  doc.text(`Date de mise en rec. :\n${data.dateMiseEnRecouvrement || '........../........../20.....'}`, 11, 85);
+  doc.text(`Date de majoration :\n${data.dateMajoration || '........../........../20.....'}`, 11, 95);
+
+  // Bloc "AVIS AUX CONTRIBUABLES"
+  doc.roundedRect(10, 108, 51, 90, 3, 3);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('AVIS AUX\nCONTRIBUABLES', 35.5, 115, { align: 'center' });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.2);
+  const textAvis = 
+    "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois suivant la notification du présent avis.\n\n" +
+    "Les demandes en remise ou modération doivent être adressées au Directeur Général des Impôts dans le mois de l'événement qui les motive.\n\n" +
+    "Tout renseignement sur la nature des impôts faisant l'objet de cet avis d'imposition peut être demandé au Service d'Assiette.\n\n" +
+    "Le paiement des impôts se fait à la caisse du Receveur des Impôts.";
+  doc.text(doc.splitTextToSize(textAvis, 47), 12, 126);
+
+  // ==========================================
+  // 2. EN-TÊTE PRINCIPALE (COMMUNE & DESTINATAIRE)
+  // ==========================================
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, 165, 16, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('TAXE FONCIERE UNIQUE', 165, 22, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(`Année : ${data.anneeExercice}`, 280, 22, { align: 'right' });
+
+  // Banner "AVIS DE MISE EN RECOUVREMENT"
+  doc.setFillColor(240, 240, 240);
+  doc.rect(110, 26, 110, 7, 'F');
+  doc.setLineWidth(0.4);
+  doc.rect(110, 26, 110, 7, 'S');
+  doc.setFontSize(10);
+  doc.text('AVIS DE MISE EN RECOUVREMENT', 165, 31, { align: 'center' });
+
+  // Infos Destinataire
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DESTINATAIRE :', 68, 42);
+  doc.text('N° IFU/NPI :', 68, 48);
+  doc.text('ADRESSE :', 68, 54);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.nomPrenom, 100, 42);
+  doc.text(data.ifu, 100, 48);
+  doc.text(`Tel : ${data.telephone}`, 210, 48);
+  doc.text(data.adresseParcelle, 100, 54);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.numeroRole, 100, 61);
+
+  // ==========================================
+  // 3. TABLEAU D'IMPOSITION (autoTable)
+  // ==========================================
+
+  const tableBody = data.lignes.map(l => [
+    l.numeroArticle.toString(),
+    l.exercice.toString(),
+    l.natureImpot,
+    l.localisation,
+    l.description,
+    typeof l.base === 'number' ? l.base.toLocaleString('fr-FR') : l.base,
+    l.taux,
+    l.droitSimple > 0 ? l.droitSimple.toLocaleString('fr-FR') : '-',
+    l.penalite > 0 ? l.penalite.toLocaleString('fr-FR') : '-',
+    l.acomptePaye > 0 ? l.acomptePaye.toLocaleString('fr-FR') : '-',
+    l.resteDu > 0 ? l.resteDu.toLocaleString('fr-FR') : '-'
+  ]);
+
+  autoTable(doc, {
+    startY: 66,
+    margin: { left: 68, right: 10 },
+    head: [[
+      'N° des\narticles', 
+      'Exercice', 
+      'NATURE D\' IMPOTS', 
+      'Localisation', 
+      'Description', 
+      'Base', 
+      'Taux', 
+      'Droit simple', 
+      'Pénalité', 
+      'Acompte\npayé', 
+      'Reste dû'
+    ]],
+    body: tableBody,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [220, 220, 220],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      fontSize: 7,
+      halign: 'center',
+      valign: 'middle',
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0]
+    },
+    bodyStyles: {
+      textColor: [0, 0, 0],
+      fontSize: 7.5,
+      valign: 'middle',
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0]
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 12, fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 14, fontStyle: 'bold' },
+      2: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
+      3: { halign: 'left', cellWidth: 42 },
+      4: { halign: 'left', cellWidth: 42 },
+      5: { halign: 'right', cellWidth: 18 },
+      6: { halign: 'center', cellWidth: 12 },
+      7: { halign: 'right', cellWidth: 18 },
+      8: { halign: 'right', cellWidth: 15 },
+      9: { halign: 'right', cellWidth: 15 },
+      10: { halign: 'right', cellWidth: 18 }
+    }
+  });
+
+  // Position après le tableau
+  const finalY = (doc as any).lastAutoTable.finalY + 3;
+
+  // ==========================================
+  // 4. TOTAL DÛ ET SIGNATURES
+  // ==========================================
+
+  // Cadre TOTAL DÛ
+  doc.setFillColor(235, 235, 235);
+  doc.rect(68, finalY, 219, 8, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TOTAL DÛ', 110, finalY + 5.5);
+  doc.text(`${data.totalDu.toLocaleString('fr-FR')} FCFA`, 280, finalY + 5.5, { align: 'right' });
+
+  // Formule légale exécutoire
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(
+    'Rendu exécutoire en vertu des dispositions des articles 596 et 597 du Code Général des Impôts,',
+    177, 
+    finalY + 14, 
+    { align: 'center' }
   );
 
-  pdf.setFont("times", "normal");
-  pdf.setFontSize(7);
-  pdf.text("Date de notification", LEFT_COL_X + 1, 66);
-  pdf.text(": ........./........./ 20......", LEFT_COL_X + 1, 71);
-  pdf.text("Date de mise en recouvrement", LEFT_COL_X + 1, 77);
-  pdf.text(`: ${formatShortDate(datePaiement)}`, LEFT_COL_X + 1, 82);
-  pdf.text("Date de majoration", LEFT_COL_X + 1, 88);
-  pdf.text(`: ${formatShortDate(datePaiement)}`, LEFT_COL_X + 1, 93);
+  // Date et Signature
+  doc.setFontSize(9);
+  doc.text(`${data.commune}, le ${data.dateEmission}`, 230, finalY + 24);
+  doc.setFontSize(10);
+  doc.text('Le Chef du Service de Gestion', 230, finalY + 30);
+  
+  if (data.chefServiceNom) {
+    doc.text(data.chefServiceNom, 230, finalY + 45);
+  }
 
-  pdf.roundedRect(LEFT_COL_X - 1, 101, LEFT_COL_W + 2, 62, 4, 4);
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(10);
-  pdf.text("AVIS AUX", LEFT_COL_X + LEFT_COL_W / 2, 113, { align: "center" });
-  pdf.text("CONTRIBUABLES", LEFT_COL_X + LEFT_COL_W / 2, 119, { align: "center" });
-  pdf.setFont("times", "normal");
-  pdf.setFontSize(5.4);
-  const bodyLines = [
-    "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois suivant la notification du présent avis.",
-    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'évènement qui les motive.",
-    "Tout renseignement sur la nature des impôts faisant l'objet de cet avis d'imposition peut être demandé au Service d'Assiette.",
-    "Le paiement des impôts se fait à la caisse du Receveur des Impôts ou par les moyens autorisés par l'administration fiscale.",
-  ];
-  let y = 124;
-  bodyLines.forEach((line) => {
-    const wrapped = wrapLines(pdf, line, LEFT_COL_W - 4);
-    pdf.text(wrapped, LEFT_COL_X + 2, y);
-    y += wrapped.length * 2.8 + 1.5;
-  });
-}
-
-function drawHeader(pdf: jsPDF, roleCommune: string, roleYear: number) {
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(16);
-  pdf.text(`COMMUNE : ${titleCase(roleCommune)}`, MAIN_X + MAIN_W / 2, 18, { align: "center" });
-  pdf.text("TAXE FONCIERE UNIQUE", MAIN_X + MAIN_W / 2, 28, { align: "center" });
-  pdf.setLineWidth(0.5);
-  pdf.line(MAIN_X + 62, 38, MAIN_X + MAIN_W - 58, 38);
-  pdf.setFontSize(13);
-  pdf.text("AVIS DE MISE EN RECOUVREMENT", MAIN_X + MAIN_W / 2, 42, { align: "center" });
-  pdf.setFontSize(11);
-  pdf.text(`Année : ${roleYear}`, MAIN_X + MAIN_W - 2, 27, { align: "right" });
-}
-
-function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
-  const communeLabel = titleCase(details.role.commune);
-  const roleLabel = `Role N°${details.role.numero_role}/${communeLabel.toUpperCase()}/${details.role.annee}`;
-  const address = `PARCELLE DE ${details.liquidation.superficie} M² ${details.contribuable.commune}/${details.contribuable.arrondissement}/${details.contribuable.quartier}`;
-
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(10);
-  pdf.text("DESTINATAIRE :", MAIN_X, 56);
-  pdf.setFont("times", "normal");
-  pdf.text(details.contribuable.nom_prenoms, MAIN_X + 34, 56);
-
-  pdf.setFont("times", "bold");
-  pdf.text("N° IFU/NPI :", MAIN_X, 63);
-  pdf.setFont("times", "normal");
-  pdf.text(details.contribuable.ifu_npi, MAIN_X + 34, 63);
-  pdf.setFont("times", "bold");
-  pdf.text(`Tel : ${details.contribuable.telephone || "-"}`, MAIN_X + 145, 63);
-
-  pdf.setFont("times", "bold");
-  pdf.text("ADRESSE :", MAIN_X, 70);
-  pdf.setFont("times", "normal");
-  const wrappedAddress = wrapLines(pdf, address, 125);
-  pdf.text(wrappedAddress, MAIN_X + 34, 70);
-
-  pdf.setFont("times", "bold");
-  pdf.text(roleLabel, MAIN_X + 34, 79);
-}
-
-function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails) {
-  const startY = 90;
-  const tableX = MAIN_X;
-  const widths = [14, 14, 24, 28, 41, 20, 12, 16, 14, 14, 17];
-  const headers = [
-    "N° des\narticles",
-    "Exercice",
-    "NATURE D' IMPOTS",
-    "Localisation",
-    "Description",
-    "Base",
-    "Taux",
-    "Droit\nsimple",
-    "Pénalité",
-    "Acompte\npayé",
-    "Reste dû",
-  ];
-  const headerHeight = 16;
-
-  let x = tableX;
-  pdf.setFillColor(220, 220, 220);
-  pdf.setDrawColor(0);
-  pdf.setLineWidth(0.3);
-  headers.forEach((header, index) => {
-    pdf.rect(x, startY, widths[index], headerHeight, "FD");
-    pdf.setFont("times", "bold");
-    pdf.setFontSize(8.5);
-    const lines = header.split("\n");
-    const baseY = startY + 6;
-    lines.forEach((line, lineIndex) => {
-      pdf.text(line, x + widths[index] / 2, baseY + lineIndex * 4, { align: "center" });
-    });
-    x += widths[index];
-  });
-
-  let y = startY + headerHeight;
-  details.articles.forEach((article) => {
-    const values = [
-      String(article.numero_article),
-      String(article.exercice),
-      article.nature_impot,
-      article.localisation,
-      article.description,
-      formatNumber(article.base),
-      formatPercent(article.taux),
-      formatNumber(article.droit_simple),
-      formatNumber(article.penalite),
-      formatNumber(article.acompte_paye),
-      formatNumber(article.reste_du),
-    ];
-
-    const wrapped = values.map((value, index) => wrapLines(pdf, value, widths[index] - 2));
-    const rowHeight = Math.max(12, ...wrapped.map((lines) => lines.length * 3.7 + 2));
-    let currentX = tableX;
-
-    values.forEach((value, index) => {
-      pdf.rect(currentX, y, widths[index], rowHeight);
-      pdf.setFontSize(8.2);
-      pdf.setFont("times", index <= 2 ? "bold" : "normal");
-      const lines = wrapped[index];
-      const textY = y + 5;
-      const textX = index <= 2 || index === 6 ? currentX + widths[index] / 2 : currentX + 1.5;
-      const align = index <= 2 || index === 6 ? "center" : "left";
-      pdf.text(lines, textX, textY, { align: align as "left" | "center" | "right" });
-      currentX += widths[index];
-    });
-
-    y += rowHeight;
-  });
-
-  return y;
-}
-
-function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number) {
-  const totalWidth = MAIN_W;
-  const totalY = endY + 4;
-  pdf.setFillColor(220, 220, 220);
-  pdf.rect(MAIN_X, totalY, totalWidth, 12, "FD");
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(14);
-  pdf.text("TOTAL DÛ", MAIN_X + 32, totalY + 8.2, { align: "center" });
-  pdf.text(formatNumber(details.articles.reduce((sum, article) => sum + article.reste_du, 0)), MAIN_X + totalWidth - 18, totalY + 8.2, {
-    align: "right",
-  });
-
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(9.5);
-  pdf.text(
-    "Rendu exécutoire en vertu des dispositions des articles 596 et 597 du Code Général des Impôts,",
-    MAIN_X + totalWidth / 2,
-    totalY + 19,
-    { align: "center" }
-  );
-
-  const dateLabelY = totalY + 38;
-  const place = titleCase(details.role.commune);
-  pdf.setFontSize(10.5);
-  pdf.text(`${place}, le ${formatDate(details.recouvrement.date_paiement)}`, MAIN_X + totalWidth - 2, dateLabelY, {
-    align: "right"
-  });
-  pdf.setFontSize(13);
-  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 2, dateLabelY + 14, {
-    align: "right"
-  });
-  pdf.setFontSize(12);
-  pdf.text("Hopeson HOUNSINOU", MAIN_X + totalWidth - 2, dateLabelY + 34, {
-    align: "right"
-  });
-}
-
-export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4",
-  });
-
-  pdf.setTextColor(0, 0, 0);
-  drawSidebar(pdf, details.recouvrement.date_paiement, details.role.commune);
-  drawHeader(pdf, details.role.commune, details.role.annee);
-  drawRecipientBlock(pdf, details);
-  const endY = drawArticlesTable(pdf, details);
-  drawFooter(pdf, details, endY);
-
-  pdf.save(filename || `Avis_Recouvrement_${details.liquidation.reference_liq}.pdf`);
-}
+  // Téléchargement du fichier
+  doc.save(`Avis_Recouvrement_${data.ifu}_${data.anneeExercice}.pdf`);
+};
