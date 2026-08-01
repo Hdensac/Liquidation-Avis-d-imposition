@@ -7,8 +7,6 @@ import {
   FilePlus,
   Clock,
   History,
-  Download,
-  User,
 } from "lucide-react";
 
 type NavItem = { key: string; label: string; icon?: React.ComponentType<any> };
@@ -83,21 +81,7 @@ export default function Navbar({
               ))}
             </div>
 
-            <div className="ml-4 flex items-center gap-2">
-              <button className="flex items-center gap-2 px-3 py-2 rounded-md bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 shadow-sm">
-                <Download size={16} />
-                <span>Exporter</span>
-              </button>
-
-              <button className="flex items-center gap-2 px-3 py-2 rounded-md bg-indigo-600 text-white text-sm hover:brightness-105 shadow">
-                <FilePlus size={16} />
-                <span>Nouvelle</span>
-              </button>
-
-              <button className="ml-2 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200" aria-label="Compte">
-                <User size={16} />
-              </button>
-            </div>
+            {/* NOTE: action buttons removed as requested (Exporter / Nouvelle / User) */}
           </nav>
 
           {/* Mobile actions */}
@@ -134,14 +118,7 @@ export default function Navbar({
             </button>
           ))}
 
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-            <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
-              <Download size={16} /> Exporter
-            </button>
-            <button className="w-full mt-2 flex items-center gap-2 px-3 py-2 rounded-md bg-indigo-600 text-white">
-              <FilePlus size={16} /> Nouvelle liquidation
-            </button>
-          </div>
+          {/* action buttons removed from mobile panel as well */}
         </div>
       </div>
     </header>
