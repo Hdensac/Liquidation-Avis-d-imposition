@@ -99,7 +99,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
           {loadingPdf ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Génération PDF...
+              Génération PDF....
             </>
           ) : (
             <>
