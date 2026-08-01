@@ -1,6 +1,7 @@
 // actions/liquidationActions.ts
 import { supabase } from "../lib/supabase";
 import { TaxpayerInput } from "@/types/liquidation";
+import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
 
 type RoleRecord = {
   id: string;
@@ -177,4 +178,109 @@ export async function getActiveRole(commune?: string) {
   }
 
   return null;
+}
+
+export async function fetchAvisRecouvrementDetails(liquidationId: string): Promise<AvisRecouvrementDetails> {
+  const { data: recouvrement, error: recouvrementError } = await supabase
+    .from("recouvrements")
+    .select("id, liquidation_id, role_id, contribuable_id, date_paiement")
+    .eq("liquidation_id", liquidationId)
+    .maybeSingle();
+
+  if (recouvrementError) throw recouvrementError;
+  if (!recouvrement) {
+    throw new Error("Avis de recouvrement introuvable pour cette liquidation.");
+  }
+
+  const { data: liquidation, error: liquidationError } = await supabase
+    .from("liquidations")
+    .select("id, reference_liq, superficie, valeur_locative, start_year, status, created_at")
+    .eq("id", liquidationId)
+    .maybeSingle();
+
+  if (liquidationError) throw liquidationError;
+  if (!liquidation) {
+    throw new Error("Liquidation introuvable.");
+  }
+
+  const { data: role, error: roleError } = await supabase
+    .from("roles")
+    .select("id, numero_role, commune, annee, status")
+    .eq("id", recouvrement.role_id)
+    .maybeSingle();
+
+  if (roleError) throw roleError;
+  if (!role) {
+    throw new Error("Role de recouvrement introuvable.");
+  }
+
+  const { data: contribuable, error: contribuableError } = await supabase
+    .from("contribuables")
+    .select("id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier")
+    .eq("id", recouvrement.contribuable_id)
+    .maybeSingle();
+
+  if (contribuableError) throw contribuableError;
+  if (!contribuable) {
+    throw new Error("Contribuable introuvable.");
+  }
+
+  const { data: articles, error: articlesError } = await supabase
+    .from("articles_recouvrement")
+    .select(
+      "id, numero_article, exercice, nature_impot, localisation, description, base, taux, droit_simple, penalite, acompte_paye, reste_du"
+    )
+    .eq("recouvrement_id", recouvrement.id)
+    .order("numero_article", { ascending: true });
+
+  if (articlesError) throw articlesError;
+
+  return {
+    recouvrement: {
+      id: recouvrement.id,
+      liquidation_id: recouvrement.liquidation_id,
+      role_id: recouvrement.role_id,
+      contribuable_id: recouvrement.contribuable_id,
+      date_paiement: recouvrement.date_paiement,
+    },
+    liquidation: {
+      id: liquidation.id,
+      reference_liq: liquidation.reference_liq,
+      superficie: Number(liquidation.superficie) || 0,
+      valeur_locative: Number(liquidation.valeur_locative) || 0,
+      start_year: Number(liquidation.start_year) || getCurrentYear(),
+      status: liquidation.status,
+      created_at: liquidation.created_at,
+    },
+    role: {
+      id: role.id,
+      numero_role: Number(role.numero_role) || 1,
+      commune: role.commune,
+      annee: Number(role.annee) || getCurrentYear(),
+      status: role.status,
+    },
+    contribuable: {
+      id: contribuable.id,
+      nom_prenoms: contribuable.nom_prenoms,
+      ifu_npi: contribuable.ifu_npi,
+      telephone: contribuable.telephone || "",
+      commune: contribuable.commune || "",
+      arrondissement: contribuable.arrondissement || "",
+      quartier: contribuable.quartier || "",
+    },
+    articles: (articles ?? []).map((article) => ({
+      id: article.id,
+      numero_article: Number(article.numero_article) || 0,
+      exercice: Number(article.exercice) || getCurrentYear(),
+      nature_impot: article.nature_impot,
+      localisation: article.localisation,
+      description: article.description,
+      base: Number(article.base) || 0,
+      taux: Number(article.taux) || 0,
+      droit_simple: Number(article.droit_simple) || 0,
+      penalite: Number(article.penalite) || 0,
+      acompte_paye: Number(article.acompte_paye) || 0,
+      reste_du: Number(article.reste_du) || 0,
+    })),
+  };
 }

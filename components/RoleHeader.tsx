@@ -20,8 +20,8 @@ export default function RoleHeader() {
       try {
         const data = await getActiveRole();
         setRole((data as RoleInfo) ?? null);
-      } catch (e) {
-        console.error("Failed to load active role", e);
+      } catch (error) {
+        console.error("Failed to load active role", error);
         setRole(null);
       } finally {
         setLoading(false);
@@ -31,17 +31,17 @@ export default function RoleHeader() {
   }, []);
 
   if (loading) {
-    return <p className="text-center text-gray-500 dark:text-gray-400">Chargement du rÃ´le...</p>;
+    return <p className="text-center text-gray-500 dark:text-gray-400">Chargement du rôle...</p>;
   }
 
   if (!role) {
-    return <p className="text-center text-gray-500 dark:text-gray-400">Aucun rÃ´le actif trouvÃ© pour le moment.</p>;
+    return <p className="text-center text-gray-500 dark:text-gray-400">Aucun rôle actif trouvé pour le moment.</p>;
   }
 
   return (
     <div className="flex items-center justify-center mb-6">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition">
-        <span className="font-medium">RÃ´le #{role.numero_role}</span>
+        <span className="font-medium">Rôle #{role.numero_role}</span>
         <span className="mx-2">|</span>
         <span>{role.commune}</span>
         <span className="mx-2">|</span>
