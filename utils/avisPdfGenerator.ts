@@ -273,7 +273,7 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
     normalizeCommune(details.contribuable.arrondissement),
     normalizeCommune(details.contribuable.quartier),
   ].filter(Boolean);
-  const address = `PARCELLE DE ${toNumber(details.liquidation.superficie)} M² ${addressParts.join("/")}`;
+  const address = `PARCELLE DE ${toNumber(details.liquidation.superficie)} M² SISE à ${addressParts.join("/")}`;
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(9);
@@ -311,10 +311,12 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
   let x = MAIN_X;
   pdf.setDrawColor(0);
-  pdf.setFillColor(230, 230, 230); // softer grey header
+  pdf.setFillColor(245, 245, 245); // light grey header
+  pdf.setTextColor(0, 0, 0);
 
   headers.forEach((headerLines, index) => {
-    pdf.rect(x, startY, widths[index], 16, "FD");
+    pdf.rect(x, startY, widths[index], 16, "F");
+    pdf.rect(x, startY, widths[index], 16, "S");
     pdf.setFont("times", "bold");
     pdf.setFontSize(8.5);
 
@@ -356,8 +358,6 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
       }
       return wrap(pdf, val, widths[idx] - 4);
     });
-    console.log("[Avis PDF] row values:", values);
-    console.log("[Avis PDF] wrapped values:", wrapped);
     const rowHeight = Math.max(12, ...wrapped.map((lines) => lines.length * 4 + 4));
     let currentX = MAIN_X;
 
