@@ -209,7 +209,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
 
   // Cadre "AVIS AUX CONTRIBUABLES"
-  const boxY = 72;
+  const boxY = 84;
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.3);
   pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, 70, 3, 3);
@@ -227,7 +227,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "Le paiement des impôts se fait à la Caisse du Receveur des Impôts, soit en numéraire, soit par chèque bancaire certifié et libellé au nom du Receveur des Impôts.",
   ];
 
-  let tY = boxY + 11;
+  let tY = boxY + 15;
   avisText.forEach((paragraph) => {
     const lines = wrap(pdf, paragraph, SIDEBAR_W - 5);
     pdf.text(lines, SIDEBAR_X + 3, tY);
@@ -243,7 +243,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "TFU : Taxe Foncière Unique",
   ];
 
-  let abY = 146;
+  let abY = boxY + 70 + 5;
   abbrev.forEach((line) => {
     pdf.setFont("times", "normal");
     pdf.text(line, SIDEBAR_X + 1, abY);
