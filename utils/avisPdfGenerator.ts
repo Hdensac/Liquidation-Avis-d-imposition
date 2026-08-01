@@ -350,6 +350,8 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     ];
 
     const wrapped = values.map((val, idx) => wrap(pdf, val, widths[idx] - 4));
+    console.log("[Avis PDF] row values:", values);
+    console.log("[Avis PDF] wrapped values:", wrapped);
     const rowHeight = Math.max(12, ...wrapped.map((lines) => lines.length * 4 + 4));
     let currentX = MAIN_X;
 
