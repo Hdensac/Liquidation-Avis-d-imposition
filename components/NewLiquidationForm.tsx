@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { TaxpayerInput, LiquidationCalculations, TaxExercise } from "@/types/liquidation";
+import { TaxpayerInput } from "@/types/liquidation";
 import { TaxForm } from "@/components/TaxForm";
 import { LiquidationPreview } from "@/components/LiquidationPreview";
 import { ExportButtons } from "@/components/ExportButtons";
 import { createLiquidation } from "@/actions/liquidationActions";
 import { useToast, ToastContainer } from "./useToast";
 import { Send, FileCheck2 } from "lucide-react";
+import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 
 const EMPTY_FORM: TaxpayerInput = {
   fullname: "",
@@ -28,29 +29,7 @@ export default function NewLiquidationForm() {
 
   const handleReset = () => setFormData(EMPTY_FORM);
 
-  const calculations: LiquidationCalculations = useMemo(() => {
-    const surf = typeof formData.superficie === "number" ? formData.superficie : 0;
-    const valeurLocative = typeof formData.valeurLocative === "number" ? formData.valeurLocative : 0;
-    const communeStr = formData.commune ? formData.commune.toUpperCase() : "";
-    const arrStr = formData.arrondissement ? formData.arrondissement.toUpperCase() : "";
-    const quartStr = formData.quartier ? formData.quartier.toUpperCase() : "";
-    const locationStr = [communeStr, arrStr, quartStr].filter(Boolean).join("/");
-    const adresseDescription = locationStr
-      ? `PARCELLE DE ${surf} m2 SISE A ${locationStr}`
-      : `PARCELLE DE ${surf} m2`;
-    const baseImposable = surf * valeurLocative;
-    const exercises: TaxExercise[] = [];
-    let totalDu = 0;
-    const startYear = typeof formData.startYear === "number" && formData.startYear > 1900 ? formData.startYear : 2023;
-    for (let i = 0; i < 4; i++) {
-      const year = startYear + i;
-      const taux = i === 0 ? 0.04 : 0.05;
-      const droitSimple = baseImposable * taux;
-      totalDu += droitSimple;
-      exercises.push({ year, taxNature: "TFU/FNB", description: adresseDescription, baseImposable, taux, droitSimple });
-    }
-    return { surf, valeurLocative, adresseDescription, exercises, totalDu };
-  }, [formData]);
+  const calculations = useMemo(() => buildLiquidationCalculations(formData), [formData]);
 
   const handleSave = async () => {
     if (!formData.fullname || !formData.commune) {
@@ -101,4 +80,3 @@ export default function NewLiquidationForm() {
     </div>
   );
 }
-

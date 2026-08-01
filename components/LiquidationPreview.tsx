@@ -7,12 +7,14 @@ interface LiquidationPreviewProps {
   formData: TaxpayerInput;
   calculations: LiquidationCalculations;
   documentRef?: React.RefObject<HTMLDivElement>;
+  documentId?: string;
 }
 
 export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
   formData,
   calculations,
   documentRef,
+  documentId = "liquidation-document",
 }) => {
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -27,33 +29,27 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
     <div className="flex justify-center w-full">
       <div
         ref={documentRef}
-        id="liquidation-document"
+        id={documentId}
         className="a4-document text-black text-xs space-y-6 relative select-none font-sans"
         style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
       >
-        {/* Date du jour en haut à droite */}
         <div className="flex justify-between items-start">
-          <div className="text-left text-[11px] font-medium text-gray-600">
-            {/* Espace vide à gauche */}
-          </div>
+          <div className="text-left text-[11px] font-medium text-gray-600"></div>
           <div className="text-right text-xs font-semibold text-gray-800">
             Date : {currentDateStr}
           </div>
         </div>
 
-        {/* Sous-titre officiel centré */}
         <div className="text-center font-semibold text-slate-700 italic text-sm -mt-2">
-          Impôt Foncier Unique (TFU / FNB)
+          Impot Foncier Unique (TFU / FNB)
         </div>
 
-        {/* Titre Principal : LIQUIDATION */}
         <div className="text-center my-3">
           <h1 className="text-xl font-extrabold uppercase tracking-widest">
             LIQUIDATION
           </h1>
         </div>
 
-        {/* Section Infos Contribuable & Adresse */}
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-12 gap-2 text-xs font-semibold items-center">
             <div className="col-span-5 flex items-center gap-1">
@@ -65,7 +61,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               <span className="font-mono">{formData.ifuNpi || "________________"}</span>
             </div>
             <div className="col-span-3 flex items-center gap-1 justify-end">
-              <span className="font-extrabold uppercase">Tél :</span>
+              <span className="font-extrabold uppercase">Tel :</span>
               <span>{formData.phone || "____________"}</span>
             </div>
           </div>
@@ -78,7 +74,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </div>
         </div>
 
-        {/* Ligne VA et SURFACE : Valeurs en vert sans soulignement */}
         <div className="flex justify-between items-center text-xs font-bold pt-4 pb-2">
           <div className="flex items-center gap-6">
             <span className="uppercase font-extrabold text-sm">VA</span>
@@ -94,7 +89,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </div>
         </div>
 
-        {/* Tableau des Exercices (Rendu anti-chevauchement des bordures PDF) */}
         <div className="w-full">
           <table className="w-full border-collapse text-xs border-2 border-black bg-white">
             <thead>
@@ -116,8 +110,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                   <td className="border-r border-b border-black p-2.5 font-bold">
                     {ex.taxNature}
                   </td>
-                  
-                  {/* Fusion verticale propre sans ligne parasite */}
                   {idx === 0 && (
                     <td
                       rowSpan={4}
@@ -126,7 +118,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                       {calculations.adresseDescription}
                     </td>
                   )}
-
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
                     {formatMoney(ex.baseImposable)}
                   </td>
@@ -142,7 +133,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           </table>
         </div>
 
-        {/* Bloc centralisé en bas pour le Total Dû (Cadre noir net) */}
         <div className="pt-8 flex justify-center items-center">
           <div className="border-2 border-black px-12 py-2 text-center bg-white shadow-sm">
             <span className="text-lg font-extrabold font-mono tracking-wider">
