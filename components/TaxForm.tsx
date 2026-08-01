@@ -12,8 +12,26 @@ interface TaxFormProps {
 
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
+    let { name, value, type } = e.target;
     
+    if (name === "ifuNpi") {
+      value = value.replace(/\D/g, "");
+    }
+
+    if (name === "phone") {
+      let digits = value.replace(/\D/g, "");
+      if (!digits.startsWith("01")) {
+        if (digits.startsWith("0")) {
+          digits = "01" + digits.slice(1);
+        } else if (digits.startsWith("1")) {
+          digits = "01" + digits.slice(1);
+        } else {
+          digits = "01" + digits;
+        }
+      }
+      value = digits.slice(0, 10);
+    }
+
     if (type === "number") {
       const numValue = value === "" ? "" : parseFloat(value);
       onChange({
@@ -80,6 +98,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               <input
                 type="text"
                 name="ifuNpi"
+                inputMode="numeric"
                 value={formData.ifuNpi}
                 onChange={handleChange}
                 placeholder="Ex: 3201589471203"
@@ -94,9 +113,11 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               <input
                 type="text"
                 name="phone"
+                inputMode="numeric"
+                maxLength={10}
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="Ex: +229 97 00 00 00"
+                placeholder="01XXXXXXXX"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
             </div>

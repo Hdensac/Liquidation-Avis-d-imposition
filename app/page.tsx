@@ -10,7 +10,7 @@ import { FileCheck2, Sparkles } from "lucide-react";
 const initialFormData: TaxpayerInput = {
   fullname: "OUSSOU Frédéric",
   ifuNpi: "201710110349",
-  phone: "197500813",
+  phone: "0197500813",
   commune: "ZE",
   arrondissement: "DODJI BATA",
   quartier: "ATINDOME",
