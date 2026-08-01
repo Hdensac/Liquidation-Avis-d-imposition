@@ -411,6 +411,10 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
   const annee = toNumber(details.role.annee, new Date().getFullYear());
   const dateEmission = details.recouvrement.date_paiement ? new Date(details.recouvrement.date_paiement) : new Date();
   const rows = buildRows(details);
+
+  console.log("[Avis PDF] articles details:", details.articles);
+  console.log("[Avis PDF] rows built:", rows);
+
   const totalDu = rows.reduce((sum, row) => sum + row.reste_du, 0);
 
   const pdf = new jsPDF({
