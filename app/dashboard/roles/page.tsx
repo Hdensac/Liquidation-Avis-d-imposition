@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { fetchAllRoles, closeActiveRole } from "../../../actions/liquidationActions";
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
@@ -96,23 +96,25 @@ export default function RolesPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [closeTarget, setCloseTarget] = useState<RoleSummary | null>(null);
   const [closeLoading, setCloseLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { toast, toasts } = useToast();
 
-  const load = useCallback(async () => {
-    setPageLoading(true);
-    try {
-      const data = await fetchAllRoles();
-      setRoles(data);
-    } catch {
-      toast.error("Impossible de charger les roles.");
-    } finally {
-      setPageLoading(false);
-    }
-  }, [toast]);
+  // toastRef lets the effect call toast without being a dependency
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
+  // Triggered once on mount and every time refreshKey increments
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    setPageLoading(true);
+    fetchAllRoles()
+      .then((data) => { if (!cancelled) setRoles(data); })
+      .catch(() => { if (!cancelled) toastRef.current.error("Impossible de charger les roles."); })
+      .finally(() => { if (!cancelled) setPageLoading(false); });
+    return () => { cancelled = true; };
+  }, [refreshKey]); // only refreshKey — no cyclic dep on toast
+
+  const load = () => setRefreshKey((k) => k + 1);
 
   const handleConfirmClose = async () => {
     if (!closeTarget) return;
@@ -122,7 +124,7 @@ export default function RolesPage() {
       const newNum = (result as { numero_role?: number })?.numero_role ?? closeTarget.numero_role + 1;
       toast.success("Role #" + closeTarget.numero_role + " cloture. Nouveau role actif : #" + newNum);
       setCloseTarget(null);
-      await load();
+      load(); // increment key to trigger reload
     } catch {
       toast.error("Echec de la cloture du role.");
     } finally {
