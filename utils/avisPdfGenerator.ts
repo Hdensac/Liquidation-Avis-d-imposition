@@ -1,8 +1,58 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Type attendu par liquidationActions.ts
-export interface AvisRecouvrementDetails {
+// Structure expected by actions/liquidationActions.ts and HistoryTable
+export type AvisRecouvrementDetails = {
+  recouvrement: {
+    id: string;
+    liquidation_id: string;
+    role_id: string;
+    contribuable_id: string;
+    date_paiement?: string | null;
+  };
+  liquidation: {
+    id: string;
+    reference_liq: string;
+    superficie: number;
+    valeur_locative: number;
+    start_year: number;
+    status: string;
+    created_at: string;
+  };
+  role: {
+    id: string;
+    numero_role: number;
+    commune: string;
+    annee: number;
+    status: string;
+  };
+  contribuable: {
+    id: string;
+    nom_prenoms: string;
+    ifu_npi: string;
+    telephone?: string;
+    commune?: string;
+    arrondissement?: string;
+    quartier?: string;
+  };
+  articles: Array<{
+    id: string;
+    numero_article: number;
+    exercice: number;
+    nature_impot: string;
+    localisation: string;
+    description: string;
+    base: number;
+    taux: number;
+    droit_simple: number;
+    penalite: number;
+    acompte_paye: number;
+    reste_du: number;
+  }>;
+};
+
+// Internal generic format used to render the PDF
+export interface DataAvisPDF {
   commune: string;
   anneeExercice: number;
   directionDepartementale?: string;
@@ -40,18 +90,20 @@ export interface AvisRecouvrementDetails {
   totalDu: number;
 }
 
-// Alias pour compatibilité
-export type DataAvisPDF = AvisRecouvrementDetails;
-
-// Fonction principale attendue par HistoryTable.tsx
-export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
+/**
+ * Generic generator that outputs a PDF from DataAvisPDF
+ */
+export const generateAvisPDF = (data: DataAvisPDF, filename?: string) => {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: 'a4'
   });
 
+  // ==========================================
   // 1. BLOC GAUCHE (Entête Administrative & AVIS)
+  // ==========================================
+  
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
   doc.rect(8, 8, 55, 194);
@@ -94,7 +146,10 @@ export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
     "Le paiement des impôts se fait à la caisse du Receveur des Impôts.";
   doc.text(doc.splitTextToSize(textAvis, 47), 12, 126);
 
-  // 2. EN-TÊTE PRINCIPALE
+  // ==========================================
+  // 2. EN-TÊTE PRINCIPALE (COMMUNE & DESTINATAIRE)
+  // ==========================================
+  
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, 165, 16, { align: 'center' });
@@ -110,7 +165,7 @@ export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
   doc.setFontSize(10);
   doc.text('AVIS DE MISE EN RECOUVREMENT', 165, 31, { align: 'center' });
 
-  // Destinataire
+  // Infos Destinataire
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.text('DESTINATAIRE :', 68, 42);
@@ -126,7 +181,10 @@ export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
   doc.setFont('helvetica', 'bold');
   doc.text(data.numeroRole, 100, 61);
 
-  // 3. TABLEAU
+  // ==========================================
+  // 3. TABLEAU D'IMPOSITION (autoTable)
+  // ==========================================
+
   const tableBody = data.lignes.map(l => [
     l.numeroArticle.toString(),
     l.exercice.toString(),
@@ -147,7 +205,7 @@ export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
     head: [[
       'N° des\narticles', 
       'Exercice', 
-      'NATURE D\' IMPOTS', 
+      "NATURE D' IMPOTS", 
       'Localisation', 
       'Description', 
       'Base', 
@@ -191,36 +249,86 @@ export const generateAvisRecouvrementPdf = (data: AvisRecouvrementDetails) => {
     }
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 3;
+  // Position après le tableau
+  const finalY = (doc as any).lastAutoTable?.finalY ?? 0;
 
-  // 4. TOTAL DÛ ET SIGNATURE
+  // ==========================================
+  // 4. TOTAL DÛ ET SIGNATURES
+  // ==========================================
+
   doc.setFillColor(235, 235, 235);
-  doc.rect(68, finalY, 219, 8, 'FD');
+  doc.rect(68, finalY + 3, 219, 8, 'FD');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('TOTAL DÛ', 110, finalY + 5.5);
-  doc.text(`${data.totalDu.toLocaleString('fr-FR')} FCFA`, 280, finalY + 5.5, { align: 'right' });
+  doc.text('TOTAL DÛ', 110, finalY + 8.5);
+  doc.text(`${data.totalDu.toLocaleString('fr-FR')} FCFA`, 280, finalY + 8.5, { align: 'right' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.text(
     'Rendu exécutoire en vertu des dispositions des articles 596 et 597 du Code Général des Impôts,',
     177, 
-    finalY + 14, 
+    finalY + 17, 
     { align: 'center' }
   );
 
   doc.setFontSize(9);
-  doc.text(`${data.commune}, le ${data.dateEmission}`, 230, finalY + 24);
+  doc.text(`${data.commune}, le ${data.dateEmission}`, 230, finalY + 27);
   doc.setFontSize(10);
-  doc.text('Le Chef du Service de Gestion', 230, finalY + 30);
+  doc.text('Le Chef du Service de Gestion', 230, finalY + 33);
   
   if (data.chefServiceNom) {
-    doc.text(data.chefServiceNom, 230, finalY + 45);
+    doc.text(data.chefServiceNom, 230, finalY + 48);
   }
 
-  doc.save(`Avis_Recouvrement_${data.ifu}_${data.anneeExercice}.pdf`);
+  const outName = filename || `Avis_Recouvrement_${data.ifu}_${data.anneeExercice}.pdf`;
+  doc.save(outName);
 };
 
-// Export alternatif pour compatibilité
-export const generateAvisPDF = generateAvisRecouvrementPdf;
+/**
+ * Build a DataAvisPDF from AvisRecouvrementDetails and generate the PDF.
+ * This is the function used by components/actions expecting generateAvisRecouvrementPdf(details, filename).
+ */
+export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
+  const commune = details.role?.commune || details.contribuable?.commune || '';
+  const annee = details.liquidation?.start_year || details.role?.annee || new Date().getFullYear();
+
+  const numeroRole = `Role N°${details.role?.numero_role}/${(details.role?.commune || commune)}/${details.role?.annee || annee}`;
+
+  const lignes = (details.articles || []).map((a) => ({
+    numeroArticle: Number(a.numero_article) || 0,
+    exercice: Number(a.exercice) || annee,
+    natureImpot: a.nature_impot || '-',
+    localisation: a.localisation || '-',
+    description: a.description || '-',
+    base: typeof a.base === 'number' ? a.base : Number(a.base) || 0,
+    taux: `${a.taux ?? 0}`,
+    droitSimple: Number(a.droit_simple) || 0,
+    penalite: Number(a.penalite) || 0,
+    acomptePaye: Number(a.acompte_paye) || 0,
+    resteDu: Number(a.reste_du) || 0,
+  }));
+
+  const totalDu = lignes.reduce((s, l) => s + (Number(l.resteDu) || 0), 0);
+
+  const adresse = [details.contribuable?.commune, details.contribuable?.arrondissement, details.contribuable?.quartier]
+    .filter(Boolean)
+    .join(' - ');
+
+  const data: DataAvisPDF = {
+    commune: commune || '',
+    anneeExercice: Number(annee) || new Date().getFullYear(),
+    nomPrenom: details.contribuable?.nom_prenoms || '-',
+    ifu: details.contribuable?.ifu_npi || '-',
+    telephone: details.contribuable?.telephone || '-',
+    adresseParcelle: adresse || '-',
+    numeroRole,
+    dateMiseEnRecouvrement: details.recouvrement?.date_paiement || undefined,
+    dateEmission: details.recouvrement?.date_paiement || new Date().toLocaleDateString(),
+    lignes,
+    totalDu,
+  };
+
+  // Use the generic generator
+  generateAvisPDF(data, filename);
+}
