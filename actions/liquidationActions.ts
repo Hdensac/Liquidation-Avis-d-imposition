@@ -1,3 +1,5 @@
+"use server";
+
 // actions/liquidationActions.ts
 import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
