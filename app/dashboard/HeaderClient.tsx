@@ -2,7 +2,6 @@
 
 import React from "react";
 import Navbar from "@/components/Navbar";
-import RoleHeader from "@/components/RoleHeader";
 import { FilePlus, Clock, History, Briefcase } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -28,7 +27,6 @@ export default function HeaderClient() {
 
   return (
     <div>
-      <RoleHeader />
       <Navbar brand="Administration Fiscale" items={items} activeKey={activeKey} onNavigate={onNavigate} rolePill={null} />
     </div>
   );
