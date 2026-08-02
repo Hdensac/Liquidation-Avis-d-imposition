@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthSync from "@/components/AuthSync";
 
 export const metadata: Metadata = {
   title: "Liquidation -  (TFU)",
@@ -14,7 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthSync />
+        {children}
+      </body>
     </html>
   );
 }
