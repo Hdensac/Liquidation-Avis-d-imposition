@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { fetchAllRoles, closeActiveRole } from "../../../actions/liquidationActions";
+import { fetchAllRoles, closeActiveRole, fetchRoleDetails } from "../../../actions/liquidationActions";
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
-import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle } from "lucide-react";
+import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
+import { generateRolePdf } from "../../../lib/generateRolePdf"; // Ajuste le chemin selon ton projet
+import { generateRolePdf } from "@/utils/rolePdfGenerator";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("fr-FR", {
@@ -96,6 +98,7 @@ export default function RolesPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [closeTarget, setCloseTarget] = useState<RoleSummary | null>(null);
   const [closeLoading, setCloseLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast, toasts } = useToast();
 
@@ -130,11 +133,22 @@ export default function RolesPage() {
     }
   };
 
+  const handleDownloadReport = async (role: RoleSummary) => {
+    setDownloadingId(role.id);
+    try {
+      const details = await fetchRoleDetails(role.id);
+      generateRolePdf(role, details);
+      toast.success(`Rapport du Rôle #${role.numero_role} téléchargé.`);
+    } catch {
+      toast.error("Échec du téléchargement du rapport.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   // --- CALCULS METIER POUR LES STATS ---
   const totalDroits = roles.reduce((s, r) => s + r.total_droits, 0);
   const totalAvis = roles.reduce((s, r) => s + r.nb_recouvrements, 0);
-  
-  // Nombre de rôles actuellement actifs
   const nbActifs = roles.filter((r) => r.status === "ACTIF").length;
 
   return (
@@ -161,9 +175,8 @@ export default function RolesPage() {
         </button>
       </div>
 
-      {/* --- CARTES DE STATISTIQUES REVISITEES --- */}
+      {/* --- CARTES DE STATISTIQUES --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Carte 1 : Option A - Synthèse globale des rôles en cours */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-indigo-500">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
             Rôles en cours
@@ -178,7 +191,6 @@ export default function RolesPage() {
           </div>
         </div>
 
-        {/* Carte 2 : Total Avis Émis */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-purple-500">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
             Total avis emis
@@ -186,7 +198,6 @@ export default function RolesPage() {
           <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{totalAvis}</p>
         </div>
 
-        {/* Carte 3 : Total Droits (XOF) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-emerald-500">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
             Total droits (XOF)
@@ -257,7 +268,18 @@ export default function RolesPage() {
                           Cloture
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-xs">-</span>
+                        <button
+                          onClick={() => handleDownloadReport(role)}
+                          disabled={downloadingId === role.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
+                        >
+                          {downloadingId === role.id ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <FileText size={12} />
+                          )}
+                          Rapport PDF
+                        </button>
                       )}
                     </td>
                   </tr>

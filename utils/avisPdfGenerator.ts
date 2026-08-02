@@ -471,3 +471,68 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
 
   pdf.save(filename || `Avis_Recouvrement_${details.liquidation.reference_liq}.pdf`);
 }
+/** Types pour le détail des rôles pour le rapport */
+export interface RoleDetailItem {
+  reference: string;
+  ifu_npi: string;
+  destinataire: string;
+  articles_range: string;
+  total_droits: number;
+}
+
+/** Récupère la liste détaillée des avis/liquidations associés à un rôle */
+export async function fetchRoleDetails(roleId: string): Promise<RoleDetailItem[]> {
+  const { data, error } = await supabase
+    .from("recouvrements")
+    .select(`
+      id,
+      liquidation:liquidations (
+        reference_liq
+      ),
+      contribuable:contribuables (
+        nom_prenoms,
+        ifu_npi
+      ),
+      articles_recouvrement (
+        numero_article,
+        droit_simple
+      )
+    `)
+    .eq("role_id", roleId);
+
+  if (error) throw error;
+  if (!data) return [];
+
+  return data.map((item: any) => {
+    // Gestion robuste des relations (objet ou tableau)
+    const liq = Array.isArray(item.liquidation) ? item.liquidation[0] : item.liquidation;
+    const contrib = Array.isArray(item.contribuable) ? item.contribuable[0] : item.contribuable;
+    const articles = item.articles_recouvrement ?? [];
+
+    // Calcul de la plage des articles (ex: "Art. 1 à 4" ou "Art. 5")
+    const nums = articles
+      .map((a: { numero_article: number }) => Number(a.numero_article) || 0)
+      .sort((a: number, b: number) => a - b);
+
+    let articlesRange = "-";
+    if (nums.length === 1) {
+      articlesRange = `Art. ${nums[0]}`;
+    } else if (nums.length > 1) {
+      articlesRange = `Art. ${nums[0]} à ${nums[nums.length - 1]}`;
+    }
+
+    // Calcul de la somme des droits simples pour cette liquidation
+    const totalDroits = articles.reduce(
+      (sum: number, a: { droit_simple: number }) => sum + (Number(a.droit_simple) || 0),
+      0
+    );
+
+    return {
+      reference: liq?.reference_liq || "-",
+      ifu_npi: contrib?.ifu_npi || "-",
+      destinataire: contrib?.nom_prenoms || "-",
+      articles_range: articlesRange,
+      total_droits: totalDroits,
+    };
+  });
+}
