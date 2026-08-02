@@ -99,11 +99,9 @@ export default function RolesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast, toasts } = useToast();
 
-  // toastRef lets the effect call toast without being a dependency
   const toastRef = useRef(toast);
   toastRef.current = toast;
 
-  // Triggered once on mount and every time refreshKey increments
   useEffect(() => {
     let cancelled = false;
     setPageLoading(true);
@@ -112,7 +110,7 @@ export default function RolesPage() {
       .catch(() => { if (!cancelled) toastRef.current.error("Impossible de charger les roles."); })
       .finally(() => { if (!cancelled) setPageLoading(false); });
     return () => { cancelled = true; };
-  }, [refreshKey]); // only refreshKey — no cyclic dep on toast
+  }, [refreshKey]);
 
   const load = () => setRefreshKey((k) => k + 1);
 
@@ -124,7 +122,7 @@ export default function RolesPage() {
       const newNum = (result as { numero_role?: number })?.numero_role ?? closeTarget.numero_role + 1;
       toast.success("Role #" + closeTarget.numero_role + " cloture. Nouveau role actif : #" + newNum);
       setCloseTarget(null);
-      load(); // increment key to trigger reload
+      load();
     } catch {
       toast.error("Echec de la cloture du role.");
     } finally {
@@ -132,9 +130,12 @@ export default function RolesPage() {
     }
   };
 
+  // --- CALCULS METIER POUR LES STATS ---
   const totalDroits = roles.reduce((s, r) => s + r.total_droits, 0);
   const totalAvis = roles.reduce((s, r) => s + r.nb_recouvrements, 0);
-  const actifRole = roles.find((r) => r.status === "ACTIF");
+  
+  // Filtrage de TOUS les rôles actifs
+  const actifsRoles = roles.filter((r) => r.status === "ACTIF");
 
   return (
     <div className="space-y-6">
@@ -160,23 +161,49 @@ export default function RolesPage() {
         </button>
       </div>
 
+      {/* --- CARTES DE STATISTIQUES REVISITEES --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Carte 1 : Rôles Actifs Synthèse multi-communes */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-indigo-500">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Role actif</p>
-          <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
-            {actifRole ? "#" + actifRole.numero_role + " - " + actifRole.commune : "-"}
-          </p>
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">
+              Rôles actifs ({actifsRoles.length})
+            </p>
+          </div>
+          {actifsRoles.length === 0 ? (
+            <p className="text-sm text-gray-400 font-medium">Aucun rôle actif</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {actifsRoles.map((r) => (
+                <span
+                  key={r.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800"
+                >
+                  #{r.numero_role} {r.commune}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Carte 2 : Total Avis Émis */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-purple-500">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total avis emis</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
+            Total avis emis
+          </p>
           <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{totalAvis}</p>
         </div>
+
+        {/* Carte 3 : Total Droits (XOF) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-emerald-500">
-          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total droits (XOF)</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
+            Total droits (XOF)
+          </p>
           <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalDroits)}</p>
         </div>
       </div>
 
+      {/* --- TABLEAU DES ROLES --- */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-hidden">
         {pageLoading ? (
           <div className="py-16 text-center text-gray-500 dark:text-gray-400">
