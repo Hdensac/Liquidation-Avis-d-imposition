@@ -134,8 +134,8 @@ export default function RolesPage() {
   const totalDroits = roles.reduce((s, r) => s + r.total_droits, 0);
   const totalAvis = roles.reduce((s, r) => s + r.nb_recouvrements, 0);
   
-  // Filtrage de TOUS les rôles actifs
-  const actifsRoles = roles.filter((r) => r.status === "ACTIF");
+  // Nombre de rôles actuellement actifs
+  const nbActifs = roles.filter((r) => r.status === "ACTIF").length;
 
   return (
     <div className="space-y-6">
@@ -163,27 +163,19 @@ export default function RolesPage() {
 
       {/* --- CARTES DE STATISTIQUES REVISITEES --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Carte 1 : Rôles Actifs Synthèse multi-communes */}
+        {/* Carte 1 : Option A - Synthèse globale des rôles en cours */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border-l-4 border-indigo-500">
-          <div className="flex justify-between items-center mb-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">
-              Rôles actifs ({actifsRoles.length})
-            </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 font-semibold">
+            Rôles en cours
+          </p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {nbActifs} {nbActifs > 1 ? "actifs" : "actif"}
+            </span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+              / {roles.length} enregistrés
+            </span>
           </div>
-          {actifsRoles.length === 0 ? (
-            <p className="text-sm text-gray-400 font-medium">Aucun rôle actif</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {actifsRoles.map((r) => (
-                <span
-                  key={r.id}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800"
-                >
-                  #{r.numero_role} {r.commune}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Carte 2 : Total Avis Émis */}
