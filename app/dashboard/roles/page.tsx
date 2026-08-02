@@ -5,7 +5,7 @@ import { fetchAllRoles, closeActiveRole, fetchRoleDetails } from "../../../actio
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
 import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
-import { generateRolePdf } from "../../../lib/generateRolePdf"; // Ajuste le chemin selon ton projet
+//import { generateRolePdf } from "../../../lib/generateRolePdf"; // Ajuste le chemin selon ton projet
 import { generateRolePdf } from "@/utils/rolePdfGenerator";
 
 function formatCurrency(amount: number) {
