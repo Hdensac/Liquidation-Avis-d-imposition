@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useTransition, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -119,9 +119,13 @@ function LoginForm() {
         </button>
       </form>
 
-      <div className="relative flex items-center justify-center mb-6">
-        <div className="border-t border-gray-200 dark:border-gray-700 w-full"></div>
-        <span className="bg-white dark:bg-gray-800 px-3 text-xs text-gray-400 uppercase tracking-widest relative font-medium">
+      <div className="relative flex items-center justify-center my-6">
+        {/* Ligne horizontale d'arrière-plan */}
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+        </div>
+        {/* Texte centré qui recouvre la ligne */}
+        <span className="relative bg-white dark:bg-gray-800 px-3 text-xs font-medium uppercase tracking-widest text-gray-400">
           Ou par Email
         </span>
       </div>
