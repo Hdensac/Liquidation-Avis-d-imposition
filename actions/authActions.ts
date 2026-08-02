@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -22,9 +22,7 @@ export async function signInWithGoogle() {
     return { error: error.message };
   }
 
-  if (data.url) {
-    redirect(data.url);
-  }
+  return { url: data.url };
 }
 
 export async function signUpWithEmail(formData: FormData) {

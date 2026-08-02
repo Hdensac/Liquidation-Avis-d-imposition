@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useTransition, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -43,6 +43,8 @@ function LoginForm() {
       const res = await signInWithGoogle();
       if (res?.error) {
         setMessage({ type: "error", text: res.error });
+      } else if (res?.url) {
+        window.location.href = res.url;
       }
     });
   };
