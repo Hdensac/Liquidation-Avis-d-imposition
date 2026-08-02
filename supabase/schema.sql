@@ -213,8 +213,13 @@ BEGIN
   VALUES (p_liquidation_id, v_role_id, v_contrib.id)
   RETURNING id INTO v_recouvrement_id;
 
-  -- Marquer la liquidation comme PAYEE
-  UPDATE public.liquidations SET status = 'PAYE' WHERE id = p_liquidation_id;
+  -- Marquer la liquidation comme PAYEE et tracer l'audit
+  UPDATE public.liquidations 
+  SET 
+    status = 'PAYE',
+    validated_by = auth.uid(),
+    validated_at = now()
+  WHERE id = p_liquidation_id;
 
   -- Générer les 4 articles séquentiels
   v_base := v_liq.superficie * v_liq.valeur_locative;

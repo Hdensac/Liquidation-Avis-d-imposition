@@ -1,5 +1,5 @@
 // actions/liquidationActions.ts
-import { supabase } from "../lib/supabase";
+import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
 import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
 
@@ -37,6 +37,7 @@ function extractCommune(row: LiquidationCommuneRow | null | undefined) {
 }
 
 async function fetchLiquidationCommune(liquidationId: string) {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
     .select("contribuable:contribuables (commune)")
@@ -48,6 +49,7 @@ async function fetchLiquidationCommune(liquidationId: string) {
 }
 
 async function fetchLatestLiquidationCommune() {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
     .select("contribuable:contribuables (commune)")
@@ -60,6 +62,7 @@ async function fetchLatestLiquidationCommune() {
 }
 
 async function findActiveRole(commune?: string) {
+  const supabase = await createClient();
   let query = supabase
     .from("roles")
     .select("id, numero_role, commune, annee, status")
@@ -77,6 +80,7 @@ async function findActiveRole(commune?: string) {
 }
 
 async function createInitialActiveRole(commune: string) {
+  const supabase = await createClient();
   const normalizedCommune = normalizeCommune(commune);
   const { data, error } = await supabase
     .from("roles")
@@ -108,6 +112,7 @@ async function ensureActiveRole(commune: string) {
 
 /** Create a new liquidation in status EN_ATTENTE */
 export async function createLiquidation(data: TaxpayerInput) {
+  const supabase = await createClient();
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
     p_nom_prenoms: data.fullname,
     p_ifu_npi: data.ifuNpi,
@@ -125,6 +130,7 @@ export async function createLiquidation(data: TaxpayerInput) {
 
 /** Retrieve pending liquidations, optionally filter by IFU or name */
 export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; name?: string }) {
+  const supabase = await createClient();
   let query = supabase
     .from("liquidations")
     .select(
@@ -146,6 +152,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
  *  leading to duplicate ACTIF roles for the same commune.
  */
 export async function validatePayment(liquidationId: string) {
+  const supabase = await createClient();
   const { error, data: result } = await supabase.rpc("valider_paiement_liquidation", {
     p_liquidation_id: liquidationId,
   });
@@ -155,6 +162,7 @@ export async function validatePayment(liquidationId: string) {
 
 /** Close active role for a commune and create next role */
 export async function closeActiveRole(commune: string) {
+  const supabase = await createClient();
   const { error, data: result } = await supabase.rpc("cloturer_role_actif", {
     p_commune: commune,
   });
@@ -164,6 +172,7 @@ export async function closeActiveRole(commune: string) {
 
 /** Fetch all roles with aggregate stats (nb recouvrements, total droits, dernier article) */
 export async function fetchAllRoles() {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("roles")
     .select(`
@@ -225,6 +234,7 @@ export async function getActiveRole(commune?: string) {
 }
 
 export async function fetchAvisRecouvrementDetails(liquidationId: string): Promise<AvisRecouvrementDetails> {
+  const supabase = await createClient();
   const { data: recouvrement, error: recouvrementError } = await supabase
     .from("recouvrements")
     .select("id, liquidation_id, role_id, contribuable_id, date_paiement")
@@ -339,6 +349,7 @@ export interface RoleDetailItem {
 
 /** Récupère la liste détaillée des avis/liquidations associés à un rôle */
 export async function fetchRoleDetails(roleId: string): Promise<RoleDetailItem[]> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("recouvrements")
     .select(`
