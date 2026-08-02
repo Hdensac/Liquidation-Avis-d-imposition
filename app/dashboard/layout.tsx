@@ -6,7 +6,8 @@ export const metadata = {
 };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  // AJOUT DE AWAIT ICI
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   // Extract simple metadata to avoid passing complex non-serializable objects if necessary,
