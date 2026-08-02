@@ -5,7 +5,15 @@ import Navbar from "@/components/Navbar";
 import { FilePlus, Clock, History, Briefcase } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
-export default function HeaderClient() {
+interface HeaderClientProps {
+  user?: {
+    email?: string;
+    name?: string;
+    avatarUrl?: string;
+  };
+}
+
+export default function HeaderClient({ user }: HeaderClientProps) {
   const pathname = usePathname() || "/dashboard/new";
   const router = useRouter();
 
@@ -27,7 +35,14 @@ export default function HeaderClient() {
 
   return (
     <div>
-      <Navbar brand="Administration Fiscale" items={items} activeKey={activeKey} onNavigate={onNavigate} rolePill={null} />
+      <Navbar
+        brand="Administration Fiscale"
+        items={items}
+        activeKey={activeKey}
+        onNavigate={onNavigate}
+        rolePill={null}
+        user={user}
+      />
     </div>
   );
 }

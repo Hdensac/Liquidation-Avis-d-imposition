@@ -8,6 +8,7 @@ import {
   Clock,
   History,
 } from "lucide-react";
+import UserNav from "./UserNav";
 
 type NavItem = { key: string; label: string; icon?: React.ComponentType<any> };
 
@@ -17,6 +18,11 @@ type Props = {
   activeKey?: string;
   onNavigate?: (key: string) => void;
   rolePill?: string | null;
+  user?: {
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
+  };
 };
 
 export default function Navbar({
@@ -29,6 +35,7 @@ export default function Navbar({
   activeKey = "new",
   onNavigate,
   rolePill = "Rôle #1 | ALLADA | 2026",
+  user,
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -61,31 +68,40 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Desktop nav */}
-          <nav className="hidden sm:flex sm:items-center sm:gap-3" aria-label="Primary">
-            <div className="flex items-center gap-2">
-              {items.map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => handleNav(key)}
-                  aria-pressed={activeKey === key}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
-                    activeKey === key
-                      ? "bg-indigo-600 text-white shadow"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {Icon && <Icon size={16} />}
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
+          {/* Desktop nav & User profile */}
+          <div className="hidden sm:flex sm:items-center sm:gap-6">
+            <nav className="flex sm:items-center sm:gap-3" aria-label="Primary">
+              <div className="flex items-center gap-2">
+                {items.map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => handleNav(key)}
+                    aria-pressed={activeKey === key}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
+                      activeKey === key
+                        ? "bg-indigo-600 text-white shadow"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {Icon && <Icon size={16} />}
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </nav>
 
-            {/* NOTE: action buttons removed as requested (Exporter / Nouvelle / User) */}
-          </nav>
+            {user && (
+              <div className="pl-4 border-l border-gray-200 dark:border-gray-800">
+                <UserNav name={user.name} email={user.email} avatarUrl={user.avatarUrl} />
+              </div>
+            )}
+          </div>
 
           {/* Mobile actions */}
-          <div className="flex sm:hidden items-center gap-2">
+          <div className="flex sm:hidden items-center gap-3">
+            {user && (
+              <UserNav name={user.name} email={user.email} avatarUrl={user.avatarUrl} />
+            )}
             <button
               onClick={() => setMobileOpen((v) => !v)}
               aria-expanded={mobileOpen}
@@ -117,8 +133,6 @@ export default function Navbar({
               <span className="font-medium">{label}</span>
             </button>
           ))}
-
-          {/* action buttons removed from mobile panel as well */}
         </div>
       </div>
     </header>
