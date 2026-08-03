@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { TaxpayerInput } from "@/types/liquidation";
@@ -8,7 +8,7 @@ const COMMUNE_OPTIONS = [
   { value: "ALLADA", label: "ALLADA" },
   { value: "TOFFO", label: "TOFFO" },
   { value: "TORI-BOSSITO", label: "TORI-BOSSITO" },
-  { value: "ZE", label: "ZE (Z�)" },
+  { value: "ZE", label: "ZE (ZÈ)" },
 ];
 
 interface TaxFormProps {
@@ -20,7 +20,7 @@ interface TaxFormProps {
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let { name, value, type } = e.target;
-    
+
     if (name === "ifuNpi") {
       value = value.replace(/\D/g, "");
     }
@@ -77,7 +77,6 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        {/* Section 1 : Infos Contribuable */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <User className="w-4 h-4 text-blue-600" />
@@ -114,9 +113,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Téléphone
-              </label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Téléphone</label>
               <input
                 type="text"
                 name="phone"
@@ -131,7 +128,6 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
           </div>
         </div>
 
-        {/* Section 2 : Localisation */}
         <div className="space-y-4 border-t border-slate-100 pt-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-blue-600" />
@@ -150,7 +146,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 required
               >
                 <option value="" disabled>
-                  S�lectionnez une commune
+                  Sélectionnez une commune
                 </option>
                 {COMMUNE_OPTIONS.map((commune) => (
                   <option key={commune.value} value={commune.value}>
@@ -190,7 +186,6 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
           </div>
         </div>
 
-        {/* Section 3 : Caractéristiques & Année */}
         <div className="space-y-4 border-t border-slate-100 pt-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-blue-600" />
@@ -215,7 +210,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Valeur Administraive  (VA en FCFA) <span className="text-red-500">*</span>
+                Valeur Administrative (VA en FCFA) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -250,5 +245,3 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
     </div>
   );
 };
-
-
