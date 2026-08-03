@@ -434,13 +434,16 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
     { align: "center" }
   );
 
-  // Bloc de Signature
-  // const place = titleCase(normalizeCommune(details.role.commune));
+ // Bloc de Signature
+ // const place = titleCase(normalizeCommune(details.role.commune));
   pdf.setFontSize(10);
   pdf.text(`ALLADA , le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 32, { align: "right" });
+
   pdf.setFontSize(11);
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 39, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 45, { align: "right" });
+
+  // Espace suffisant laissé pour la signature manuscrite (passé de +45 à +65)
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 65, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
