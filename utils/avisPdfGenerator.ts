@@ -111,7 +111,6 @@ function normalizeCommune(value?: string) {
 }
 
 function getBaseImposable(details: AvisRecouvrementDetails) {
-  // If liquidation provides valeur_locative and superficie, use them; otherwise fallback to 0
   return toNumber(details.liquidation.superficie) * toNumber(details.liquidation.valeur_locative);
 }
 
@@ -221,7 +220,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.setFontSize(8.5);
   pdf.text("AVIS AUX CONTRIBUABLES", cx, boxY + 6, { align: "center" });
 
-  // Textes principaux d'avertissement (Augmenté de 4.8 à 5.8)
+  // Textes principaux d'avertissement
   pdf.setFont("times", "normal");
   pdf.setFontSize(5.8);
   const avisText = [
@@ -242,7 +241,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.setLineWidth(0.1);
   pdf.line(SIDEBAR_X + 3, tY + 1, SIDEBAR_X + SIDEBAR_W - 3, tY + 1);
 
-  // Abréviations (Augmenté de 4.1 à 5.2)
+  // Abréviations
   pdf.setFontSize(5.2);
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
@@ -262,7 +261,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   // 2ème Ligne de séparation fine (Mode de calcul)
   pdf.line(SIDEBAR_X + 3, abY + 1, SIDEBAR_X + SIDEBAR_W - 3, abY + 1);
 
-  // Mode de calcul des Impôts (Augmenté de 4.3 / 4.1 à 5.5 / 5.0)
+  // Mode de calcul des Impôts
   let calcY = abY + 4.5;
   pdf.setFont("times", "bold");
   pdf.setFontSize(5.5);
@@ -293,7 +292,7 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number) {
   pdf.setFontSize(10);
   pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25, { align: "right" });
 
-  // Bannière encadrée (light stroke only)
+  // Bannière encadrée
   pdf.setLineWidth(0.4);
   pdf.setDrawColor(0);
   pdf.rect(MAIN_X + 30, 28, MAIN_W - 60, 7, "S");
@@ -317,21 +316,18 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
   pdf.text("N° IFU/NPI :", MAIN_X, 49);
   pdf.text("ADRESSE :", MAIN_X, 55);
 
-  pdf.setFont("times", "normal");
+  // Valeurs basculées en gras
   pdf.text(details.contribuable.nom_prenoms, MAIN_X + 30, 43);
   pdf.text(details.contribuable.ifu_npi, MAIN_X + 30, 49);
   pdf.text(`Tél : ${details.contribuable.telephone || "-"}`, MAIN_X + 150, 49);
   pdf.text(wrap(pdf, address, 160), MAIN_X + 30, 55);
 
-  pdf.setFont("times", "bold");
   pdf.text(roleLabel, MAIN_X + 30, 62);
 }
 
 function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const startY = 68;
 
-  // Total = 238 mm
-  // Localisation (20mm) + Description (25mm) réduites pour donner +43mm aux chiffres
   const widths = [12, 14, 19, 20, 25, 24, 14, 28, 23, 26, 32];
   const headers = [
     ["N°", "Article"],
@@ -351,7 +347,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.setDrawColor(0, 0, 0);
   pdf.setLineWidth(0.3);
 
-  // 1. Dessin de l'en-tête
+  // 1. En-tête (FOND GRIS SOUTENU + TEXTE EN GRAS)
   headers.forEach((headerLines, index) => {
     const cellX = x;
     const cellW = widths[index];
@@ -377,7 +373,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.setTextColor(0, 0, 0);
 
   let y = startY + 16;
-  const startRowsY = y; // Point de départ des lignes pour le rowspan
+  const startRowsY = y;
 
   // 2. Précalcul des hauteurs de chaque ligne
   const rowHeights = rows.map((row) => {
@@ -385,7 +381,6 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      // Index 3 (Loc) et 4 (Desc) ignorés pour le calcul de hauteur par ligne
       "",
       "",
       formatNumber(row.base, true),
@@ -407,7 +402,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
   const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 3. Dessin des lignes indépendantes (tout sauf Localisation & Description)
+  // 3. Dessin des lignes (TOUS LES TEXTES SONT DÉSORMAIS EN GRAS)
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -415,8 +410,8 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      "", // Localisation (Rowspan)
-      "", // Description (Rowspan)
+      "",
+      "",
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
@@ -428,14 +423,15 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     let currentX = MAIN_X;
 
     values.forEach((val, idx) => {
-      // Ignorer le dessin standard pour les colonnes 3 et 4 (gérées en fusion)
       if (idx === 3 || idx === 4) {
         currentX += widths[idx];
         return;
       }
 
       pdf.rect(currentX, y, widths[idx], currentHeight);
-      pdf.setFont("times", idx <= 1 ? "bold" : "normal");
+
+      // Bascule de tout le tableau en bold
+      pdf.setFont("times", "bold");
       pdf.setFontSize(8);
 
       const isCentered = idx <= 2 || idx === 6;
@@ -456,7 +452,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     y += currentHeight;
   });
 
-  // 4. Dessin des 2 grandes cellules fusionnées (Rowspan)
+  // 4. Dessin des cellules fusionnées (EN GRAS ÉGALEMENT)
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
   const descX = locX + widths[3];
 
@@ -464,20 +460,22 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const locText = sanitizeText(firstRow.localisation || "");
   const descText = sanitizeText(firstRow.description || "");
 
-  // Cellule Localisation Fusionnée
+  // Localisation Fusionnée
   pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
   const wrappedLoc = wrap(pdf, locText, widths[3] - 4);
   const locTextHeight = wrappedLoc.length * 3.5;
   const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3;
-  pdf.setFont("times", "normal");
+  pdf.setFont("times", "bold");
   pdf.setFontSize(7.5);
   pdf.text(wrappedLoc, locX + 2, locY, { align: "left" });
 
-  // Cellule Description Fusionnée
+  // Description Fusionnée
   pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
   const wrappedDesc = wrap(pdf, descText, widths[4] - 4);
   const descTextHeight = wrappedDesc.length * 3.5;
   const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3;
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(7.5);
   pdf.text(wrappedDesc, descX + 2, descY, { align: "left" });
 
   return y;
@@ -487,7 +485,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
   const blockY = endY + 4;
   const totalWidth = MAIN_W;
 
-  // Ligne TOTAL DÛ
+  // Ligne TOTAL DÛ (FOND GRIS + TEXTE GRAS)
   pdf.setFillColor(210, 210, 210);
   pdf.rect(MAIN_X, blockY, totalWidth, 12, "FD");
   pdf.setFont("times", "bold");
@@ -505,15 +503,14 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
     { align: "center" }
   );
 
- // Bloc de Signature
- // const place = titleCase(normalizeCommune(details.role.commune));
+  // Bloc de Signature
   pdf.setFontSize(10);
+  pdf.setFont("times", "bold");
   pdf.text(`ALLADA , le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 32, { align: "right" });
 
   pdf.setFontSize(11);
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 39, { align: "right" });
 
-  // Espace suffisant laissé pour la signature manuscrite (passé de +45 à +65)
   pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 55, { align: "right" });
 }
 
@@ -523,9 +520,6 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
   const dateEmission = details.recouvrement.date_paiement ? new Date(details.recouvrement.date_paiement) : new Date();
   const rows = buildRows(details);
 
-  console.log("[Avis PDF] articles details:", details.articles);
-  console.log("[Avis PDF] rows built:", rows);
-
   const totalDu = rows.reduce((sum, row) => sum + row.reste_du, 0);
 
   const pdf = new jsPDF({
@@ -534,7 +528,6 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
     format: "a4",
   });
 
-  // Ensure text color is black
   pdf.setTextColor(0, 0, 0);
 
   drawStaticSidebar(pdf, commune);
