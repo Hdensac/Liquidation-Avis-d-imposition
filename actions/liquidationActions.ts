@@ -20,6 +20,7 @@ export async function fetchValeurAdministrative(commune: string): Promise<number
 import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
 import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
+import { logAction } from "@/actions/auditActions";
 
 type RoleRecord = {
   id: string;
@@ -143,6 +144,15 @@ export async function createLiquidation(data: TaxpayerInput) {
     p_start_year: Number(data.startYear) || 2023,
   });
   if (error) throw error;
+
+  // Log de l'action
+  await logAction("CREATION_LIQUIDATION", {
+    reference_liq: result?.reference_liq,
+    contribuable: data.fullname,
+    ifu: data.ifuNpi,
+    commune: data.commune,
+  });
+
   return result;
 }
 
@@ -228,6 +238,16 @@ export async function validatePayment(liquidationId: string) {
     p_liquidation_id: liquidationId,
   });
   if (error) throw error;
+
+  // Log de l'action
+  await logAction("VALIDATION_PAIEMENT", {
+    liquidation_id: liquidationId,
+    recouvrement_id: result?.recouvrement_id,
+    role_id: result?.role_id,
+    commune: result?.commune,
+    annee: result?.annee,
+  });
+
   return result;
 }
 
@@ -238,6 +258,13 @@ export async function closeActiveRole(commune: string) {
     p_commune: commune,
   });
   if (error) throw error;
+
+  // Log de l'action
+  await logAction("CLOTURE_ROLE_ACTIF", {
+    commune: commune,
+    nouveau_numero_role: result?.nouveau_numero_role,
+  });
+
   return result;
 }
 

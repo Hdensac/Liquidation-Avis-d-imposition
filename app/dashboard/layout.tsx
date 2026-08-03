@@ -14,10 +14,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
   const userData = {
     email: user.email,
     name: user.user_metadata?.full_name || user.user_metadata?.name,
     avatarUrl: user.user_metadata?.avatar_url,
+    role: profile?.role || null,
   };
 
   return (
