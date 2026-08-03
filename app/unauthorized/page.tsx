@@ -1,7 +1,25 @@
 import { ShieldAlert, LogOut } from "lucide-react";
 import { signOut } from "@/actions/authActions";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function UnauthorizedPage() {
+export default async function UnauthorizedPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Si l'utilisateur est connecté et possède un rôle, on le redirige vers le dashboard
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role) {
+      redirect("/dashboard");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background Decorative Gradients */}

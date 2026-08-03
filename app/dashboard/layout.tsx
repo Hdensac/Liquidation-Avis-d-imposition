@@ -20,6 +20,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("id", user.id)
     .single();
 
+  if (!profile?.role) {
+    redirect("/unauthorized");
+  }
+
   const userData = {
     email: user.email,
     name: user.user_metadata?.full_name || user.user_metadata?.name,
