@@ -189,6 +189,8 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     `CENTRE DES IMPOTS DES PETITES ENTREPRISES D'ALLADA`,
     "----------------------",
     "SERVICE DE GESTION",
+    "----------------------",
+    `RECETTE DES IMPOTS DE ${commune}`,
   ];
 
   let currentY = 10;
@@ -449,7 +451,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 39, { align: "right" });
 
   // Espace suffisant laissé pour la signature manuscrite (passé de +45 à +65)
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 65, { align: "right" });
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 55, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
