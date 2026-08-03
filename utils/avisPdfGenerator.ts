@@ -347,7 +347,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.setDrawColor(0, 0, 0);
   pdf.setLineWidth(0.3);
 
-  // 1. En-tête (FOND GRIS SOUTENU + TEXTE EN GRAS)
+  // 1. En-tête (FOND GRIS SOUTENU + TEXTE EN GRAS ET CENTRÉ)
   headers.forEach((headerLines, index) => {
     const cellX = x;
     const cellW = widths[index];
@@ -402,7 +402,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
   const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 3. Dessin des lignes (TOUS LES TEXTES SONT DÉSORMAIS EN GRAS)
+  // 3. Dessin des lignes (TOUTES LES CELLULES CENTRÉES HORIZONTALEMENT ET VERTICALEMENT)
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -430,21 +430,19 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
 
       pdf.rect(currentX, y, widths[idx], currentHeight);
 
-      // Bascule de tout le tableau en bold
       pdf.setFont("times", "bold");
       pdf.setFontSize(8);
 
-      const isCentered = idx <= 2 || idx === 6;
-      const isRightAligned = idx === 5 || idx >= 7;
-
-      let textX = currentX + 2;
-      if (isCentered) textX = currentX + widths[idx] / 2;
-      if (isRightAligned) textX = currentX + widths[idx] - 2;
-
-      const align = isCentered ? "center" : isRightAligned ? "right" : "left";
       const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 4);
 
-      pdf.text(wrapped, textX, y + 6, { align });
+      // Centrage horizontal (X au milieu de la cellule)
+      const textX = currentX + widths[idx] / 2;
+
+      // Centrage vertical (calcul selon le nombre de lignes du texte)
+      const textHeight = wrapped.length * 3.5;
+      const textY = y + (currentHeight - textHeight) / 2 + 2.8;
+
+      pdf.text(wrapped, textX, textY, { align: "center" });
 
       currentX += widths[idx];
     });
@@ -452,7 +450,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     y += currentHeight;
   });
 
-  // 4. Dessin des cellules fusionnées (EN GRAS ÉGALEMENT)
+  // 4. Dessin des cellules fusionnées (LOCALISATION & DESCRIPTION CENTRÉES)
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
   const descX = locX + widths[3];
 
@@ -464,19 +462,19 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
   const wrappedLoc = wrap(pdf, locText, widths[3] - 4);
   const locTextHeight = wrappedLoc.length * 3.5;
-  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3;
+  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 2.8;
   pdf.setFont("times", "bold");
   pdf.setFontSize(7.5);
-  pdf.text(wrappedLoc, locX + 2, locY, { align: "left" });
+  pdf.text(wrappedLoc, locX + widths[3] / 2, locY, { align: "center" });
 
   // Description Fusionnée
   pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
   const wrappedDesc = wrap(pdf, descText, widths[4] - 4);
   const descTextHeight = wrappedDesc.length * 3.5;
-  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3;
+  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 2.8;
   pdf.setFont("times", "bold");
   pdf.setFontSize(7.5);
-  pdf.text(wrappedDesc, descX + 2, descY, { align: "left" });
+  pdf.text(wrappedDesc, descX + widths[4] / 2, descY, { align: "center" });
 
   return y;
 }
