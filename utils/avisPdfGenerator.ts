@@ -173,7 +173,7 @@ function wrap(pdf: jsPDF, text: string, width: number) {
 function drawStaticSidebar(pdf: jsPDF, commune: string) {
   const cx = SIDEBAR_X + SIDEBAR_W / 2;
 
-  pdf.setFont("times", "normal");
+  pdf.setFont("times", "bold");
   pdf.setFontSize(7);
 
   const headerLines = [
