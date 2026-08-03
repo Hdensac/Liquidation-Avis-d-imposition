@@ -205,7 +205,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   // Dates
   pdf.setFontSize(6.2);
   // increase vertical gap between 'SERVICE DE GESTION' and the dates
-  let dateY = 66;
+  let dateY = 76;
   pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
