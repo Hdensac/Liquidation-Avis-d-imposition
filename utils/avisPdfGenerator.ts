@@ -203,7 +203,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
 
   // Dates
   pdf.setFontSize(6.2);
-  let dateY = 70;
+  let dateY = 72;
   pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
