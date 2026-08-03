@@ -205,14 +205,14 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   // Dates
   pdf.setFontSize(6.2);
   // increase vertical gap between 'SERVICE DE GESTION' and the dates
-  let dateY = 76;
+  let dateY = 70;
   pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
 
 // Cadre "AVIS AUX CONTRIBUABLES" (Hauteur augmentée à 88 pour inclure les abréviations)
-  const boxY = 84;
-  const boxH = 88;
+  const boxY = 85;
+  const boxH = 89;
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.3);
   pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, boxH, 3, 3);
