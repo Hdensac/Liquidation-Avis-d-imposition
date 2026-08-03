@@ -18,7 +18,7 @@ const EMPTY_FORM: TaxpayerInput = {
   arrondissement: "",
   quartier: "",
   superficie: "",
-  valeurLocative: 300,
+  valeurLocative: "",
   startYear: 2023,
 };
 
