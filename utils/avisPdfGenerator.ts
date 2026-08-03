@@ -356,7 +356,7 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     const cellX = x;
     const cellW = widths[index];
 
-    pdf.setFillColor(220, 220, 220);
+    pdf.setFillColor(215, 215, 215);
     pdf.setTextColor(0, 0, 0);
     pdf.rect(cellX, startY, cellW, 16, "F");
     pdf.setDrawColor(0, 0, 0);
@@ -488,7 +488,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
   const totalWidth = MAIN_W;
 
   // Ligne TOTAL DÛ
-  pdf.setFillColor(215, 215, 215);
+  pdf.setFillColor(210, 210, 210);
   pdf.rect(MAIN_X, blockY, totalWidth, 12, "FD");
   pdf.setFont("times", "bold");
   pdf.setFontSize(13);
