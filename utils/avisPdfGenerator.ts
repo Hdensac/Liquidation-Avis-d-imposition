@@ -204,45 +204,44 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
 
   // Dates
   pdf.setFontSize(6.2);
-  // increase vertical gap between 'SERVICE DE GESTION' and the dates
   let dateY = 70;
   pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
 
-// Cadre "AVIS AUX CONTRIBUABLES" (Hauteur augmentée à 88 pour inclure les abréviations)
+  // Cadre "AVIS AUX CONTRIBUABLES" (Hauteur ajustée à 98 mm pour intégrer le mode de calcul)
   const boxY = 85;
-  const boxH = 89;
+  const boxH = 98;
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.3);
   pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, boxH, 3, 3);
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(8);
-  pdf.text("AVIS AUX CONTRIBUABLES", cx, boxY + 6, { align: "center" });
+  pdf.text("AVIS AUX CONTRIBUABLES", cx, boxY + 5.5, { align: "center" });
 
   pdf.setFont("times", "normal");
-  pdf.setFontSize(5);
+  pdf.setFontSize(4.8);
   const avisText = [
     "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois qui suivent la notification du présent avis d'imposition.",
-    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive.",
+    "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive.Celles qui sont motivées par la gêne ou l’indigène peuvent être présentées à toute époque.",
     "Tout renseignement sur la nature des impôts faisant l'objet de cet avis d'imposition peut être demandé au Service d'Assiette.",
     "Le paiement des impôts se fait à la Caisse du Receveur des Impôts, soit en numéraire, soit par chèque bancaire certifié et libellé au nom du Receveur des Impôts.",
   ];
 
-  let tY = boxY + 13;
+  let tY = boxY + 11.5;
   avisText.forEach((paragraph) => {
     const lines = wrap(pdf, paragraph, SIDEBAR_W - 5);
     pdf.text(lines, SIDEBAR_X + 3, tY);
-    tY += lines.length * 2.4 + 1.2;
+    tY += lines.length * 2.2 + 0.8;
   });
 
-  // Ligne de séparation fine à l'intérieur du cadre
+  // 1ère Ligne de séparation fine (Abréviations)
   pdf.setLineWidth(0.1);
-  pdf.line(SIDEBAR_X + 3, tY + 1, SIDEBAR_X + SIDEBAR_W - 3, tY + 1);
+  pdf.line(SIDEBAR_X + 3, tY + 0.5, SIDEBAR_X + SIDEBAR_W - 3, tY + 0.5);
 
-// Abréviations (à l'intérieur du cadre avec retour à la ligne automatique si nécessaire)
-  pdf.setFontSize(4.2); // Légère réduction pour un ajustement parfait
+  // Abréviations
+  pdf.setFontSize(4.1);
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
     "VV = Valeur Vénale | VL = Valeur Locative | RN = Revenu Net",
@@ -250,12 +249,35 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "TFU : Taxe Foncière Unique",
   ];
 
-  let abY = tY + 4;
+  let abY = tY + 3;
   abbrev.forEach((line) => {
     pdf.setFont("times", "normal");
     const wrappedLines = wrap(pdf, line, SIDEBAR_W - 6);
     pdf.text(wrappedLines, SIDEBAR_X + 3, abY);
-    abY += wrappedLines.length * 2.5;
+    abY += wrappedLines.length * 2.1;
+  });
+
+  // 2ème Ligne de séparation fine (Mode de calcul)
+  pdf.line(SIDEBAR_X + 3, abY + 0.5, SIDEBAR_X + SIDEBAR_W - 3, abY + 0.5);
+
+  // Mode de calcul des Impôts
+  let calcY = abY + 3;
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(4.3);
+  pdf.text("Mode de calcul des Impôts :", SIDEBAR_X + 3, calcY);
+
+  pdf.setFont("times", "normal");
+  pdf.setFontSize(4.1);
+  const calcLines = [
+    "TFU/FNB = VV × Taux de la TFU/FNB",
+    "TFU/FB = VL × Taux de la TFU/FB",
+    "IRPP/RF = RN × Taux de l’IRPP/RF",
+  ];
+
+  calcY += 2.2;
+  calcLines.forEach((line) => {
+    pdf.text(line, SIDEBAR_X + 3, calcY);
+    calcY += 2.1;
   });
 }
 
