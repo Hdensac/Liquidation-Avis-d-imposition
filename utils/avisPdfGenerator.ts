@@ -305,8 +305,10 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 
 function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   const startY = 68;
-  // Adjusted column widths to sum up exactly to MAIN_W = 238 mm (preventing right side overflow)
-  const widths = [12, 14, 20, 36, 52, 16, 11, 19, 16, 19, 23];
+
+  // Total = 238 mm
+  // Localisation (20mm) + Description (25mm) réduites pour donner +43mm aux chiffres
+  const widths = [12, 14, 19, 20, 25, 24, 14, 28, 23, 26, 32];
   const headers = [
     ["N°", "Article"],
     ["Exercice"],
@@ -325,16 +327,10 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.setDrawColor(0, 0, 0);
   pdf.setLineWidth(0.3);
 
-  console.log("[Avis PDF] drawArticlesTable header start", {
-    expectedFill: [245, 245, 245],
-    expectedTextColor: [0, 0, 0],
-    widths,
-  });
-
+  // 1. Dessin de l'en-tête
   headers.forEach((headerLines, index) => {
     const cellX = x;
     const cellW = widths[index];
-    console.log("[Avis PDF] drawArticlesTable header cell", { cellX, cellW, headerLines });
 
     pdf.setFillColor(245, 245, 245);
     pdf.setTextColor(0, 0, 0);
@@ -344,7 +340,6 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     pdf.setFont("times", "bold");
     pdf.setFontSize(8);
 
-    pdf.setTextColor(0, 0, 0);
     if (headerLines.length === 1) {
       pdf.text(headerLines[0], cellX + cellW / 2, startY + 8.5, { align: "center" });
     } else {
@@ -357,29 +352,20 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
   pdf.setFillColor(255, 255, 255);
   pdf.setTextColor(0, 0, 0);
 
-  console.log("[Avis PDF] drawArticlesTable header drawn", {
-    headerCount: headers.length,
-    finalX: x,
-    startY,
-    rowY: startY + 16,
-  });
-
   let y = startY + 16;
+  const startRowsY = y; // Point de départ des lignes pour le rowspan
 
-  // Ensure text color
-  pdf.setTextColor(0, 0, 0);
-
-  rows.forEach((row) => {
+  // 2. Précalcul des hauteurs de chaque ligne
+  const rowHeights = rows.map((row) => {
     const values = [
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      sanitizeText(row.localisation),
-      sanitizeText(row.description),
-      // Base: always formatted number (show 0 as 0)
+      // Index 3 (Loc) et 4 (Desc) ignorés pour le calcul de hauteur par ligne
+      "",
+      "",
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
-      // Monetary columns: show 0 instead of '-'
       formatNumber(row.droit_simple, true),
       formatNumber(row.penalite, true),
       formatNumber(row.acompte_paye, true),
@@ -387,17 +373,44 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
     ];
 
     const wrapped = values.map((val, idx) => {
-      // only wrap text columns; numbers and percent values are single-line
-      if (idx >= 5 && idx <= 10) {
-        return [String(val)];
-      }
+      if (idx === 3 || idx === 4) return [];
+      if (idx >= 5 && idx <= 10) return [String(val)];
       return wrap(pdf, val, widths[idx] - 4);
     });
-    const rowHeight = Math.max(12, ...wrapped.map((lines) => lines.length * 4 + 4));
+
+    return Math.max(10, ...wrapped.map((lines) => lines.length * 4 + 4));
+  });
+
+  const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
+
+  // 3. Dessin des lignes indépendantes (tout sauf Localisation & Description)
+  rows.forEach((row, rowIndex) => {
+    const currentHeight = rowHeights[rowIndex];
+
+    const values = [
+      String(row.numero_article),
+      String(row.exercice),
+      sanitizeText(row.nature_impot),
+      "", // Localisation (Rowspan)
+      "", // Description (Rowspan)
+      formatNumber(row.base, true),
+      `${Math.round(row.taux * 100)}%`,
+      formatNumber(row.droit_simple, true),
+      formatNumber(row.penalite, true),
+      formatNumber(row.acompte_paye, true),
+      formatNumber(row.reste_du, true),
+    ];
+
     let currentX = MAIN_X;
 
-    values.forEach((_, idx) => {
-      pdf.rect(currentX, y, widths[idx], rowHeight);
+    values.forEach((val, idx) => {
+      // Ignorer le dessin standard pour les colonnes 3 et 4 (gérées en fusion)
+      if (idx === 3 || idx === 4) {
+        currentX += widths[idx];
+        return;
+      }
+
+      pdf.rect(currentX, y, widths[idx], currentHeight);
       pdf.setFont("times", idx <= 1 ? "bold" : "normal");
       pdf.setFontSize(8);
 
@@ -409,13 +422,39 @@ function drawArticlesTable(pdf: jsPDF, rows: AvisTableRow[]) {
       if (isRightAligned) textX = currentX + widths[idx] - 2;
 
       const align = isCentered ? "center" : isRightAligned ? "right" : "left";
-      pdf.text(wrapped[idx], textX, y + 6, { align });
+      const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 4);
+
+      pdf.text(wrapped, textX, y + 6, { align });
 
       currentX += widths[idx];
     });
 
-    y += rowHeight;
+    y += currentHeight;
   });
+
+  // 4. Dessin des 2 grandes cellules fusionnées (Rowspan)
+  const locX = MAIN_X + widths[0] + widths[1] + widths[2];
+  const descX = locX + widths[3];
+
+  const firstRow = rows[0] || {};
+  const locText = sanitizeText(firstRow.localisation || "");
+  const descText = sanitizeText(firstRow.description || "");
+
+  // Cellule Localisation Fusionnée
+  pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
+  const wrappedLoc = wrap(pdf, locText, widths[3] - 4);
+  const locTextHeight = wrappedLoc.length * 3.5;
+  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3;
+  pdf.setFont("times", "normal");
+  pdf.setFontSize(7.5);
+  pdf.text(wrappedLoc, locX + 2, locY, { align: "left" });
+
+  // Cellule Description Fusionnée
+  pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
+  const wrappedDesc = wrap(pdf, descText, widths[4] - 4);
+  const descTextHeight = wrappedDesc.length * 3.5;
+  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3;
+  pdf.text(wrappedDesc, descX + 2, descY, { align: "left" });
 
   return y;
 }
