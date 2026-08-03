@@ -208,11 +208,12 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
   pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
 
-  // Cadre "AVIS AUX CONTRIBUABLES"
+// Cadre "AVIS AUX CONTRIBUABLES" (Hauteur augmentée à 88 pour inclure les abréviations)
   const boxY = 84;
+  const boxH = 88;
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.3);
-  pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, 70, 3, 3);
+  pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, boxH, 3, 3);
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(8);
@@ -227,14 +228,18 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "Le paiement des impôts se fait à la Caisse du Receveur des Impôts, soit en numéraire, soit par chèque bancaire certifié et libellé au nom du Receveur des Impôts.",
   ];
 
-  let tY = boxY + 15;
+  let tY = boxY + 13;
   avisText.forEach((paragraph) => {
     const lines = wrap(pdf, paragraph, SIDEBAR_W - 5);
     pdf.text(lines, SIDEBAR_X + 3, tY);
     tY += lines.length * 2.4 + 1.2;
   });
 
-  // Abréviations
+  // Ligne de séparation fine à l'intérieur du cadre
+  pdf.setLineWidth(0.1);
+  pdf.line(SIDEBAR_X + 3, tY + 1, SIDEBAR_X + SIDEBAR_W - 3, tY + 1);
+
+  // Abréviations (à l'intérieur du cadre)
   pdf.setFontSize(4.6);
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
@@ -243,10 +248,10 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "TFU : Taxe Foncière Unique",
   ];
 
-  let abY = boxY + 70 + 5;
+  let abY = tY + 4; // Positionné directement dans le cadre après la ligne
   abbrev.forEach((line) => {
     pdf.setFont("times", "normal");
-    pdf.text(line, SIDEBAR_X + 1, abY);
+    pdf.text(line, SIDEBAR_X + 3, abY);
     abY += 2.8;
   });
 }
