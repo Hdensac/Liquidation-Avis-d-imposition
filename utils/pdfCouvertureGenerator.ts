@@ -13,64 +13,63 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   const autoTableModule = await import("jspdf-autotable");
   const autoTable = autoTableModule.default;
 
-  // Document A4 en mode PAYSAGE (Landscape) pour correspondre exactement à l'original
+  // Document A4 en mode PAYSAGE (Landscape)
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
 
   // ==========================================
   // PAGE 1 : EN-TÊTE, MÉTA-DONNÉES & TABLEAU
   // ==========================================
 
-  // --- Bloc Gauche : En-tête Officiel (Centré sur x = 50) ---
+  // --- Bloc Gauche : En-tête Officiel (Centré sur x = 55) ---
   const leftX = 55;
   doc.setFont("times", "bold");
   doc.setFontSize(10);
-  doc.text("REPUBLIQUE DU BENIN", leftX, 15, { align: "center" });[cite: 1]
+  doc.text("REPUBLIQUE DU BENIN", leftX, 15, { align: "center" });
   
   doc.setFont("times", "normal");
   doc.setFontSize(8.5);
-  doc.text("Fraternité - Justice - Travail", leftX, 19, { align: "center" });[cite: 1]
-  doc.text("*******", leftX, 23, { align: "center" });[cite: 1]
+  doc.text("Fraternité - Justice - Travail", leftX, 19, { align: "center" });
+  doc.text("*******", leftX, 23, { align: "center" });
   
   doc.setFont("times", "bold");
-  doc.text("MINISTÈRE DE L'ECONOMIE ET DES FINANCES", leftX, 27, { align: "center" });[cite: 1]
+  doc.text("MINISTÈRE DE L'ECONOMIE ET DES FINANCES", leftX, 27, { align: "center" });
   doc.setFont("times", "normal");
-  doc.text("*******", leftX, 31, { align: "center" });[cite: 1]
+  doc.text("*******", leftX, 31, { align: "center" });
   
   doc.setFont("times", "bold");
-  doc.text("DIRECTION GÉNÉRALE DES IMPÔTS", leftX, 35, { align: "center" });[cite: 1]
+  doc.text("DIRECTION GÉNÉRALE DES IMPÔTS", leftX, 35, { align: "center" });
   doc.setFont("times", "normal");
-  doc.text("*******", leftX, 39, { align: "center" });[cite: 1]
+  doc.text("*******", leftX, 39, { align: "center" });
   
-  doc.text("DIRECTION DEPARTEMANTALE DES IMPOTS DE", leftX, 43, { align: "center" });[cite: 1]
-  doc.text("L'ATLANTIQUE", leftX, 47, { align: "center" });[cite: 1]
-  doc.text("*******", leftX, 51, { align: "center" });[cite: 1]
+  doc.text("DIRECTION DEPARTEMANTALE DES IMPOTS DE", leftX, 43, { align: "center" });
+  doc.text("L'ATLANTIQUE", leftX, 47, { align: "center" });
+  doc.text("*******", leftX, 51, { align: "center" });
   
   doc.setFont("times", "bold");
-  doc.text("CENTRE DES IMPÔTS DES PETITES ENTREPRISES", leftX, 55, { align: "center" });[cite: 1]
-  doc.text(`D'${data.commune.toUpperCase()}`, leftX, 59, { align: "center" });[cite: 1]
+  doc.text("CENTRE DES IMPÔTS DES PETITES ENTREPRISES", leftX, 55, { align: "center" });
+  doc.text(`D'${data.commune.toUpperCase()}`, leftX, 59, { align: "center" });
 
   // --- Bloc Droit : Méta-données Géantes ---
   const rightX = 130;
   doc.setFont("times", "bold");
   doc.setFontSize(18);
 
-  doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, rightX, 25);[cite: 1]
-  doc.text("IMPOTS LOCAUX", rightX, 38);[cite: 1]
-  doc.text("AMR : TFU", rightX, 51);[cite: 1]
+  doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, rightX, 25);
+  doc.text("IMPOTS LOCAUX", rightX, 38);
+  doc.text("AMR : TFU", rightX, 51);
 
-  doc.text("SERVICE : GESTION", rightX, 72);[cite: 1]
+  doc.text("SERVICE : GESTION", rightX, 72);
 
   // Articles & Année
   const artCenter = 120;
-  doc.text(`ARTICLE :   ${data.premier_article}   A   ${data.dernier_article}`, artCenter, 92);[cite: 1]
+  doc.text(`ARTICLE :   ${data.premier_article}   A   ${data.dernier_article}`, artCenter, 92);
 
   const anneeEspacee = String(data.annee).split("").join(" ");
-  doc.text(`ANNEE   :         ${anneeEspacee}`, artCenter, 108);[cite: 1]
+  doc.text(`ANNEE   :         ${anneeEspacee}`, artCenter, 108);
 
-  // --- Tableau Récapitulatif (Bas de Page 1) ---
-  const tableHead = [["Nature des contributions", "Nombre de cotes", "Droit simple", "Pénalité/Amende", "Total"]];[cite: 1]
+  // --- Tableau Récapitulatif ---
+  const tableHead = [["Nature des contributions", "Nombre de cotes", "Droit simple", "Pénalité/Amende", "Total"]];
 
   const tableBody = data.lignes_impot.map((l) => [
     l.nature_impot,
@@ -119,7 +118,6 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
       4: { halign: "center", cellWidth: 42 },
     },
     didParseCell: (hookData) => {
-      // Formater la ligne TOTAL
       if (hookData.row.index === tableBody.length - 1) {
         hookData.cell.styles.fontStyle = "bold";
       }
@@ -139,32 +137,27 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   const montantLettres = numberToFrenchWords(data.total_general);
   const montantChiffres = formatNumber(data.total_general);
 
-  // Construction du texte exécutoire
-  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${data.dernier_article} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;[cite: 1]
-  const grasText = `${montantLettres} (${montantChiffres}) FCFA`;[cite: 1]
-  const suffixeText = `, sont rendus exécutoires en vertu des dispositions des articles 596 et 597 du Code général des impôts.`;[cite: 1]
+  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${data.dernier_article} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;
+  const grasText = `${montantLettres} (${montantChiffres}) FCFA`;
+  const suffixeText = `, sont rendus exécutoires en vertu des dispositions des articles 596 et 597 du Code général des impôts.`;
 
-  // Impression du texte exécutoire
   doc.text(prefixeText, 25, startYPage2, { maxWidth: 245, align: "justify" });
   
-  // Alignement dynamique du texte en gras
   doc.setFont("helvetica", "bold");
   doc.text(grasText, 25, startYPage2 + 12, { maxWidth: 245 });
   
   doc.setFont("helvetica", "normal");
   doc.text(suffixeText, 25, startYPage2 + 24, { maxWidth: 245 });
 
-  // --- Bloc Signature (Centré) ---
+  // --- Bloc Signature ---
   const signY = startYPage2 + 55;
   
-  doc.text("A Abomey-Calavi, le", pageW / 2, signY, { align: "center" });[cite: 1]
-  
-  doc.text("Le Directeur Départemental des Impôts de l’Atlantique.", pageW / 2, signY + 18, { align: "center" });[cite: 1]
+  doc.text("A Abomey-Calavi, le", pageW / 2, signY, { align: "center" });
+  doc.text("Le Directeur Départemental des Impôts de l’Atlantique.", pageW / 2, signY + 18, { align: "center" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("Honorat  FADJI", pageW / 2, signY + 48, { align: "center" });[cite: 1]
+  doc.text("Honorat  FADJI", pageW / 2, signY + 48, { align: "center" });
 
-  // Téléchargement
   doc.save(`ETAT_Couverture_${data.commune.toUpperCase()}_Role_${data.numero_role}.pdf`);
 }
