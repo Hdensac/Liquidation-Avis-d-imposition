@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { fetchAllRoles, closeActiveRole, fetchRoleDetails } from "../../../actions/liquidationActions";
+import { fetchAllRoles, closeActiveRole, fetchRoleDetails, getRoleCouvertureData } from "../../../actions/liquidationActions";
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
 import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
@@ -99,6 +99,7 @@ export default function RolesPage() {
   const [closeTarget, setCloseTarget] = useState<RoleSummary | null>(null);
   const [closeLoading, setCloseLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingCouvertureId, setDownloadingCouvertureId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast, toasts } = useToast();
 
@@ -143,6 +144,21 @@ export default function RolesPage() {
       toast.error("Échec du téléchargement du rapport.");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadCouverture = async (role: RoleSummary) => {
+    setDownloadingCouvertureId(role.id);
+    try {
+      const data = await getRoleCouvertureData(role.id);
+      const { generateCouverturePdf } = await import("@/utils/pdfCouvertureGenerator");
+      await generateCouverturePdf(data);
+      toast.success(`Couverture du Rôle #${role.numero_role} téléchargée.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Échec du téléchargement de la couverture.");
+    } finally {
+      setDownloadingCouvertureId(null);
     }
   };
 
@@ -268,18 +284,35 @@ export default function RolesPage() {
                           Cloture
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleDownloadReport(role)}
-                          disabled={downloadingId === role.id}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
-                        >
-                          {downloadingId === role.id ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <FileText size={12} />
-                          )}
-                          Rapport PDF
-                        </button>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                          {/* Bouton Rapport PDF existant */}
+                          <button
+                            onClick={() => handleDownloadReport(role)}
+                            disabled={downloadingId === role.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
+                          >
+                            {downloadingId === role.id ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : (
+                              <FileText size={12} />
+                            )}
+                            Rapport PDF
+                          </button>
+
+                          {/* Nouveau bouton Couverture */}
+                          <button
+                            onClick={() => handleDownloadCouverture(role)}
+                            disabled={downloadingCouvertureId === role.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 font-medium transition inline-flex items-center gap-1.5"
+                          >
+                            {downloadingCouvertureId === role.id ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : (
+                              <span>📑</span>
+                            )}
+                            Couverture
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

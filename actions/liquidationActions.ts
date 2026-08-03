@@ -403,3 +403,107 @@ export async function fetchRoleDetails(roleId: string): Promise<RoleDetailItem[]
     };
   });
 }
+
+/** Types pour la couverture de synthèse du rôle */
+export interface CouvertureLigneImpot {
+  nature_impot: string;
+  nb_cotes: number;
+  droit_simple: number;
+  penalite: number;
+  total: number;
+}
+
+export interface RoleCouvertureData {
+  commune: string;
+  numero_role: number;
+  annee: number;
+  premier_article: number;
+  dernier_article: number;
+  total_general: number;
+  total_droits_simple: number;
+  total_penalites: number;
+  lignes_impot: CouvertureLigneImpot[];
+}
+
+/**
+ * Récupère les données agrégées pour générer la couverture de synthèse d'un rôle.
+ * Agrège les articles_recouvrement par nature_impot pour chaque rôle.
+ */
+export async function getRoleCouvertureData(roleId: string): Promise<RoleCouvertureData> {
+  const supabase = await createClient();
+
+  // 1. Récupérer les infos du rôle
+  const { data: role, error: roleError } = await supabase
+    .from("roles")
+    .select("id, numero_role, commune, annee")
+    .eq("id", roleId)
+    .single();
+
+  if (roleError || !role) throw new Error("Rôle introuvable.");
+
+  // 2. Récupérer tous les articles liés à ce rôle (via recouvrements)
+  const { data: articles, error: articlesError } = await supabase
+    .from("articles_recouvrement")
+    .select("nature_impot, droit_simple, penalite, numero_article, recouvrement_id")
+    .in(
+      "recouvrement_id",
+      (
+        await supabase
+          .from("recouvrements")
+          .select("id")
+          .eq("role_id", roleId)
+      ).data?.map((r) => r.id) ?? []
+    );
+
+  if (articlesError) throw articlesError;
+
+  const allArticles = articles ?? [];
+
+  // 3. Agréger par nature_impot
+  const grouped = new Map<string, CouvertureLigneImpot>();
+  let premierArticle = Infinity;
+  let dernierArticle = 0;
+
+  for (const art of allArticles) {
+    const nature = art.nature_impot || "TFU/FNB";
+    const droitSimple = Number(art.droit_simple) || 0;
+    const penalite = Number(art.penalite) || 0;
+    const numArt = Number(art.numero_article) || 0;
+
+    if (numArt < premierArticle) premierArticle = numArt;
+    if (numArt > dernierArticle) dernierArticle = numArt;
+
+    const existing = grouped.get(nature);
+    if (existing) {
+      existing.nb_cotes += 1;
+      existing.droit_simple += droitSimple;
+      existing.penalite += penalite;
+      existing.total += droitSimple + penalite;
+    } else {
+      grouped.set(nature, {
+        nature_impot: nature,
+        nb_cotes: 1,
+        droit_simple: droitSimple,
+        penalite: penalite,
+        total: droitSimple + penalite,
+      });
+    }
+  }
+
+  const lignes_impot = Array.from(grouped.values());
+  const total_droits_simple = lignes_impot.reduce((s, l) => s + l.droit_simple, 0);
+  const total_penalites = lignes_impot.reduce((s, l) => s + l.penalite, 0);
+  const total_general = total_droits_simple + total_penalites;
+
+  return {
+    commune: role.commune,
+    numero_role: Number(role.numero_role),
+    annee: Number(role.annee),
+    premier_article: premierArticle === Infinity ? 0 : premierArticle,
+    dernier_article: dernierArticle,
+    total_general,
+    total_droits_simple,
+    total_penalites,
+    lignes_impot,
+  };
+}
