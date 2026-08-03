@@ -70,7 +70,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
         </button> */}
 
         {/* Bouton Export Excel */}
-        <button
+        {/* <button
           type="button"
           onClick={handleExportExcel}
           disabled={loadingExcel}
@@ -87,10 +87,10 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               Télécharger Excel (.xlsx)
             </>
           )}
-        </button>
+        </button> */}
 
         {/* Bouton Export PDF */}
-        <button
+        {/* <button
           type="button"
           onClick={handleExportPDF}
           disabled={loadingPdf}
@@ -107,7 +107,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               Télécharger PDF (A4)
             </>
           )}
-        </button>
+        </button> */}
       </div>
     </div>
   );
