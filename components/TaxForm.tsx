@@ -86,8 +86,6 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
     }
   };
 
-  const isVaReadOnly = formData.valeurLocative !== "" && !loadingVa;
-
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6 space-y-6">
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -252,16 +250,11 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                   type="number"
                   name="valeurLocative"
                   value={formData.valeurLocative}
-                  onChange={handleChange}
                   min="0"
                   step="any"
-                  placeholder={loadingVa ? "Chargement..." : "Saisissez manuellement"}
-                  className={`w-full px-3 py-2 pr-10 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold ${
-                    isVaReadOnly
-                      ? "border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
-                      : "border-slate-300 bg-white text-slate-900"
-                  }`}
-                  readOnly={isVaReadOnly}
+                  placeholder={loadingVa ? "Chargement..." : "Sélectionnez une commune"}
+                  className="w-full px-3 py-2 pr-10 text-sm border border-slate-200 bg-slate-100 text-slate-600 rounded-lg outline-none transition-all font-semibold cursor-not-allowed select-none"
+                  readOnly
                   required
                 />
                 {loadingVa && (
@@ -292,3 +285,4 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
     </div>
   );
 };
+
