@@ -9,7 +9,7 @@ const COMMUNE_OPTIONS = [
   { value: "ALLADA", label: "ALLADA" },
   { value: "TOFFO", label: "TOFFO" },
   { value: "TORI-BOSSITO", label: "TORI-BOSSITO" },
-  { value: "ZE", label: "ZE (ZÃˆ)" },
+  { value: "ZE", label: "ZE (ZÈ)" },
 ];
 
 interface TaxFormProps {
@@ -37,7 +37,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
           });
         }
       } catch (err) {
-        console.error("Erreur lors de la rÃ©cupÃ©ration de la VA:", err);
+        console.error("Erreur lors de la récupération de la VA:", err);
       } finally {
         if (active) setLoadingVa(false);
       }
@@ -92,20 +92,20 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
         <div>
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <Building className="w-5 h-5 text-blue-600" />
-            ParamÃ¨tres de Liquidation
+            Paramètres de Liquidation
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Remplissez les informations pour gÃ©nÃ©rer automatiquement l'avis de mise en recouvrement.
+            Remplissez les informations pour générer automatiquement l'avis de mise en recouvrement.
           </p>
         </div>
         <button
           type="button"
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
-          title="RÃ©initialiser les donnÃ©es"
+          title="Réinitialiser les données"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          RÃ©initialiser
+          Réinitialiser
         </button>
       </div>
 
@@ -118,7 +118,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Nom & PrÃ©noms <span className="text-red-500">*</span>
+                Nom & Prénoms <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -132,7 +132,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                NÂ° IFU / NPI <span className="text-red-500">*</span>
+                N° IFU / NPI <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -146,7 +146,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">TÃ©lÃ©phone</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Téléphone</label>
               <input
                 type="text"
                 name="phone"
@@ -179,7 +179,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 required
               >
                 <option value="" disabled>
-                  SÃ©lectionnez une commune
+                  Sélectionnez une commune
                 </option>
                 {COMMUNE_OPTIONS.map((commune) => (
                   <option key={commune.value} value={commune.value}>
@@ -197,7 +197,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 name="arrondissement"
                 value={formData.arrondissement}
                 onChange={handleChange}
-                placeholder="Ex: 12Ã¨me ARRONDISSEMENT"
+                placeholder="Ex: 12ème ARRONDISSEMENT"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 required
               />
@@ -222,12 +222,12 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
         <div className="space-y-4 border-t border-slate-100 pt-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-blue-600" />
-            CaractÃ©ristiques Imposables & PÃ©riode
+            Caractéristiques Imposables & Période
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Superficie (mÂ²) <span className="text-red-500">*</span>
+                Superficie (m²) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -266,7 +266,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                AnnÃ©e de dÃ©but (4 Exercices)
+                Année de début (4 Exercices)
               </label>
               <input
                 type="number"
@@ -285,4 +285,3 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
     </div>
   );
 };
-
