@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TaxpayerInput } from "@/types/liquidation";
-import { User, MapPin, Building, Calendar, RefreshCw } from "lucide-react";
+import { User, MapPin, Building, Calendar, RefreshCw, Loader2 } from "lucide-react";
+import { fetchValeurAdministrative } from "@/actions/liquidationActions";
 
 const COMMUNE_OPTIONS = [
   { value: "ALLADA", label: "ALLADA" },
@@ -18,6 +19,38 @@ interface TaxFormProps {
 }
 
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
+  const [loadingVa, setLoadingVa] = useState(false);
+
+  // Trigger dynamic loading when commune changes
+  useEffect(() => {
+    if (!formData.commune) return;
+
+    let active = true;
+    const loadVa = async () => {
+      setLoadingVa(true);
+      try {
+        const va = await fetchValeurAdministrative(formData.commune);
+        if (active) {
+          onChange({
+            ...formData,
+            valeurLocative: va !== null ? va : "",
+          });
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération de la VA:", err);
+      } finally {
+        if (active) setLoadingVa(false);
+      }
+    };
+
+    loadVa();
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.commune]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let { name, value, type } = e.target;
 
@@ -52,6 +85,8 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
       });
     }
   };
+
+  const isVaReadOnly = formData.valeurLocative !== "" && !loadingVa;
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6 space-y-6">
@@ -208,21 +243,33 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 required
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Valeur Administrative (VA en FCFA) <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                name="valeurLocative"
-                value={formData.valeurLocative}
-                onChange={handleChange}
-                min="0"
-                step="any"
-                placeholder="Ex: 1500"
-                className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed outline-none select-none font-semibold"
-                readOnly
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  name="valeurLocative"
+                  value={formData.valeurLocative}
+                  onChange={handleChange}
+                  min="0"
+                  step="any"
+                  placeholder={loadingVa ? "Chargement..." : "Saisissez manuellement"}
+                  className={`w-full px-3 py-2 pr-10 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold ${
+                    isVaReadOnly
+                      ? "border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
+                      : "border-slate-300 bg-white text-slate-900"
+                  }`}
+                  readOnly={isVaReadOnly}
+                  required
+                />
+                {loadingVa && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">

@@ -2,6 +2,20 @@
 
 import { getRange, PAGE_SIZE } from "@/lib/pagination";
 
+/** Récupère la valeur administrative d'une commune par appel RPC */
+export async function fetchValeurAdministrative(commune: string): Promise<number | null> {
+  if (!commune) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_va_par_commune", {
+    p_commune: commune,
+  });
+  if (error) {
+    console.error("Erreur RPC get_va_par_commune:", error);
+    return null;
+  }
+  return data ? Number(data) : null;
+}
+
 // actions/liquidationActions.ts
 import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
