@@ -121,7 +121,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     p_nom_prenoms: data.fullname,
     p_ifu_npi: data.ifuNpi,
     p_telephone: data.phone,
-    p_commune: data.commune,
+    p_commune: normalizeCommune(data.commune),
     p_arrondissement: data.arrondissement,
     p_quartier: data.quartier,
     p_superficie: Number(data.superficie) || 0,
@@ -562,3 +562,5 @@ export async function getRoleCouvertureData(roleId: string): Promise<RoleCouvert
     lignes_impot,
   };
 }
+
+

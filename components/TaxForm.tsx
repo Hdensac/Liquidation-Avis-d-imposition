@@ -4,6 +4,13 @@ import React from "react";
 import { TaxpayerInput } from "@/types/liquidation";
 import { User, MapPin, Building, Calendar, RefreshCw } from "lucide-react";
 
+const COMMUNE_OPTIONS = [
+  { value: "ALLADA", label: "ALLADA" },
+  { value: "TOFFO", label: "TOFFO" },
+  { value: "TORI-BOSSITO", label: "TORI-BOSSITO" },
+  { value: "ZE", label: "ZE (ZÈ)" },
+];
+
 interface TaxFormProps {
   formData: TaxpayerInput;
   onChange: (data: TaxpayerInput) => void;
@@ -11,7 +18,7 @@ interface TaxFormProps {
 }
 
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let { name, value, type } = e.target;
     
     if (name === "ifuNpi") {
@@ -135,15 +142,22 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Commune <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 name="commune"
                 value={formData.commune}
                 onChange={handleChange}
-                placeholder="Ex: COTONOU"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 required
-              />
+              >
+                <option value="" disabled>
+                  Sélectionnez une commune
+                </option>
+                {COMMUNE_OPTIONS.map((commune) => (
+                  <option key={commune.value} value={commune.value}>
+                    {commune.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -236,3 +250,5 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
     </div>
   );
 };
+
+
