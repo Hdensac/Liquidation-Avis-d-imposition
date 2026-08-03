@@ -239,8 +239,8 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   pdf.setLineWidth(0.1);
   pdf.line(SIDEBAR_X + 3, tY + 1, SIDEBAR_X + SIDEBAR_W - 3, tY + 1);
 
-  // Abréviations (à l'intérieur du cadre)
-  pdf.setFontSize(4.6);
+// Abréviations (à l'intérieur du cadre avec retour à la ligne automatique si nécessaire)
+  pdf.setFontSize(4.2); // Légère réduction pour un ajustement parfait
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
     "VV = Valeur Vénale | VL = Valeur Locative | RN = Revenu Net",
@@ -248,11 +248,12 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     "TFU : Taxe Foncière Unique",
   ];
 
-  let abY = tY + 4; // Positionné directement dans le cadre après la ligne
+  let abY = tY + 4;
   abbrev.forEach((line) => {
     pdf.setFont("times", "normal");
-    pdf.text(line, SIDEBAR_X + 3, abY);
-    abY += 2.8;
+    const wrappedLines = wrap(pdf, line, SIDEBAR_W - 6);
+    pdf.text(wrappedLines, SIDEBAR_X + 3, abY);
+    abY += wrappedLines.length * 2.5;
   });
 }
 
