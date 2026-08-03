@@ -1,276 +1,170 @@
-/**
- * utils/pdfCouvertureGenerator.ts
- * Génère la Couverture de Synthèse de Rôle (document officiel TFU/FNB).
- * Utilise des dynamic imports pour éviter d'alourdir le bundle initial.
- */
-
 import type { RoleCouvertureData } from "@/actions/liquidationActions";
 import { numberToFrenchWords } from "@/utils/numberToFrenchWords";
 
-function s(value: unknown): string {
-  return String(value ?? "")
-    .replace(/[\u00A0\u202F\u2009]/g, " ")
-    .replace(/&+/g, " ")
-    .replace(/[\u0000-\u001f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function formatFCFA(amount: number): string {
+function formatNumber(amount: number): string {
   return new Intl.NumberFormat("fr-FR")
     .format(Math.round(amount))
-    .replace(/[\u00A0\u202F\u2009]/g, " ") + " FCFA";
+    .replace(/[\u00A0\u202F\u2009]/g, " ");
 }
 
 export async function generateCouverturePdf(data: RoleCouvertureData): Promise<void> {
-  // Import dynamique : le bundle client n'est pas alourdi au chargement initial
   const jsPDFModule = await import("jspdf");
   const jsPDF = jsPDFModule.default;
   const autoTableModule = await import("jspdf-autotable");
   const autoTable = autoTableModule.default;
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  // Document A4 en mode PAYSAGE (Landscape) pour correspondre exactement à l'original
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const marginLeft = 15;
-  const marginRight = 15;
-  const contentW = pageW - marginLeft - marginRight;
 
-  // ─────────────────────────────────────────────
-  // EN-TÊTE OFFICIEL
-  // ─────────────────────────────────────────────
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
+  // ==========================================
+  // PAGE 1 : EN-TÊTE, MÉTA-DONNÉES & TABLEAU
+  // ==========================================
 
-  // Colonne gauche (République)
-  const leftLines = [
-    "REPUBLIQUE DU BENIN",
-    "***",
-    "MINISTERE DE L'ECONOMIE",
-    "ET DES FINANCES",
-    "***",
-    "DIRECTION GENERALE",
-    "DES IMPOTS (DGI)",
-    "***",
-    "DIRECTION DES IMPOTS",
-    "DU DEPARTEMENT DE",
-    "L'ATLANTIQUE",
-  ];
-  let y = 18;
-  for (const line of leftLines) {
-    if (line === "***") {
-      doc.setFont("helvetica", "bold");
-      doc.text("*  *  *", marginLeft + 12, y);
-      doc.setFont("helvetica", "normal");
-    } else {
-      doc.text(s(line), marginLeft, y);
-    }
-    y += 4.5;
-  }
+  // --- Bloc Gauche : En-tête Officiel (Centré sur x = 50) ---
+  const leftX = 55;
+  doc.setFont("times", "bold");
+  doc.setFontSize(10);
+  doc.text("REPUBLIQUE DU BENIN", leftX, 15, { align: "center" });[cite: 1]
+  
+  doc.setFont("times", "normal");
+  doc.setFontSize(8.5);
+  doc.text("Fraternité - Justice - Travail", leftX, 19, { align: "center" });[cite: 1]
+  doc.text("*******", leftX, 23, { align: "center" });[cite: 1]
+  
+  doc.setFont("times", "bold");
+  doc.text("MINISTÈRE DE L'ECONOMIE ET DES FINANCES", leftX, 27, { align: "center" });[cite: 1]
+  doc.setFont("times", "normal");
+  doc.text("*******", leftX, 31, { align: "center" });[cite: 1]
+  
+  doc.setFont("times", "bold");
+  doc.text("DIRECTION GÉNÉRALE DES IMPÔTS", leftX, 35, { align: "center" });[cite: 1]
+  doc.setFont("times", "normal");
+  doc.text("*******", leftX, 39, { align: "center" });[cite: 1]
+  
+  doc.text("DIRECTION DEPARTEMANTALE DES IMPOTS DE", leftX, 43, { align: "center" });[cite: 1]
+  doc.text("L'ATLANTIQUE", leftX, 47, { align: "center" });[cite: 1]
+  doc.text("*******", leftX, 51, { align: "center" });[cite: 1]
+  
+  doc.setFont("times", "bold");
+  doc.text("CENTRE DES IMPÔTS DES PETITES ENTREPRISES", leftX, 55, { align: "center" });[cite: 1]
+  doc.text(`D'${data.commune.toUpperCase()}`, leftX, 59, { align: "center" });[cite: 1]
 
-  // Colonne droite (Service)
-  let yr = 18;
-  const rightLines = [
-    "DIRECTION DES IMPOTS",
-    "DU DEPARTEMENT DE",
-    "L'ATLANTIQUE",
-    "***",
-    "SERVICE DE GESTION",
-    "DES IMPOTS LOCAUX",
-    "***",
-    `COMMUNE DE ${s(data.commune.toUpperCase())}`,
-    "***",
-    "IMPÔTS LOCAUX",
-    "AMR : TFU",
-  ];
-  for (const line of rightLines) {
-    if (line === "***") {
-      doc.setFont("helvetica", "bold");
-      doc.text("*  *  *", pageW - marginRight - 40, yr);
-      doc.setFont("helvetica", "normal");
-    } else {
-      doc.text(s(line), pageW - marginRight - 45, yr);
-    }
-    yr += 4.5;
-  }
+  // --- Bloc Droit : Méta-données Géantes ---
+  const rightX = 130;
+  doc.setFont("times", "bold");
+  doc.setFontSize(18);
 
-  // Ligne séparatrice
-  const sepY = Math.max(y, yr) + 2;
-  doc.setDrawColor(30, 30, 30);
-  doc.setLineWidth(0.5);
-  doc.line(marginLeft, sepY, pageW - marginRight, sepY);
+  doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, rightX, 25);[cite: 1]
+  doc.text("IMPOTS LOCAUX", rightX, 38);[cite: 1]
+  doc.text("AMR : TFU", rightX, 51);[cite: 1]
 
-  // ─────────────────────────────────────────────
-  // TITRE DU DOCUMENT
-  // ─────────────────────────────────────────────
-  const titleY = sepY + 10;
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  const title1 = "ETAT DE COUVERTURE";
-  const title2 = `ROLE N° ${data.numero_role} — ANNEE ${data.annee}`;
-  doc.text(title1, pageW / 2, titleY, { align: "center" });
-  doc.setFontSize(11);
-  doc.text(title2, pageW / 2, titleY + 8, { align: "center" });
+  doc.text("SERVICE : GESTION", rightX, 72);[cite: 1]
 
-  doc.setLineWidth(0.8);
-  doc.line(marginLeft, titleY + 12, pageW - marginRight, titleY + 12);
-  doc.line(marginLeft, titleY + 13.5, pageW - marginRight, titleY + 13.5);
+  // Articles & Année
+  const artCenter = 120;
+  doc.text(`ARTICLE :   ${data.premier_article}   A   ${data.dernier_article}`, artCenter, 92);[cite: 1]
 
-  // ─────────────────────────────────────────────
-  // BLOC MÉTADONNÉES
-  // ─────────────────────────────────────────────
-  const metaY = titleY + 22;
-  doc.setFontSize(9.5);
-  doc.setFont("helvetica", "normal");
+  const anneeEspacee = String(data.annee).split("").join(" ");
+  doc.text(`ANNEE   :         ${anneeEspacee}`, artCenter, 108);[cite: 1]
 
-  const meta: [string, string][] = [
-    ["COMMUNE", s(data.commune.toUpperCase())],
-    ["IMPOTS LOCAUX", "AMR : TFU"],
-    ["SERVICE", "GESTION DES IMPOTS LOCAUX"],
-    ["ARTICLES", `N° ${data.premier_article} A ${data.dernier_article}`],
-    ["ANNEE", String(data.annee)],
-  ];
+  // --- Tableau Récapitulatif (Bas de Page 1) ---
+  const tableHead = [["Nature des contributions", "Nombre de cotes", "Droit simple", "Pénalité/Amende", "Total"]];[cite: 1]
 
-  let metaYCurrent = metaY;
-  for (const [label, value] of meta) {
-    doc.setFont("helvetica", "bold");
-    doc.text(`${label} :`, marginLeft, metaYCurrent);
-    doc.setFont("helvetica", "normal");
-    doc.text(value, marginLeft + 35, metaYCurrent);
-    metaYCurrent += 6;
-  }
-
-  // ─────────────────────────────────────────────
-  // TABLEAU RÉCAPITULATIF PAR NATURE D'IMPÔT
-  // ─────────────────────────────────────────────
-  const tableStartY = metaYCurrent + 8;
-
-  const tableHead = [["Nature des contributions", "Nb de cotes", "Droit simple", "Pénalité/Amende", "TOTAL"]];
-
-  const tableBody = data.lignes_impot.map((ligne) => [
-    s(ligne.nature_impot),
-    String(ligne.nb_cotes),
-    formatFCFA(ligne.droit_simple),
-    formatFCFA(ligne.penalite),
-    formatFCFA(ligne.total),
+  const tableBody = data.lignes_impot.map((l) => [
+    l.nature_impot,
+    String(l.nb_cotes),
+    formatNumber(l.droit_simple),
+    formatNumber(l.penalite),
+    formatNumber(l.total),
   ]);
 
-  // Ligne de total
   tableBody.push([
-    "TOTAL GÉNÉRAL",
+    "TOTAL",
     String(data.lignes_impot.reduce((acc, l) => acc + l.nb_cotes, 0)),
-    formatFCFA(data.total_droits_simple),
-    formatFCFA(data.total_penalites),
-    formatFCFA(data.total_general),
+    formatNumber(data.total_droits_simple),
+    formatNumber(data.total_penalites),
+    formatNumber(data.total_general),
   ]);
 
   autoTable(doc, {
-    startY: tableStartY,
+    startY: 120,
+    margin: { left: 20, right: 20 },
     head: tableHead,
     body: tableBody,
-    theme: "grid",
+    theme: "plain",
     headStyles: {
-      fillColor: [15, 52, 96],
-      textColor: [255, 255, 255],
+      fillColor: [120, 120, 120],
+      textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 9,
+      font: "times",
+      fontSize: 11,
       halign: "center",
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0],
     },
     bodyStyles: {
-      fontSize: 9,
-      halign: "center",
+      font: "times",
+      fontSize: 10,
+      textColor: [0, 0, 0],
+      lineWidth: 0.1,
+      lineColor: [180, 180, 180],
     },
     columnStyles: {
-      0: { halign: "left", cellWidth: 60 },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 37 },
-      3: { cellWidth: 37 },
-      4: { cellWidth: 37 },
+      0: { halign: "left", cellWidth: 85 },
+      1: { halign: "center", cellWidth: 40 },
+      2: { halign: "center", cellWidth: 45 },
+      3: { halign: "center", cellWidth: 45 },
+      4: { halign: "center", cellWidth: 42 },
     },
-    // Style de la dernière ligne (TOTAL GÉNÉRAL)
     didParseCell: (hookData) => {
+      // Formater la ligne TOTAL
       if (hookData.row.index === tableBody.length - 1) {
         hookData.cell.styles.fontStyle = "bold";
-        hookData.cell.styles.fillColor = [230, 230, 230];
-        hookData.cell.styles.textColor = [0, 0, 0];
       }
     },
   });
 
-  // ─────────────────────────────────────────────
-  // MENTION LÉGALE D'EXÉCUTOIRE
-  // ─────────────────────────────────────────────
-  const finalY = (doc as any).lastAutoTable.finalY + 12;
+  // ==========================================
+  // PAGE 2 : EXÉCUTOIRE ET SIGNATURE
+  // ==========================================
+  doc.addPage("a4", "landscape");
 
-  const montantEnLettres = numberToFrenchWords(data.total_general);
-  const montantFormatte = formatFCFA(data.total_general);
-
-  doc.setFontSize(9);
+  const startYPage2 = 45;
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(13);
 
-  const legalText = [
-    "En vertu des articles 596 et 597 du Code Général des Impôts, le présent rôle est rendu exécutoire.",
-    `Le montant total des droits mis en recouvrement s'élève à ${montantFormatte}`,
-    `(${montantEnLettres}).`,
-  ];
+  const premierArtPadded = String(data.premier_article).padStart(2, "0");
+  const montantLettres = numberToFrenchWords(data.total_general);
+  const montantChiffres = formatNumber(data.total_general);
 
-  let legalY = finalY;
-  for (const line of legalText) {
-    const lines = doc.splitTextToSize(s(line), contentW);
-    doc.text(lines, marginLeft, legalY);
-    legalY += lines.length * 5.5;
-  }
+  // Construction du texte exécutoire
+  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${data.dernier_article} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;[cite: 1]
+  const grasText = `${montantLettres} (${montantChiffres}) FCFA`;[cite: 1]
+  const suffixeText = `, sont rendus exécutoires en vertu des dispositions des articles 596 et 597 du Code général des impôts.`;[cite: 1]
 
-  // ─────────────────────────────────────────────
-  // DATE ET SIGNATURE
-  // ─────────────────────────────────────────────
-  const signatureY = Math.min(legalY + 14, pageH - 30);
-  const today = new Date().toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-
+  // Impression du texte exécutoire
+  doc.text(prefixeText, 25, startYPage2, { maxWidth: 245, align: "justify" });
+  
+  // Alignement dynamique du texte en gras
+  doc.setFont("helvetica", "bold");
+  doc.text(grasText, 25, startYPage2 + 12, { maxWidth: 245 });
+  
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9.5);
-  doc.text(s(`A Abomey-Calavi, le ${today}`), pageW - marginRight - 75, signatureY);
+  doc.text(suffixeText, 25, startYPage2 + 24, { maxWidth: 245 });
+
+  // --- Bloc Signature (Centré) ---
+  const signY = startYPage2 + 55;
+  
+  doc.text("A Abomey-Calavi, le", pageW / 2, signY, { align: "center" });[cite: 1]
+  
+  doc.text("Le Directeur Départemental des Impôts de l’Atlantique.", pageW / 2, signY + 18, { align: "center" });[cite: 1]
 
   doc.setFont("helvetica", "bold");
-  doc.text("Le Directeur Départemental des Impôts", pageW - marginRight - 75, signatureY + 8);
-  doc.setFont("helvetica", "normal");
-  doc.text("de l'Atlantique", pageW - marginRight - 75, signatureY + 14);
+  doc.setFontSize(14);
+  doc.text("Honorat  FADJI", pageW / 2, signY + 48, { align: "center" });[cite: 1]
 
-  // Espace pour la signature manuscrite
-  doc.setLineWidth(0.3);
-  doc.line(pageW - marginRight - 75, signatureY + 35, pageW - marginRight, signatureY + 35);
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.text("Honorat FADJI", pageW - marginRight - 60, signatureY + 41);
-
-  // ─────────────────────────────────────────────
-  // PIED DE PAGE
-  // ─────────────────────────────────────────────
-  doc.setDrawColor(150, 150, 150);
-  doc.setLineWidth(0.3);
-  doc.line(marginLeft, pageH - 12, pageW - marginRight, pageH - 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text(
-    s(`Couverture de Rôle N°${data.numero_role} — ${data.commune.toUpperCase()} — ${data.annee}`),
-    marginLeft,
-    pageH - 7
-  );
-  doc.text(
-    s(`Généré le ${new Date().toLocaleString("fr-FR")}`),
-    pageW - marginRight,
-    pageH - 7,
-    { align: "right" }
-  );
-
-  // ─────────────────────────────────────────────
-  // TÉLÉCHARGEMENT
-  // ─────────────────────────────────────────────
-  const filename = `ETAT_Couverture_${s(data.commune.toUpperCase())}_Role_${data.numero_role}.pdf`;
-  doc.save(filename);
+  // Téléchargement
+  doc.save(`ETAT_Couverture_${data.commune.toUpperCase()}_Role_${data.numero_role}.pdf`);
 }
