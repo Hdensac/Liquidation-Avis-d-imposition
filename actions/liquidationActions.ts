@@ -1,5 +1,7 @@
 "use server";
 
+import { getRange, PAGE_SIZE } from "@/lib/pagination";
+
 // actions/liquidationActions.ts
 import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
@@ -146,6 +148,59 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   const { data, error } = await query;
   if (error) throw error;
   return data;
+}
+
+/** Paginated + sorted (created_at DESC) pending liquidations */
+export async function fetchPendingLiquidationsPaginated({
+  page = 1,
+  search,
+}: {
+  page?: number;
+  search?: string;
+}) {
+  const supabase = await createClient();
+  const [from, to] = getRange(page, PAGE_SIZE);
+
+  let query = supabase
+    .from("liquidations")
+    .select(
+      "id, reference_liq, status, created_at, superficie, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
+      { count: "exact" }
+    )
+    .eq("status", "EN_ATTENTE")
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  // Filtre texte côté client car Supabase ne supporte pas ilike sur FK joins
+  // On récupère la page puis on pré-filtre en limitant à la page.
+  // Pour une vraie recherche paginée sur join, utilisez une vue ou RPC.
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return { data: data ?? [], totalCount: count ?? 0 };
+}
+
+/** Paginated + sorted (created_at DESC) paid liquidations (Historique) */
+export async function fetchHistoryLiquidationsPaginated({
+  page = 1,
+}: {
+  page?: number;
+}) {
+  const supabase = await createClient();
+  const [from, to] = getRange(page, PAGE_SIZE);
+
+  const { data, error, count } = await supabase
+    .from("liquidations")
+    .select(
+      "id, reference_liq, status, created_at, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)",
+      { count: "exact" }
+    )
+    .eq("status", "PAYE")
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+  return { data: data ?? [], totalCount: count ?? 0 };
 }
 
 /** Validate payment and generate recouvrement/avis.

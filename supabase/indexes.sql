@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- SUPABASE MIGRATION: INDEX DE PERFORMANCE SANS REDONDANCE
 -- ============================================================================
 
@@ -11,6 +11,8 @@ CREATE INDEX IF NOT EXISTS idx_roles_created_at ON public.roles(created_at DESC)
 -- L'index composé (status, created_at DESC) couvre déjà les recherches filtrées uniquement sur 'status'
 CREATE INDEX IF NOT EXISTS idx_liquidations_status_created_at ON public.liquidations(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_liquidations_contribuable_id ON public.liquidations(contribuable_id);
+-- Index standalone pour le tri DESC sur created_at (pagination paginée sans filtre status explicite)
+CREATE INDEX IF NOT EXISTS idx_liquidations_created_at ON public.liquidations (created_at DESC);
 
 -- 3. Table CONTRIBUABLES
 CREATE INDEX IF NOT EXISTS idx_contribuables_ifu ON public.contribuables(ifu_npi);

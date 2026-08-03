@@ -1,11 +1,14 @@
-"use client";
+﻿"use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useToast, ToastContainer } from "./useToast";
 import { fetchAvisRecouvrementDetails } from "@/actions/liquidationActions";
+import { fetchHistoryLiquidationsPaginated } from "@/actions/liquidationActions";
 import { generateAvisRecouvrementPdf } from "@/utils/avisPdfGenerator";
 import { Download, Loader2, Search, X } from "lucide-react";
+import Pagination from "@/components/Pagination";
+import { PAGE_SIZE } from "@/lib/pagination";
 
 type Contribuable = {
   nom_prenoms: string;
@@ -27,35 +30,64 @@ function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
 }
 
 export default function HistoryTable() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // ─── état pagination depuis l'URL ───────────────────────────────────────────
+  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
+
+  // ─── état local ─────────────────────────────────────────────────────────────
   const [records, setRecords] = useState<Recouvrement[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const { toast, toasts } = useToast();
 
-  const loadHistory = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("liquidations")
-        .select(
-          "id, reference_liq, status, created_at, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)"
-        )
-        .eq("status", "PAYE");
-      if (error) throw error;
-      setRecords(data as unknown as Recouvrement[]);
-    } catch (e) {
-      console.error(e);
-      toast.error("Erreur lors du chargement de l'historique.");
-    } finally {
-      setLoading(false);
+  // ─── Chargement (déclenché par page) ────────────────────────────────────────
+  const loadHistory = useCallback(
+    async (page: number) => {
+      setLoading(true);
+      try {
+        const { data, totalCount: total } = await fetchHistoryLiquidationsPaginated({ page });
+        setRecords(data as unknown as Recouvrement[]);
+        setTotalCount(total);
+      } catch (e) {
+        console.error(e);
+        toast.error("Erreur lors du chargement de l'historique.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  useEffect(() => {
+    loadHistory(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  // ─── Changement de page → mise à jour URL ────────────────────────────────────
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    router.push(`${pathname}?${params.toString()}`);
+    setSearchQuery(""); // reset recherche lors d'un changement de page
+  };
+
+  // ─── Recherche → reset page 1 ────────────────────────────────────────────────
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    // Si on est sur une page > 1 on revient à la page 1
+    if (currentPage !== 1) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`);
     }
   };
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
+  // ─── Filtre côté client sur la page courante ─────────────────────────────────
   const filteredRecords = useMemo(() => {
     if (!searchQuery.trim()) return records;
     const q = searchQuery.toLowerCase().trim();
@@ -68,6 +100,7 @@ export default function HistoryTable() {
     });
   }, [records, searchQuery]);
 
+  // ─── Téléchargement PDF ───────────────────────────────────────────────────────
   const handleDownloadAvis = async (liquidationId: string, reference: string) => {
     if (actionLoadingId) return;
     setActionLoadingId(liquidationId);
@@ -83,7 +116,13 @@ export default function HistoryTable() {
     }
   };
 
-  if (loading) return <p className="text-center">Chargement...</p>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-12 text-gray-500 gap-2">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Chargement...
+      </div>
+    );
 
   return (
     <div className="space-y-4">
@@ -96,13 +135,13 @@ export default function HistoryTable() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filtrer par Nom, Prénom, IFU/NPI ou Référence..."
             className="w-full pl-9 pr-9 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder-gray-400"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => handleSearchChange("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
               <X className="w-4 h-4" />
@@ -110,7 +149,7 @@ export default function HistoryTable() {
           )}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          {filteredRecords.length} résultat(s) trouvé(s)
+          {filteredRecords.length} résultat(s) sur cette page
         </div>
       </div>
 
@@ -132,12 +171,17 @@ export default function HistoryTable() {
               const c = getContribuable(rec.contribuable);
               const isActionLoading = actionLoadingId === rec.id;
               return (
-                <tr key={rec.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                <tr
+                  key={rec.id}
+                  className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                >
                   <td className="px-4 py-2">{c.ifu_npi}</td>
                   <td className="px-4 py-2">{c.nom_prenoms}</td>
                   <td className="px-4 py-2">{c.telephone}</td>
                   <td className="px-4 py-2">{rec.reference_liq}</td>
-                  <td className="px-4 py-2">{new Date(rec.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-2">
+                    {new Date(rec.created_at).toLocaleDateString("fr-FR")}
+                  </td>
                   <td className="px-4 py-2 text-center">{rec.status}</td>
                   <td className="px-4 py-2 text-center">
                     <button
@@ -145,8 +189,12 @@ export default function HistoryTable() {
                       disabled={isActionLoading}
                       className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1.5 px-3 rounded transition transform hover:scale-105"
                     >
-                      {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      Télécharger l'Avis PDF
+                      {isActionLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      Télécharger l&apos;Avis PDF
                     </button>
                   </td>
                 </tr>
@@ -155,13 +203,23 @@ export default function HistoryTable() {
             {filteredRecords.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                  {searchQuery ? "Aucun enregistrement ne correspond à votre recherche." : "Aucun historique disponible."}
+                  {searchQuery
+                    ? "Aucun enregistrement ne correspond à votre recherche."
+                    : "Aucun historique disponible."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }
