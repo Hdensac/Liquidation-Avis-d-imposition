@@ -134,10 +134,11 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   doc.setFontSize(13);
 
   const premierArtPadded = String(data.premier_article).padStart(2, "0");
+  const dernierArtPadded = String(data.dernier_article).padStart(2, "0");
   const montantLettres = numberToFrenchWords(data.total_general);
   const montantChiffres = formatNumber(data.total_general);
 
-  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${data.dernier_article} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;
+  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${dernierArtPadded} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;
   const grasText = `${montantLettres} (${montantChiffres}) FCFA`;
   const suffixeText = `, sont rendus exécutoires en vertu des dispositions des articles 596 et 597 du Code général des impôts.`;
 
