@@ -146,12 +146,6 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                 {preview.surfaceTotale > 0 ? preview.surfaceTotale : ""}
               </span>
             </div>
-            {preview.surfaceImposable > 0 && preview.surfaceImposable !== preview.surfaceTotale && (
-              <div className="flex items-center gap-6 text-amber-700">
-                <span className="uppercase font-extrabold text-sm">Surface imposable</span>
-                <span className="font-mono text-sm font-extrabold px-1">{preview.surfaceImposable}</span>
-              </div>
-            )}
           </div>
         </div>
 
