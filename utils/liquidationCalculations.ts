@@ -1,4 +1,4 @@
-﻿import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
+import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
 import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
 
 export function buildLiquidationCalculations(formData: TaxpayerInput): LiquidationCalculations {
@@ -21,7 +21,7 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
 
   const exonerationMention = formatExonerationMention({
     superficie: surfaceTotale,
-    superficieImposable,
+    superficieImposable: surfaceImposable,
   });
 
   const baseImposable = surfaceImposable * valeurLocative;
@@ -58,3 +58,4 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
     totalDu,
   };
 }
+
