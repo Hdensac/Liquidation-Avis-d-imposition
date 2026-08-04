@@ -3,24 +3,24 @@ export interface TaxpayerInput {
   fullname: string;
   ifuNpi: string;
   phone: string;
-  
+
   // Localisation
   commune: string;
   arrondissement: string;
   quartier: string;
-  
-  // Caractéristiques
+
+  // Caracteristiques
   superficie: number | "";
   /**
-   * Superficie réellement imposable (m²).
-   * Définie uniquement en cas d'exonération partielle (ex : zone cultivée).
-   * Les calculs utilisent cette valeur à la place de `superficie`.
-   * Convention BDD : superficie_imposable (NULL si pas d'exonération).
+   * Superficie reellement imposable (m�).
+   * Definie uniquement en cas d'exoneration partielle (ex : zone cultivee).
+   * Les calculs utilisent cette valeur a la place de `superficie`.
+   * Convention BDD : superficie_imposable (NULL si pas d'exoneration).
    */
   superficieImposable?: number | "";
   valeurLocative: number | "";
-  
-  // Année de départ pour les 4 exercices
+
+  // Annee de depart pour les 4 exercices
   startYear: number;
 }
 
@@ -29,11 +29,13 @@ export interface TaxExercise {
   taxNature: string; // "TFU/FNB"
   description: string;
   baseImposable: number; // SURF * VA
-  taux: number; // 0.04 (4%) pour année 1, 0.05 (5%) pour années 2, 3, 4
+  taux: number; // 0.04 (4%) pour annee 1, 0.05 (5%) pour annees 2, 3, 4
   droitSimple: number; // Base * Taux
 }
 
 export interface LiquidationCalculations {
+  surfaceTotale: number;
+  surfaceImposable: number;
   surf: number;
   valeurLocative: number;
   adresseDescription: string;

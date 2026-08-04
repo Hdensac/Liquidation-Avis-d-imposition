@@ -81,11 +81,21 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               {calculations.valeurLocative > 0 ? formatMoney(calculations.valeurLocative) : ""}
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <span className="uppercase font-extrabold text-sm">SURFACE</span>
-            <span className="font-mono text-sm font-extrabold text-green-700 px-1">
-              {calculations.surf > 0 ? calculations.surf : ""}
-            </span>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-6">
+              <span className="uppercase font-extrabold text-sm">Surface totale</span>
+              <span className="font-mono text-sm font-extrabold text-green-700 px-1">
+                {calculations.surfaceTotale > 0 ? calculations.surfaceTotale : ""}
+              </span>
+            </div>
+            {calculations.surfaceImposable > 0 && calculations.surfaceImposable !== calculations.surfaceTotale && (
+              <div className="flex items-center gap-6 text-amber-700">
+                <span className="uppercase font-extrabold text-sm">Surface imposable</span>
+                <span className="font-mono text-sm font-extrabold px-1">
+                  {calculations.surfaceImposable}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

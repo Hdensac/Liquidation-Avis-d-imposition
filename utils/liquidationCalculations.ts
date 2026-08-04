@@ -2,26 +2,26 @@ import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liq
 import { formatDescriptionBien } from "@/utils/descriptionBien";
 
 export function buildLiquidationCalculations(formData: TaxpayerInput): LiquidationCalculations {
-  const surf = typeof formData.superficie === "number" ? formData.superficie : 0;
+  const surfaceTotale = typeof formData.superficie === "number" ? formData.superficie : 0;
   const valeurLocative = typeof formData.valeurLocative === "number" ? formData.valeurLocative : 0;
 
-  // Superficie utilisée pour le calcul de la base imposable :
-  // si une exonération est définie, on l'utilise ; sinon, on utilise la superficie totale.
-  const superficieImposable =
+  // Superficie utilisee pour le calcul de la base imposable :
+  // si une exoneration est definie, on l'utilise ; sinon, on utilise la superficie totale.
+  const surfaceImposable =
     typeof formData.superficieImposable === "number" && formData.superficieImposable > 0
       ? formData.superficieImposable
-      : surf;
+      : surfaceTotale;
 
-  // Description centralisée via la source unique de vérité
+  // Description centralisee via la source unique de verite
   const adresseDescription = formatDescriptionBien({
-    superficie: surf,
-    superficieImposable: superficieImposable !== surf ? superficieImposable : null,
+    superficie: surfaceTotale,
+    superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
     commune: formData.commune,
     arrondissement: formData.arrondissement,
     quartier: formData.quartier,
   });
 
-  const baseImposable = superficieImposable * valeurLocative;
+  const baseImposable = surfaceImposable * valeurLocative;
   const exercises: TaxExercise[] = [];
   let totalDu = 0;
   const startYear =
@@ -44,5 +44,13 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
     });
   }
 
-  return { surf: superficieImposable, valeurLocative, adresseDescription, exercises, totalDu };
+  return {
+    surfaceTotale,
+    surfaceImposable,
+    surf: surfaceImposable,
+    valeurLocative,
+    adresseDescription,
+    exercises,
+    totalDu,
+  };
 }
