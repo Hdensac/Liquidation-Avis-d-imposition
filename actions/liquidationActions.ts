@@ -137,6 +137,19 @@ export async function createLiquidation(data: TaxpayerInput) {
       ? data.superficieImposable
       : null;
 
+  console.log("[createLiquidation] payload avant RPC", {
+    fullname: data.fullname,
+    ifuNpi: data.ifuNpi,
+    commune: data.commune,
+    arrondissement: data.arrondissement,
+    superficie: data.superficie,
+    superficieImposable,
+    valeurLocative: data.valeurLocative,
+    startYear: data.startYear,
+    base_imposable: (Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0),
+  });
+
+
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
     p_nom_prenoms: data.fullname,
     p_ifu_npi: data.ifuNpi,
