@@ -64,6 +64,6 @@ export function formatExonerationMention({ superficie, superficieImposable }: Ex
     superficieImposable < superficie;
 
   return hasExoneration
-    ? `AVEC EXONERATION PARTIELLE : SUPERFICIE IMPOSABLE ${superficieImposable} M²`
+    ? `AVEC EXONERATION PARTIELLE (${superficieImposable} M²)`
     : "";
 }
