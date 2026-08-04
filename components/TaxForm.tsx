@@ -12,6 +12,60 @@ const COMMUNE_OPTIONS = [
   { value: "ZE", label: "ZE (ZÈ)" },
 ];
 
+/**
+ * Mapping statique des arrondissements par commune.
+ * Clés alignées sur les valeurs de COMMUNE_OPTIONS (trait d'union pour TORI-BOSSITO).
+ */
+const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
+  ALLADA: [
+    "Agbanou",
+    "Ahouannonzoun",
+    "Allada",
+    "Attogon",
+    "Avakpa",
+    "Bouko",
+    "Hinvi",
+    "Lissègazoun",
+    "Lon-Agonmey",
+    "Mame",
+    "Sékou",
+    "Togoudo",
+  ],
+  "TORI-BOSSITO": [
+    "Avamè",
+    "Azohouè-Aliho",
+    "Azohouè-Cada",
+    "Tori-Bossito",
+    "Tori-Cada",
+    "Tori-Gare",
+  ],
+  ZE: [
+    "Adja",
+    "Dawè",
+    "Djigbé",
+    "Dodji-Bata",
+    "Hékanmè",
+    "Koundokpoé",
+    "Sèdjè-Dénou",
+    "Sèdjè-Houégoudo",
+    "Tangbo-Djèvié",
+    "Yokpo",
+    "Zè",
+  ],
+  TOFFO: [
+    "Agbame",
+    "Ahlan",
+    "Colli-Agbase",
+    "Coussi",
+    "Damè",
+    "Djanglanmè",
+    "Houégbo",
+    "Kpoba",
+    "Sè",
+    "Toffo-Agué",
+  ],
+};
+
 interface TaxFormProps {
   formData: TaxpayerInput;
   onChange: (data: TaxpayerInput) => void;
@@ -21,7 +75,9 @@ interface TaxFormProps {
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
   const [loadingVa, setLoadingVa] = useState(false);
 
-  // Trigger dynamic loading when commune changes
+  // Trigger dynamic loading when commune changes:
+  // - réinitialise l'arrondissement pour forcer un choix cohérent
+  // - charge la valeur administrative correspondante
   useEffect(() => {
     if (!formData.commune) return;
 
@@ -33,6 +89,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
         if (active) {
           onChange({
             ...formData,
+            arrondissement: "", // ← réinitialisation automatique
             valeurLocative: va !== null ? va : "",
           });
         }
@@ -192,15 +249,25 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Arrondissement <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 name="arrondissement"
                 value={formData.arrondissement}
                 onChange={handleChange}
-                placeholder="Ex: 12ème ARRONDISSEMENT"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                disabled={!formData.commune}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 required
-              />
+              >
+                <option value="" disabled>
+                  {formData.commune
+                    ? "Sélectionnez un arrondissement"
+                    : "Sélectionnez d'abord une commune"}
+                </option>
+                {(ARRONDISSEMENTS_PAR_COMMUNE[formData.commune] ?? []).map((arr) => (
+                  <option key={arr} value={arr}>
+                    {arr}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
