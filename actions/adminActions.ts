@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { UserRole } from "@/types/user";
 
 /** Vérifie si l'utilisateur actuellement connecté est ADMIN */
 async function ensureAdmin() {
@@ -40,7 +41,7 @@ export async function fetchProfiles() {
 }
 
 /** Met à jour le rôle d'un utilisateur */
-export async function updateUserRole(userId: string, role: "ADMIN" | "AGENT" | null) {
+export async function updateUserRole(userId: string, role: UserRole | null) {
   try {
     await ensureAdmin();
     const supabase = await createClient();

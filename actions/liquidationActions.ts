@@ -1,6 +1,11 @@
 "use server";
 
 import { getRange, PAGE_SIZE } from "@/lib/pagination";
+import { createClient } from "@/utils/supabase/server";
+import { TaxpayerInput } from "@/types/liquidation";
+import { canApplyExoneration, type UserRole } from "@/types/user";
+import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
+import { logAction } from "@/actions/auditActions";
 
 /** Récupère la valeur administrative d'une commune par appel RPC */
 export async function fetchValeurAdministrative(commune: string): Promise<number | null> {
@@ -15,12 +20,6 @@ export async function fetchValeurAdministrative(commune: string): Promise<number
   }
   return data ? Number(data) : null;
 }
-
-// actions/liquidationActions.ts
-import { createClient } from "@/utils/supabase/server";
-import { TaxpayerInput } from "@/types/liquidation";
-import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
-import { logAction } from "@/actions/auditActions";
 
 type RoleRecord = {
   id: string;
@@ -129,13 +128,36 @@ async function ensureActiveRole(commune: string) {
   }
 }
 
+async function fetchCurrentUserRole(): Promise<UserRole | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (error) throw error;
+  return (profile?.role as UserRole | null) ?? null;
+}
+
 /** Create a new liquidation in status EN_ATTENTE */
 export async function createLiquidation(data: TaxpayerInput) {
   const supabase = await createClient();
-  const superficieImposable =
-    typeof data.superficieImposable === "number" && data.superficieImposable > 0
-      ? data.superficieImposable
-      : null;
+  const currentRole = await fetchCurrentUserRole();
+  const hasExoneration =
+    typeof data.superficieImposable === "number" && data.superficieImposable > 0;
+
+  if (hasExoneration && !canApplyExoneration(currentRole)) {
+    throw new Error("Exoneration reservee aux inspecteurs et administrateurs.");
+  }
+
+  const superficieImposable = hasExoneration ? data.superficieImposable : null;
 
   console.log("[createLiquidation] payload avant RPC", {
     fullname: data.fullname,

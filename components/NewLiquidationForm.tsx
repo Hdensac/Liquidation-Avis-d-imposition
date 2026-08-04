@@ -22,23 +22,32 @@ const EMPTY_FORM: TaxpayerInput = {
   startYear: 2023,
 };
 
-export default function NewLiquidationForm() {
+interface NewLiquidationFormProps {
+  canApplyExoneration: boolean;
+}
+
+export default function NewLiquidationForm({ canApplyExoneration }: NewLiquidationFormProps) {
   const [formData, setFormData] = useState<TaxpayerInput>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const { toast, toasts } = useToast();
 
   const handleReset = () => setFormData(EMPTY_FORM);
 
-  const calculations = useMemo(() => buildLiquidationCalculations(formData), [formData]);
+  const effectiveFormData = useMemo(
+    () => (canApplyExoneration ? formData : { ...formData, superficieImposable: "" }),
+    [canApplyExoneration, formData]
+  );
+
+  const calculations = useMemo(() => buildLiquidationCalculations(effectiveFormData), [effectiveFormData]);
 
   const handleSave = async () => {
-    if (!formData.fullname || !formData.commune) {
+    if (!effectiveFormData.fullname || !effectiveFormData.commune) {
       toast.error("Veuillez remplir au moins le nom et la commune.");
       return;
     }
     setLoading(true);
     try {
-      await createLiquidation(formData);
+      await createLiquidation(effectiveFormData);
       toast.success("Liquidation enregistree - en attente de paiement.");
       handleReset();
     } catch (e) {
@@ -56,9 +65,14 @@ export default function NewLiquidationForm() {
         <FileCheck2 className="w-4 h-4 text-emerald-400" />
         <span>Format conforme DGI</span>
       </div>
-      <TaxForm formData={formData} onChange={setFormData} onReset={handleReset} />
+      <TaxForm
+        formData={effectiveFormData}
+        onChange={setFormData}
+        onReset={handleReset}
+        canApplyExoneration={canApplyExoneration}
+      />
       <div className="no-print">
-        <ExportButtons formData={formData} calculations={calculations} previewElementId="liquidation-document" />
+        <ExportButtons formData={effectiveFormData} calculations={calculations} previewElementId="liquidation-document" />
       </div>
       <button
         onClick={handleSave}
@@ -70,7 +84,7 @@ export default function NewLiquidationForm() {
       </button>
       {/* Offscreen element kept for PDF generation */}
       <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none opacity-0" aria-hidden="true">
-        <LiquidationPreview formData={formData} calculations={calculations} />
+        <LiquidationPreview formData={effectiveFormData} calculations={calculations} />
       </div>
     </div>
   );

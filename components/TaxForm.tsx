@@ -70,15 +70,27 @@ interface TaxFormProps {
   formData: TaxpayerInput;
   onChange: (data: TaxpayerInput) => void;
   onReset: () => void;
+  canApplyExoneration?: boolean;
 }
 
-export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
+export const TaxForm: React.FC<TaxFormProps> = ({
+  formData,
+  onChange,
+  onReset,
+  canApplyExoneration = false,
+}) => {
   const [loadingVa, setLoadingVa] = useState(false);
   const [hasExoneration, setHasExoneration] = useState(false);
 
   // Expose la superficie totale pour la validation du champ imposable
   const superficieTotale =
     typeof formData.superficie === "number" ? formData.superficie : 0;
+
+  useEffect(() => {
+    if (!canApplyExoneration && hasExoneration) {
+      setHasExoneration(false);
+    }
+  }, [canApplyExoneration, hasExoneration]);
 
   // Trigger dynamic loading when commune changes:
   // - réinitialise l'arrondissement pour forcer un choix cohérent
@@ -316,41 +328,41 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
                 required
               />
-              {/* Switch exonération partielle */}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={hasExoneration}
-                onClick={() => {
-                  const next = !hasExoneration;
-                  setHasExoneration(next);
-                  if (!next) {
-                    // Réinitialise superficieImposable quand on désactive
-                    onChange({ ...formData, superficieImposable: "" });
-                  }
-                }}
-                className={`inline-flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
-                  hasExoneration
-                    ? "bg-amber-50 border-amber-400 text-amber-700"
-                    : "bg-slate-50 border-slate-300 text-slate-500 hover:border-slate-400"
-                }`}
-              >
-                <span
-                  className={`inline-block w-7 h-4 rounded-full transition-colors relative ${
-                    hasExoneration ? "bg-amber-400" : "bg-slate-300"
+              {canApplyExoneration && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasExoneration}
+                  onClick={() => {
+                    const next = !hasExoneration;
+                    setHasExoneration(next);
+                    if (!next) {
+                      onChange({ ...formData, superficieImposable: "" });
+                    }
+                  }}
+                  className={`inline-flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                    hasExoneration
+                      ? "bg-amber-50 border-amber-400 text-amber-700"
+                      : "bg-slate-50 border-slate-300 text-slate-500 hover:border-slate-400"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
-                      hasExoneration ? "translate-x-3" : "translate-x-0"
+                    className={`inline-block w-7 h-4 rounded-full transition-colors relative ${
+                      hasExoneration ? "bg-amber-400" : "bg-slate-300"
                     }`}
-                  />
-                </span>
-                Exonération partielle
-              </button>
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
+                        hasExoneration ? "translate-x-3" : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                  Exoneration partielle
+                </button>
+              )}
 
               {/* Champ superficie imposable (conditionnel) */}
-              {hasExoneration && (
+              {canApplyExoneration && hasExoneration && (
                 <div>
                   <label className="block text-xs font-medium text-amber-700 mb-1">
                     Superficie imposable (m²) <span className="text-red-500">*</span>

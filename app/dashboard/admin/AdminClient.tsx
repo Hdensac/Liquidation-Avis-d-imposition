@@ -14,12 +14,13 @@ import {
   AlertCircle
 } from "lucide-react";
 import { updateUserRole } from "@/actions/adminActions";
+import type { UserRole } from "@/types/user";
 
 type Profile = {
   id: string;
   email: string;
   fullname: string | null;
-  role: "ADMIN" | "AGENT" | null;
+  role: UserRole | null;
   created_at: string;
 };
 
@@ -61,7 +62,7 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
   );
 
   // Modifier le rôle d'un utilisateur
-  const handleRoleChange = async (userId: string, newRole: "ADMIN" | "AGENT" | null) => {
+  const handleRoleChange = async (userId: string, newRole: UserRole | null) => {
     startTransition(async () => {
       try {
         const res = await updateUserRole(userId, newRole);
@@ -186,12 +187,14 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                           user.role === "ADMIN"
                             ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
+                            : user.role === "INSPECTEUR"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                             : user.role === "AGENT"
                             ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            user.role === "ADMIN" ? "bg-purple-500" : user.role === "AGENT" ? "bg-indigo-500" : "bg-amber-500"
+                            user.role === "ADMIN" ? "bg-purple-500" : user.role === "INSPECTEUR" ? "bg-emerald-500" : user.role === "AGENT" ? "bg-indigo-500" : "bg-amber-500"
                           }`} />
                           {user.role || "EN ATTENTE"}
                         </span>
@@ -208,6 +211,17 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
                             }`}
                           >
                             Set Agent
+                          </button>
+                          <button
+                            onClick={() => handleRoleChange(user.id, "INSPECTEUR")}
+                            disabled={user.role === "INSPECTEUR" || isPending}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                              user.role === "INSPECTEUR"
+                                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                                : "bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/30"
+                            }`}
+                          >
+                            Set Inspecteur
                           </button>
                           <button
                             onClick={() => handleRoleChange(user.id, "ADMIN")}
