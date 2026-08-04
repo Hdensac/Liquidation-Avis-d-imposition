@@ -51,7 +51,7 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   doc.text(`D'${data.commune.toUpperCase()}`, leftX, 59, { align: "center" });
 
   doc.setFont("times", "normal");
-  doc.text(`Role N°${data.numero_role}/${data.annee}`, leftX, 63, { align: "center" });
+  doc.text(`Role N°${data.numero_role}/${data.annee}`, leftX, 95, { align: "center" });
 
   // --- Bloc Droit : Méta-données Géantes ---
   const rightX = 130;
