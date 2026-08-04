@@ -146,7 +146,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     superficieImposable,
     valeurLocative: data.valeurLocative,
     startYear: data.startYear,
-    base_imposable: (Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0),
+    base_imposable: (Number(superficieImposable) || Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0),
   });
 
 
