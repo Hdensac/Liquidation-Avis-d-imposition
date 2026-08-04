@@ -55,6 +55,6 @@ export function formatDescriptionBien({
     superficieImposable < superficie;
 
   return hasExoneration
-    ? `${basePart} (AVEC EXONÉRATION : SUPERFICIE IMPOSABLE ${superficieImposable} M²)`
+    ? `${basePart} AVEC EXONÉRATION PARTIELLE (${superficieImposable} M²)`
     : basePart;
 }
