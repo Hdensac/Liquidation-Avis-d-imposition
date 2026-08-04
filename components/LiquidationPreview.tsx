@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
+import { formatDescriptionBien } from "@/utils/descriptionBien";
 
 interface LiquidationPreviewProps {
   formData: TaxpayerInput;
@@ -10,12 +11,65 @@ interface LiquidationPreviewProps {
   documentId?: string;
 }
 
+function buildPreviewCalculations(formData: TaxpayerInput) {
+  const surfaceTotale = typeof formData.superficie === "number" ? formData.superficie : 0;
+  const surfaceImposable =
+    typeof formData.superficieImposable === "number" && formData.superficieImposable > 0
+      ? formData.superficieImposable
+      : surfaceTotale;
+  const valeurLocative = typeof formData.valeurLocative === "number" ? formData.valeurLocative : 0;
+
+  const adresseDescription = formatDescriptionBien({
+    superficie: surfaceTotale,
+    superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
+    commune: formData.commune,
+    arrondissement: formData.arrondissement,
+    quartier: formData.quartier,
+  });
+
+  const baseImposable = surfaceImposable * valeurLocative;
+  const startYear =
+    typeof formData.startYear === "number" && formData.startYear > 1900
+      ? formData.startYear
+      : 2023;
+
+  const exercises = Array.from({ length: 4 }, (_, index) => {
+    const year = startYear + index;
+    const taux = index === 0 ? 0.04 : 0.05;
+    const droitSimple = baseImposable * taux;
+
+    return {
+      year,
+      taxNature: "TFU/FNB",
+      description: adresseDescription,
+      baseImposable,
+      taux,
+      droitSimple,
+    };
+  });
+
+  const totalDu = exercises.reduce((sum, ex) => sum + ex.droitSimple, 0);
+
+  return {
+    surfaceTotale,
+    surfaceImposable,
+    valeurLocative,
+    adresseDescription,
+    exercises,
+    totalDu,
+  };
+}
+
 export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
   formData,
   calculations,
   documentRef,
   documentId = "liquidation-document",
 }) => {
+  void calculations;
+
+  const preview = useMemo(() => buildPreviewCalculations(formData), [formData]);
+
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "decimal",
@@ -45,9 +99,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
         </div>
 
         <div className="text-center my-3">
-          <h1 className="text-xl font-extrabold uppercase tracking-widest">
-            LIQUIDATION
-          </h1>
+          <h1 className="text-xl font-extrabold uppercase tracking-widest">LIQUIDATION</h1>
         </div>
 
         <div className="space-y-4 pt-2">
@@ -68,9 +120,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
 
           <div className="flex items-start gap-2 text-xs font-semibold pt-1">
             <span className="font-extrabold uppercase whitespace-nowrap">ADRESSE :</span>
-            <span className="uppercase font-bold tracking-tight">
-              {calculations.adresseDescription}
-            </span>
+            <span className="uppercase font-bold tracking-tight">{preview.adresseDescription}</span>
           </div>
         </div>
 
@@ -78,22 +128,20 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
           <div className="flex items-center gap-6">
             <span className="uppercase font-extrabold text-sm">VA</span>
             <span className="font-mono text-sm font-extrabold text-green-700 px-1">
-              {calculations.valeurLocative > 0 ? formatMoney(calculations.valeurLocative) : ""}
+              {preview.valeurLocative > 0 ? formatMoney(preview.valeurLocative) : ""}
             </span>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-6">
               <span className="uppercase font-extrabold text-sm">Surface totale</span>
               <span className="font-mono text-sm font-extrabold text-green-700 px-1">
-                {calculations.surfaceTotale > 0 ? calculations.surfaceTotale : ""}
+                {preview.surfaceTotale > 0 ? preview.surfaceTotale : ""}
               </span>
             </div>
-            {calculations.surfaceImposable > 0 && calculations.surfaceImposable !== calculations.surfaceTotale && (
+            {preview.surfaceImposable > 0 && preview.surfaceImposable !== preview.surfaceTotale && (
               <div className="flex items-center gap-6 text-amber-700">
                 <span className="uppercase font-extrabold text-sm">Surface imposable</span>
-                <span className="font-mono text-sm font-extrabold px-1">
-                  {calculations.surfaceImposable}
-                </span>
+                <span className="font-mono text-sm font-extrabold px-1">{preview.surfaceImposable}</span>
               </div>
             )}
           </div>
@@ -112,20 +160,18 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               </tr>
             </thead>
             <tbody>
-              {calculations.exercises.map((ex, idx) => (
+              {preview.exercises.map((ex, idx) => (
                 <tr key={ex.year} className="text-center">
                   <td className="border-r border-b border-black p-2.5 font-bold font-mono text-sm">
                     {ex.year}
                   </td>
-                  <td className="border-r border-b border-black p-2.5 font-bold">
-                    {ex.taxNature}
-                  </td>
+                  <td className="border-r border-b border-black p-2.5 font-bold">{ex.taxNature}</td>
                   {idx === 0 && (
                     <td
                       rowSpan={4}
                       className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
                     >
-                      {calculations.adresseDescription}
+                      {preview.adresseDescription}
                     </td>
                   )}
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
@@ -146,7 +192,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
         <div className="pt-8 flex justify-center items-center">
           <div className="border-2 border-black px-12 py-2 text-center bg-white shadow-sm">
             <span className="text-lg font-extrabold font-mono tracking-wider">
-              {formatMoney(calculations.totalDu)}
+              {formatMoney(preview.totalDu)}
             </span>
           </div>
         </div>
