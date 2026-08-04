@@ -50,6 +50,9 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   doc.text("CENTRE DES IMPÔTS DES PETITES ENTREPRISES", leftX, 55, { align: "center" });
   doc.text(`D'${data.commune.toUpperCase()}`, leftX, 59, { align: "center" });
 
+  doc.setFont("times", "normal");
+  doc.text(`Role N°${data.numero_role}/${data.annee}`, leftX, 63, { align: "center" });
+
   // --- Bloc Droit : Méta-données Géantes ---
   const rightX = 130;
   doc.setFont("times", "bold");
