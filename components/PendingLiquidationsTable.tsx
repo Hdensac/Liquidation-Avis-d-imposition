@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -193,7 +193,7 @@ export default function PendingLiquidationsTable() {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Filtrer par Nom, Prénom, IFU/NPI ou Référence..."
+            placeholder="Filtrer par Nom, Prenom, IFU/NPI ou Reference..."
             className="w-full pl-9 pr-9 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder-gray-400"
           />
           {searchQuery && (
@@ -206,7 +206,7 @@ export default function PendingLiquidationsTable() {
           )}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          {filteredLiquidations.length} résultat(s) sur cette page
+          {filteredLiquidations.length} resultat(s) sur cette page
         </div>
       </div>
 
@@ -226,7 +226,10 @@ export default function PendingLiquidationsTable() {
             {filteredLiquidations.map((liq) => {
               const c = getContribuable(liq.contribuable);
               return (
-                <tr key={liq.id} className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                <tr
+                  key={liq.id}
+                  className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                >
                   <td className="px-4 py-2">{c.ifu_npi}</td>
                   <td className="px-4 py-2">{c.nom_prenoms}</td>
                   <td className="px-4 py-2">{c.telephone}</td>
@@ -245,7 +248,11 @@ export default function PendingLiquidationsTable() {
                         disabled={pdfLoadingId === liq.id}
                         className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1 px-3 rounded transition transform hover:scale-105"
                       >
-                        {pdfLoadingId === liq.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        {pdfLoadingId === liq.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <FileText className="w-4 h-4" />
+                        )}
                         Telecharger PDF
                       </button>
                     </div>
@@ -256,7 +263,9 @@ export default function PendingLiquidationsTable() {
             {filteredLiquidations.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                  {searchQuery ? "Aucune liquidation ne correspond à votre recherche." : "Aucun paiement en attente."}
+                  {searchQuery
+                    ? "Aucune liquidation ne correspond a votre recherche."
+                    : "Aucun paiement en attente."}
                 </td>
               </tr>
             )}
@@ -272,8 +281,16 @@ export default function PendingLiquidationsTable() {
       />
 
       {pdfTarget && pdfFormData && pdfCalculations ? (
-        <div className="fixed pointer-events-none" style={{ left: "-10000px", top: 0, backgroundColor: "#ffffff" }} aria-hidden="true">
-          <LiquidationPreview formData={pdfFormData} calculations={pdfCalculations} documentId={hiddenDocumentId} />
+        <div
+          className="fixed pointer-events-none"
+          style={{ left: "-10000px", top: 0, backgroundColor: "#ffffff" }}
+          aria-hidden="true"
+        >
+          <LiquidationPreview
+            formData={pdfFormData}
+            calculations={pdfCalculations}
+            documentId={hiddenDocumentId}
+          />
         </div>
       ) : null}
     </div>
