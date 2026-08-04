@@ -1,22 +1,22 @@
-/**
+﻿/**
  * utils/descriptionBien.ts
  *
- * SOURCE UNIQUE DE VÉRITÉ pour la description textuelle d'une parcelle.
- * Utilisée par :
- *   - liquidationCalculations.ts  (prévisualisation côté formulaire)
+ * SOURCE UNIQUE DE VERITE pour la description textuelle d'une parcelle.
+ * Utilisee par :
+ *   - liquidationCalculations.ts  (previsualisation cote formulaire)
  *   - avisPdfGenerator.ts         (fallback si l'article Supabase n'a pas de description)
  *
  * Convention de nommage :
  *   - TypeScript : superficieImposable
- *   - Base de données : superficie_imposable
+ *   - Base de donnees : superficie_imposable
  */
 
 export interface DescriptionBienParams {
-  /** Superficie totale réelle de la parcelle (m²) */
+  /** Superficie totale reelle de la parcelle (m²) */
   superficie: number;
   /**
    * Superficie imposable (m²).
-   * Si définie et différente de superficie, déclenche la mention d'exonération.
+   * Si definie et differente de superficie, cela permet d'afficher une mention d'exoneration a part.
    */
   superficieImposable?: number | null;
   commune?: string;
@@ -24,16 +24,20 @@ export interface DescriptionBienParams {
   quartier?: string;
 }
 
+export interface ExonerationParams {
+  superficie: number;
+  superficieImposable?: number | null;
+}
+
 /**
  * Formate la description officielle d'une parcelle.
  *
  * Exemples :
- *  - Sans exonération : "PARCELLE DE 500 M² SISE A ALLADA/ALLADA/CADJEHOUN"
- *  - Avec exonération : "PARCELLE DE 500 M² SISE A ALLADA/ALLADA/CADJEHOUN (AVEC EXONÉRATION : SUPERFICIE IMPOSABLE 150 M²)"
+ *  - Sans exoneration : "PARCELLE DE 500 M² SISE A ALLADA/ALLADA/CADJEHOUN"
+ *  - Avec exoneration : "PARCELLE DE 500 M² SISE A ALLADA/ALLADA/CADJEHOUN"
  */
 export function formatDescriptionBien({
   superficie,
-  superficieImposable,
   commune,
   arrondissement,
   quartier,
@@ -44,10 +48,15 @@ export function formatDescriptionBien({
 
   const locationStr = [communeStr, arrStr, quartStr].filter(Boolean).join("/");
 
-  const basePart = locationStr
+  return locationStr
     ? `PARCELLE DE ${superficie} M² SISE A ${locationStr}`
     : `PARCELLE DE ${superficie} M²`;
+}
 
+/**
+ * Retourne la mention d'exoneration a afficher a part dans le document.
+ */
+export function formatExonerationMention({ superficie, superficieImposable }: ExonerationParams): string {
   const hasExoneration =
     typeof superficieImposable === "number" &&
     Number.isFinite(superficieImposable) &&
@@ -55,6 +64,6 @@ export function formatDescriptionBien({
     superficieImposable < superficie;
 
   return hasExoneration
-    ? `${basePart} AVEC EXONÉRATION PARTIELLE (${superficieImposable} M²)`
-    : basePart;
+    ? `AVEC EXONERATION PARTIELLE : SUPERFICIE IMPOSABLE ${superficieImposable} M²`
+    : "";
 }

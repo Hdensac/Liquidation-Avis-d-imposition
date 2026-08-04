@@ -1,4 +1,4 @@
-export interface TaxpayerInput {
+﻿export interface TaxpayerInput {
   // Infos Contribuable
   fullname: string;
   ifuNpi: string;
@@ -12,7 +12,7 @@ export interface TaxpayerInput {
   // Caracteristiques
   superficie: number | "";
   /**
-   * Superficie reellement imposable (m�).
+   * Superficie reellement imposable (m²).
    * Definie uniquement en cas d'exoneration partielle (ex : zone cultivee).
    * Les calculs utilisent cette valeur a la place de `superficie`.
    * Convention BDD : superficie_imposable (NULL si pas d'exoneration).
@@ -39,6 +39,7 @@ export interface LiquidationCalculations {
   surf: number;
   valeurLocative: number;
   adresseDescription: string;
+  exonerationMention?: string;
   exercises: TaxExercise[];
   totalDu: number;
 }

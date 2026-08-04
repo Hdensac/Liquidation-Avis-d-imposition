@@ -1,5 +1,5 @@
-import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
-import { formatDescriptionBien } from "@/utils/descriptionBien";
+﻿import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
+import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
 
 export function buildLiquidationCalculations(formData: TaxpayerInput): LiquidationCalculations {
   const surfaceTotale = typeof formData.superficie === "number" ? formData.superficie : 0;
@@ -12,13 +12,16 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
       ? formData.superficieImposable
       : surfaceTotale;
 
-  // Description centralisee via la source unique de verite
   const adresseDescription = formatDescriptionBien({
     superficie: surfaceTotale,
-    superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
     commune: formData.commune,
     arrondissement: formData.arrondissement,
     quartier: formData.quartier,
+  });
+
+  const exonerationMention = formatExonerationMention({
+    superficie: surfaceTotale,
+    superficieImposable,
   });
 
   const baseImposable = surfaceImposable * valeurLocative;
@@ -50,6 +53,7 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
     surf: surfaceImposable,
     valeurLocative,
     adresseDescription,
+    exonerationMention,
     exercises,
     totalDu,
   };

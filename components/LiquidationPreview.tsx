@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo } from "react";
 import { TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
-import { formatDescriptionBien } from "@/utils/descriptionBien";
+import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
 
 interface LiquidationPreviewProps {
   formData: TaxpayerInput;
@@ -21,10 +21,14 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
 
   const adresseDescription = formatDescriptionBien({
     superficie: surfaceTotale,
-    superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
     commune: formData.commune,
     arrondissement: formData.arrondissement,
     quartier: formData.quartier,
+  });
+
+  const exonerationMention = formatExonerationMention({
+    superficie: surfaceTotale,
+    superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
   });
 
   const baseImposable = surfaceImposable * valeurLocative;
@@ -55,6 +59,7 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
     surfaceImposable,
     valeurLocative,
     adresseDescription,
+    exonerationMention,
     exercises,
     totalDu,
   };
@@ -89,9 +94,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
       >
         <div className="flex justify-between items-start">
           <div className="text-left text-[11px] font-medium text-gray-600"></div>
-          <div className="text-right text-xs font-semibold text-gray-800">
-            Date : {currentDateStr}
-          </div>
+          <div className="text-right text-xs font-semibold text-gray-800">Date : {currentDateStr}</div>
         </div>
 
         <div className="text-center font-semibold text-slate-700 italic text-sm -mt-2">
@@ -120,7 +123,14 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
 
           <div className="flex items-start gap-2 text-xs font-semibold pt-1">
             <span className="font-extrabold uppercase whitespace-nowrap">ADRESSE :</span>
-            <span className="uppercase font-bold tracking-tight">{preview.adresseDescription}</span>
+            <div className="flex flex-col gap-1">
+              <span className="uppercase font-bold tracking-tight">{preview.adresseDescription}</span>
+              {preview.exonerationMention ? (
+                <span className="text-amber-700 font-semibold uppercase tracking-tight">
+                  {preview.exonerationMention}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -171,7 +181,12 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                       rowSpan={4}
                       className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
                     >
-                      {preview.adresseDescription}
+                      <div className="flex flex-col gap-1">
+                        <span>{preview.adresseDescription}</span>
+                        {preview.exonerationMention ? (
+                          <span className="text-amber-700">{preview.exonerationMention}</span>
+                        ) : null}
+                      </div>
                     </td>
                   )}
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
