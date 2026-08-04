@@ -74,6 +74,11 @@ interface TaxFormProps {
 
 export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset }) => {
   const [loadingVa, setLoadingVa] = useState(false);
+  const [hasExoneration, setHasExoneration] = useState(false);
+
+  // Expose la superficie totale pour la validation du champ imposable
+  const superficieTotale =
+    typeof formData.superficie === "number" ? formData.superficie : 0;
 
   // Trigger dynamic loading when commune changes:
   // - réinitialise l'arrondissement pour forcer un choix cohérent
@@ -157,7 +162,10 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
         </div>
         <button
           type="button"
-          onClick={onReset}
+          onClick={() => {
+            setHasExoneration(false);
+            onReset();
+          }}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
           title="Réinitialiser les données"
         >
@@ -292,9 +300,10 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
             Caractéristiques Imposables & Période
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+            {/* Superficie totale + switch exonération */}
+            <div className="space-y-2">
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Superficie (m²) <span className="text-red-500">*</span>
+                Superficie totale (m²) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -307,6 +316,66 @@ export const TaxForm: React.FC<TaxFormProps> = ({ formData, onChange, onReset })
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
                 required
               />
+              {/* Switch exonération partielle */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hasExoneration}
+                onClick={() => {
+                  const next = !hasExoneration;
+                  setHasExoneration(next);
+                  if (!next) {
+                    // Réinitialise superficieImposable quand on désactive
+                    onChange({ ...formData, superficieImposable: "" });
+                  }
+                }}
+                className={`inline-flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                  hasExoneration
+                    ? "bg-amber-50 border-amber-400 text-amber-700"
+                    : "bg-slate-50 border-slate-300 text-slate-500 hover:border-slate-400"
+                }`}
+              >
+                <span
+                  className={`inline-block w-7 h-4 rounded-full transition-colors relative ${
+                    hasExoneration ? "bg-amber-400" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
+                      hasExoneration ? "translate-x-3" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+                Exonération partielle
+              </button>
+
+              {/* Champ superficie imposable (conditionnel) */}
+              {hasExoneration && (
+                <div>
+                  <label className="block text-xs font-medium text-amber-700 mb-1">
+                    Superficie imposable (m²) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="superficieImposable"
+                    value={formData.superficieImposable ?? ""}
+                    onChange={handleChange}
+                    min="1"
+                    max={superficieTotale > 0 ? superficieTotale - 1 : undefined}
+                    step="any"
+                    placeholder={`< ${superficieTotale || "superficie totale"} m²`}
+                    className="w-full px-3 py-2 text-sm border border-amber-400 bg-amber-50 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all font-semibold text-amber-900"
+                    required
+                  />
+                  {typeof formData.superficieImposable === "number" &&
+                    superficieTotale > 0 &&
+                    formData.superficieImposable >= superficieTotale && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Doit être inférieure à la superficie totale ({superficieTotale} m²)
+                      </p>
+                    )}
+                </div>
+              )}
             </div>
             <div className="relative">
               <label className="block text-xs font-medium text-slate-700 mb-1">

@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { formatDescriptionBien } from "@/utils/descriptionBien";
 
 export type AvisRecouvrementArticle = {
   id: string;
@@ -27,6 +28,8 @@ export type AvisRecouvrementDetails = {
     id: string;
     reference_liq: string;
     superficie: number;
+    /** Superficie imposable (m²) — NULL si pas d'exonération. Convention BDD : superficie_imposable */
+    superficie_imposable?: number | null;
     valeur_locative: number;
     start_year: number;
     status: string;
@@ -149,14 +152,13 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
           .join("/"),
       description:
         sanitizeText(article.description) ||
-        `PARCELLE DE ${toNumber(details.liquidation.superficie)} M² ${[
-          normalizeCommune(details.contribuable.commune),
-          normalizeCommune(details.contribuable.arrondissement),
-          normalizeCommune(details.contribuable.quartier),
-        ]
-          .filter(Boolean)
-          .join("/")}`,
-      base,
+        formatDescriptionBien({
+          superficie: toNumber(details.liquidation.superficie),
+          superficieImposable: details.liquidation.superficie_imposable ?? null,
+          commune: details.contribuable.commune,
+          arrondissement: details.contribuable.arrondissement,
+          quartier: details.contribuable.quartier,
+        }),      base,
       taux,
       droit_simple: Math.round(droitSimple),
       penalite: Math.round(penalite),
@@ -308,7 +310,13 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
     normalizeCommune(details.contribuable.arrondissement),
     normalizeCommune(details.contribuable.quartier),
   ].filter(Boolean);
-  const address = `PARCELLE DE ${toNumber(details.liquidation.superficie)} M² SISE à ${addressParts.join("/")}`;
+  const address = formatDescriptionBien({
+    superficie: toNumber(details.liquidation.superficie),
+    superficieImposable: details.liquidation.superficie_imposable ?? null,
+    commune: details.contribuable.commune,
+    arrondissement: details.contribuable.arrondissement,
+    quartier: details.contribuable.quartier,
+  });
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(9);

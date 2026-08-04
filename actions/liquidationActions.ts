@@ -132,6 +132,11 @@ async function ensureActiveRole(commune: string) {
 /** Create a new liquidation in status EN_ATTENTE */
 export async function createLiquidation(data: TaxpayerInput) {
   const supabase = await createClient();
+  const superficieImposable =
+    typeof data.superficieImposable === "number" && data.superficieImposable > 0
+      ? data.superficieImposable
+      : null;
+
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
     p_nom_prenoms: data.fullname,
     p_ifu_npi: data.ifuNpi,
@@ -142,6 +147,8 @@ export async function createLiquidation(data: TaxpayerInput) {
     p_superficie: Number(data.superficie) || 0,
     p_valeur_locative: Number(data.valeurLocative) || 0,
     p_start_year: Number(data.startYear) || 2023,
+    // NULL si pas d'exonération → comportement identique à l'ancien code
+    p_superficie_imposable: superficieImposable,
   });
   if (error) throw error;
 

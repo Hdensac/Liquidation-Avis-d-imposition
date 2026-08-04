@@ -11,6 +11,13 @@ export interface TaxpayerInput {
   
   // Caractéristiques
   superficie: number | "";
+  /**
+   * Superficie réellement imposable (m²).
+   * Définie uniquement en cas d'exonération partielle (ex : zone cultivée).
+   * Les calculs utilisent cette valeur à la place de `superficie`.
+   * Convention BDD : superficie_imposable (NULL si pas d'exonération).
+   */
+  superficieImposable?: number | "";
   valeurLocative: number | "";
   
   // Année de départ pour les 4 exercices
