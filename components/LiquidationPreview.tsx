@@ -31,6 +31,10 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
     superficieImposable: surfaceImposable !== surfaceTotale ? surfaceImposable : null,
   });
 
+  const description = exonerationMention
+    ? `${adresseDescription}\n${exonerationMention}`
+    : adresseDescription;
+
   const baseImposable = surfaceImposable * valeurLocative;
   const startYear =
     typeof formData.startYear === "number" && formData.startYear > 1900
@@ -45,7 +49,7 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
     return {
       year,
       taxNature: "TFU/FNB",
-      description: adresseDescription,
+      description,
       baseImposable,
       taux,
       droitSimple,
@@ -60,6 +64,7 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
     valeurLocative,
     adresseDescription,
     exonerationMention,
+    description,
     exercises,
     totalDu,
   };
@@ -172,9 +177,9 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                   {idx === 0 && (
                     <td
                       rowSpan={4}
-                      className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
+                      className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase whitespace-pre-line"
                     >
-                      <span>{preview.adresseDescription}</span>
+                      <span>{preview.description}</span>
                     </td>
                   )}
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
