@@ -123,14 +123,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
 
           <div className="flex items-start gap-2 text-xs font-semibold pt-1">
             <span className="font-extrabold uppercase whitespace-nowrap">ADRESSE :</span>
-            <div className="flex flex-col gap-1">
-              <span className="uppercase font-bold tracking-tight">{preview.adresseDescription}</span>
-              {preview.exonerationMention ? (
-                <span className="text-amber-700 font-semibold uppercase tracking-tight">
-                  {preview.exonerationMention}
-                </span>
-              ) : null}
-            </div>
+            <span className="uppercase font-bold tracking-tight">{preview.adresseDescription}</span>
           </div>
         </div>
 
@@ -181,12 +174,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                       rowSpan={4}
                       className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase"
                     >
-                      <div className="flex flex-col gap-1">
-                        <span>{preview.adresseDescription}</span>
-                        {preview.exonerationMention ? (
-                          <span className="text-amber-700">{preview.exonerationMention}</span>
-                        ) : null}
-                      </div>
+                      <span>{preview.adresseDescription}</span>
                     </td>
                   )}
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
@@ -215,3 +203,4 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
     </div>
   );
 };
+
