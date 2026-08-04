@@ -182,7 +182,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -208,7 +208,7 @@ export async function fetchPendingLiquidationsPaginated({
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
       { count: "exact" }
     )
     .eq("status", "EN_ATTENTE")
@@ -623,5 +623,6 @@ export async function getRoleCouvertureData(roleId: string): Promise<RoleCouvert
     lignes_impot,
   };
 }
+
 
 
