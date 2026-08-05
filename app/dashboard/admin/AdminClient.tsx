@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { 
   Users, 
   Terminal, 
-  UserCheck, 
   Shield, 
-  RefreshCw, 
   Search, 
   Clock, 
   Eye, 
   Check, 
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { updateUserRole } from "@/actions/adminActions";
+import { fetchAuditLogs, updateUserRole } from "@/actions/adminActions";
 import type { UserRole } from "@/types/user";
 
 type Profile = {
@@ -36,16 +36,22 @@ type AuditLog = {
 interface AdminClientProps {
   initialProfiles: Profile[];
   initialLogs: AuditLog[];
+  initialLogTotal: number;
 }
 
-export default function AdminClient({ initialProfiles, initialLogs }: AdminClientProps) {
+const LOGS_PAGE_SIZE = 20;
+
+export default function AdminClient({ initialProfiles, initialLogs, initialLogTotal }: AdminClientProps) {
   const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
   const [logs, setLogs] = useState<AuditLog[]>(initialLogs);
+  const [logTotal, setLogTotal] = useState(initialLogTotal);
+  const [logPage, setLogPage] = useState(1);
   const [userSearch, setUserSearch] = useState("");
   const [logSearch, setLogSearch] = useState("");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isLogsPending, startLogsTransition] = useTransition();
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Filtrer les profils
@@ -54,13 +60,39 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
     (p.fullname && p.fullname.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
-  // Filtrer les logs
-  const filteredLogs = logs.filter(l => 
-    l.user_email.toLowerCase().includes(logSearch.toLowerCase()) ||
-    l.action.toLowerCase().includes(logSearch.toLowerCase()) ||
-    JSON.stringify(l.details || {}).toLowerCase().includes(logSearch.toLowerCase())
-  );
+  // Les logs sont filtrés et paginés côté serveur.
+  const filteredLogs = logs;
+  const totalLogPages = Math.max(1, Math.ceil(logTotal / LOGS_PAGE_SIZE));
+  const logStart = logTotal === 0 ? 0 : (logPage - 1) * LOGS_PAGE_SIZE + 1;
+  const logEnd = Math.min(logPage * LOGS_PAGE_SIZE, logTotal);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    startLogsTransition(async () => {
+      try {
+        const result = await fetchAuditLogs({
+          page: logPage,
+          pageSize: LOGS_PAGE_SIZE,
+          search: logSearch,
+        });
+
+        if (isCurrent) {
+          setLogs(result.logs);
+          setLogTotal(result.total);
+        }
+      } catch (err) {
+        if (isCurrent) {
+          setNotification({ type: "error", message: "Erreur lors du chargement des journaux." });
+          setTimeout(() => setNotification(null), 3000);
+        }
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [logPage, logSearch]);
   // Modifier le rÃ´le d'un utilisateur
   const handleRoleChange = async (userId: string, newRole: UserRole | null) => {
     startTransition(async () => {
@@ -270,12 +302,15 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
                   type="text"
                   placeholder="Rechercher par action, email..."
                   value={logSearch}
-                  onChange={(e) => setLogSearch(e.target.value)}
+                  onChange={(e) => {
+                    setLogSearch(e.target.value);
+                    setLogPage(1);
+                  }}
                   className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 />
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {filteredLogs.length} log(s) affichÃ©(s)
+                {isLogsPending ? "Chargement..." : `${logStart}-${logEnd} sur ${logTotal} log(s)`}
               </div>
             </div>
 
@@ -334,6 +369,34 @@ export default function AdminClient({ initialProfiles, initialLogs }: AdminClien
                 </tbody>
               </table>
             </div>
+
+            {logTotal > 0 && (
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 dark:bg-slate-900/10">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Page {logPage} sur {totalLogPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLogPage((page) => Math.max(1, page - 1))}
+                    disabled={logPage === 1 || isLogsPending}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Précédent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLogPage((page) => Math.min(totalLogPages, page + 1))}
+                    disabled={logPage >= totalLogPages || isLogsPending}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    Suivant
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

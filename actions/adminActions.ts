@@ -61,19 +61,44 @@ export async function updateUserRole(userId: string, role: UserRole | null) {
   }
 }
 
+type FetchAuditLogsParams = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
 /** Récupère les logs d'audit avec pagination */
-export async function fetchAuditLogs() {
+export async function fetchAuditLogs({
+  page = 1,
+  pageSize = 20,
+  search = "",
+}: FetchAuditLogsParams = {}) {
   try {
     await ensureAdmin();
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.min(Math.max(1, pageSize), 100);
+    const from = (safePage - 1) * safePageSize;
+    const to = from + safePageSize - 1;
+    const normalizedSearch = search.trim().replace(/[%,()]/g, " ").trim();
+
+    let query = supabase
       .from("audit_logs")
-      .select("id, user_id, user_email, action, details, created_at")
+      .select("id, user_id, user_email, action, details, created_at", { count: "exact" });
+
+    if (normalizedSearch) {
+      query = query.or(`user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%`);
+    }
+
+    const { data, error, count } = await query
       .order("created_at", { ascending: false })
-      .limit(100); // Limite aux 100 derniers logs pour performance
+      .range(from, to);
 
     if (error) throw error;
-    return data || [];
+    return {
+      logs: data || [],
+      total: count || 0,
+    };
   } catch (err) {
     console.error("Erreur fetchAuditLogs:", err);
     throw err;
