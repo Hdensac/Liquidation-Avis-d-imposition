@@ -60,7 +60,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
     (p.fullname && p.fullname.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
-  // Les logs sont filtrés et paginés côté serveur.
+  // Les logs sont filtrï¿½s et paginï¿½s cï¿½tï¿½ serveur.
   const filteredLogs = logs;
   const totalLogPages = Math.max(1, Math.ceil(logTotal / LOGS_PAGE_SIZE));
   const logStart = logTotal === 0 ? 0 : (logPage - 1) * LOGS_PAGE_SIZE + 1;
@@ -383,7 +383,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
-                    Précédent
+                    Prï¿½cï¿½dent
                   </button>
                   <button
                     type="button"
