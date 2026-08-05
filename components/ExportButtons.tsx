@@ -52,25 +52,26 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   };
 
   return (
-    {/* <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+    {/* 
+    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
       <div className="text-sm font-medium text-slate-700 flex items-center gap-2">
         <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         Documents prêts à être générés
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* Bouton Impression Directe */}
-        {/* <button
+        // Bouton Impression Directe
+        <button
           type="button"
           onClick={handlePrint}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 font-medium text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
         >
           <Printer className="w-4 h-4" />
           Imprimer
-        </button> */}
+        </button>
 
-        {/* Bouton Export Excel */}
-        {/* <button
+        // Bouton Export Excel
+        <button
           type="button"
           onClick={handleExportExcel}
           disabled={loadingExcel}
@@ -87,10 +88,10 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               Télécharger Excel (.xlsx)
             </>
           )}
-        </button> */}
+        </button>
 
-        {/* Bouton Export PDF */}
-        {/* <button
+        // Bouton Export PDF
+        <button
           type="button"
           onClick={handleExportPDF}
           disabled={loadingPdf}
@@ -107,8 +108,9 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               Télécharger PDF (A4)
             </>
           )}
-        </button> */}
+        </button>
       </div>
-    </div> */}
+    </div>
+    */}
   );
 };
