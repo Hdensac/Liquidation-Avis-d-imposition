@@ -118,7 +118,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               <span>{formData.fullname || "________________________"}</span>
             </div>
             <div className="col-span-4 flex items-center gap-1">
-              <span className="font-extrabold uppercase">N� IFU/NPI :</span>
+              <span className="font-extrabold uppercase">N° IFU/NPI :</span>
               <span className="font-mono">{formData.ifuNpi || "________________"}</span>
             </div>
             <div className="col-span-3 flex items-center gap-1 justify-end">
