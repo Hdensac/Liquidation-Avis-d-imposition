@@ -323,8 +323,8 @@ export const TaxForm: React.FC<TaxFormProps> = ({
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 required
               >
-                <option value="NON_BATI">Non bati / terrain nu</option>
-                <option value="BATI">Bati / maison ou immeuble</option>
+                <option value="NON_BATI">Foncier Non Bati / FNB</option>
+                <option value="BATI"> Foncier Bati / FB</option>
               </select>
             </div>
             {/* Superficie totale + switch exonération */}
