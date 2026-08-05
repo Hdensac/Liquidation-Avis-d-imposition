@@ -316,17 +316,16 @@ export const TaxForm: React.FC<TaxFormProps> = ({
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Type de bien <span className="text-red-500">*</span>
               </label>
-              <select
-                name="typeBien"
-                value={formData.typeBien}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                required
-              >
-                <option value="NON_BATI">Foncier Non Bati / FNB</option>
-                <option value="BATI"> Foncier Bati / FB</option>
-              </select>
-            </div>
+              <input
+                type="text"
+                value="Foncier Non Bati / FNB"
+                readOnly
+                disabled
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-slate-100 text-slate-600 font-medium cursor-not-allowed outline-none"
+              />
+              {/* Input caché pour s'assurer que la valeur "NON_BATI" est bien envoyée si tu relies le state ou un form classique */}
+              <input type="hidden" name="typeBien" value="NON_BATI" />
+          </div>
             {/* Superficie totale + switch exonération */}
             <div className="space-y-2">
               <label className="block text-xs font-medium text-slate-700 mb-1">
