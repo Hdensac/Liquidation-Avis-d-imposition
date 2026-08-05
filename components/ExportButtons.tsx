@@ -52,7 +52,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+    {/* <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
       <div className="text-sm font-medium text-slate-700 flex items-center gap-2">
         <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         Documents prêts à être générés
@@ -109,6 +109,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
           )}
         </button> */}
       </div>
-    </div>
+    </div> */}
   );
 };
