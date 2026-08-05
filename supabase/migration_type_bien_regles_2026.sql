@@ -1,111 +1,64 @@
 -- ============================================================================
--- SCRIPT DE MIGRATION SUPABASE : SYSTEME D'ADMINISTRATION FISCALE D'ETAT
--- Avis de Mise en Recouvrement (TFU / FNB) - RÃ©publique du BÃ©nin
+-- MIGRATION : TYPE DE BIEN & REGLES FISCALES 2026
 -- ============================================================================
 
--- 1. EXTENSIONS & TYPES
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+ALTER TABLE public.liquidations
+  ADD COLUMN IF NOT EXISTS type_bien TEXT NOT NULL DEFAULT 'NON_BATI';
 
-DO $$ BEGIN
-    CREATE TYPE liquidation_status AS ENUM ('EN_ATTENTE', 'PAYE', 'ANNULE');
-EXCEPTION
-    WHEN duplicate_object THEN null;
+UPDATE public.liquidations
+SET type_bien = 'NON_BATI'
+WHERE type_bien IS NULL
+   OR type_bien NOT IN ('NON_BATI', 'BATI');
+
+ALTER TABLE public.liquidations
+  ALTER COLUMN type_bien SET DEFAULT 'NON_BATI',
+  ALTER COLUMN type_bien SET NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'liquidations_type_bien_check'
+      AND conrelid = 'public.liquidations'::regclass
+  ) THEN
+    ALTER TABLE public.liquidations
+      ADD CONSTRAINT liquidations_type_bien_check
+      CHECK (type_bien IN ('NON_BATI', 'BATI'))
+      NOT VALID;
+  END IF;
 END $$;
 
-DO $$ BEGIN
-    CREATE TYPE role_status AS ENUM ('ACTIF', 'CLOTURE');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+ALTER TABLE public.liquidations
+  VALIDATE CONSTRAINT liquidations_type_bien_check;
 
--- 2. TABLES
-
--- Table 1: roles
-CREATE TABLE IF NOT EXISTS public.roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  commune TEXT NOT NULL,
-  annee INTEGER NOT NULL,
-  numero_role INTEGER NOT NULL DEFAULT 1,
-  status role_status NOT NULL DEFAULT 'ACTIF',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+DROP FUNCTION IF EXISTS public.creer_liquidation(
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  NUMERIC,
+  NUMERIC,
+  INTEGER,
+  NUMERIC
 );
 
--- Table 2: contribuables
-CREATE TABLE IF NOT EXISTS public.contribuables (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nom_prenoms TEXT NOT NULL,
-  ifu_npi TEXT UNIQUE NOT NULL,
-  telephone TEXT,
-  commune TEXT,
-  arrondissement TEXT,
-  quartier TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+DROP FUNCTION IF EXISTS public.creer_liquidation(
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  TEXT,
+  NUMERIC,
+  NUMERIC,
+  INTEGER,
+  TEXT,
+  NUMERIC
 );
 
--- Table 3: liquidations (Fiches initiales en attente de paiement)
-CREATE TABLE IF NOT EXISTS public.liquidations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  reference_liq TEXT UNIQUE NOT NULL,
-  contribuable_id UUID NOT NULL REFERENCES public.contribuables(id) ON DELETE CASCADE,
-  superficie NUMERIC NOT NULL,
-  superficie_imposable NUMERIC,
-  valeur_locative NUMERIC NOT NULL,
-  start_year INTEGER NOT NULL DEFAULT 2023,
-  type_bien TEXT NOT NULL DEFAULT 'NON_BATI' CHECK (type_bien IN ('NON_BATI', 'BATI')),
-  base_imposable NUMERIC NOT NULL,
-  status liquidation_status NOT NULL DEFAULT 'EN_ATTENTE',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Table 4: recouvrements (Paiements validÃ©s)
-CREATE TABLE IF NOT EXISTS public.recouvrements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  liquidation_id UUID UNIQUE NOT NULL REFERENCES public.liquidations(id) ON DELETE RESTRICT,
-  role_id UUID NOT NULL REFERENCES public.roles(id) ON DELETE RESTRICT,
-  contribuable_id UUID NOT NULL REFERENCES public.contribuables(id) ON DELETE RESTRICT,
-  date_paiement TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Table 5: articles_recouvrement (Lignes d'exercice numÃ©rotÃ©es)
-CREATE TABLE IF NOT EXISTS public.articles_recouvrement (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  recouvrement_id UUID NOT NULL REFERENCES public.recouvrements(id) ON DELETE CASCADE,
-  numero_article INTEGER NOT NULL,
-  exercice INTEGER NOT NULL,
-  nature_impot TEXT NOT NULL DEFAULT 'TFU/FNB',
-  localisation TEXT NOT NULL,
-  description TEXT NOT NULL,
-  base NUMERIC NOT NULL,
-  taux NUMERIC NOT NULL,
-  droit_simple NUMERIC NOT NULL,
-  penalite NUMERIC NOT NULL DEFAULT 0,
-  acompte_paye NUMERIC NOT NULL DEFAULT 0,
-  reste_du NUMERIC NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 3. INDEXES
-CREATE INDEX IF NOT EXISTS idx_roles_commune_annee_status ON public.roles(commune, annee, status);
-CREATE INDEX IF NOT EXISTS idx_liquidations_status ON public.liquidations(status);
-CREATE INDEX IF NOT EXISTS idx_contribuables_ifu ON public.contribuables(ifu_npi);
-CREATE INDEX IF NOT EXISTS idx_articles_recouvrement_recouvrement ON public.articles_recouvrement(recouvrement_id);
-
--- 4. ROW LEVEL SECURITY (RLS) - Permettre la lecture/Ã©criture publique (Anon Key)
-ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contribuables ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.liquidations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.recouvrements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.articles_recouvrement ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow anon read/write roles" ON public.roles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon read/write contribuables" ON public.contribuables FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon read/write liquidations" ON public.liquidations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon read/write recouvrements" ON public.recouvrements FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon read/write articles" ON public.articles_recouvrement FOR ALL USING (true) WITH CHECK (true);
-
--- 5. PROCEDURES STOCKEES (RPC)
-
--- A. CrÃ©ation d'une Liquidation en Attente
 CREATE OR REPLACE FUNCTION public.creer_liquidation(
   p_nom_prenoms TEXT,
   p_ifu_npi TEXT,
@@ -141,7 +94,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- Upsert Contribuable
   INSERT INTO public.contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)
   VALUES (p_nom_prenoms, p_ifu_npi, p_telephone, UPPER(p_commune), UPPER(p_arrondissement), UPPER(p_quartier))
   ON CONFLICT (ifu_npi) DO UPDATE SET
@@ -152,12 +104,10 @@ BEGIN
     quartier = EXCLUDED.quartier
   RETURNING id INTO v_contrib_id;
 
-  -- Calcul référence
   SELECT COUNT(*) + 1 INTO v_count FROM public.liquidations;
   v_ref_liq := 'LIQ-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-' || LPAD(v_count::text, 5, '0');
   v_base := COALESCE(v_superficie_imposable, p_superficie) * p_valeur_locative;
 
-  -- Créer la liquidation
   INSERT INTO public.liquidations (
     reference_liq,
     contribuable_id,
@@ -168,7 +118,8 @@ BEGIN
     type_bien,
     base_imposable,
     status
-  ) VALUES (
+  )
+  VALUES (
     v_ref_liq,
     v_contrib_id,
     p_superficie,
@@ -191,7 +142,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- B. Validation du Paiement & GÃ©nÃ©ration de l'Avis de Mise en Recouvrement
 CREATE OR REPLACE FUNCTION public.valider_paiement_liquidation(
   p_liquidation_id UUID
 ) RETURNS JSONB AS $$
@@ -213,7 +163,6 @@ DECLARE
   v_desc TEXT;
   i INTEGER;
 BEGIN
-  -- Verrouillage de la liquidation
   SELECT * INTO v_liq FROM public.liquidations WHERE id = p_liquidation_id FOR UPDATE;
   
   IF NOT FOUND THEN
@@ -224,10 +173,8 @@ BEGIN
     RAISE EXCEPTION 'Cette liquidation a deja ete payee et validee.';
   END IF;
 
-  -- Charger le contribuable
   SELECT * INTO v_contrib FROM public.contribuables WHERE id = v_liq.contribuable_id;
 
-  -- Obtenir ou créer le Rôle ACTIF
   SELECT id, numero_role INTO v_role_id, v_role_num
   FROM public.roles
   WHERE commune = v_contrib.commune AND annee = v_current_year AND status = 'ACTIF'
@@ -241,18 +188,15 @@ BEGIN
     RETURNING id, numero_role INTO v_role_id, v_role_num;
   END IF;
 
-  -- Obtenir le dernier numéro d'article du rôle
   SELECT COALESCE(MAX(ar.numero_article), 0) INTO v_last_article_num
   FROM public.articles_recouvrement ar
   JOIN public.recouvrements r ON ar.recouvrement_id = r.id
   WHERE r.role_id = v_role_id;
 
-  -- Créer le recouvrement
   INSERT INTO public.recouvrements (liquidation_id, role_id, contribuable_id)
   VALUES (p_liquidation_id, v_role_id, v_contrib.id)
   RETURNING id INTO v_recouvrement_id;
 
-  -- Marquer la liquidation comme PAYEE et tracer l'audit
   UPDATE public.liquidations 
   SET 
     status = 'PAYE',
@@ -260,7 +204,6 @@ BEGIN
     validated_at = now()
   WHERE id = p_liquidation_id;
 
-  -- Générer les 4 articles séquentiels
   v_base := COALESCE(v_liq.superficie_imposable, v_liq.superficie) * v_liq.valeur_locative;
   v_type_bien := CASE WHEN UPPER(COALESCE(v_liq.type_bien, 'NON_BATI')) = 'BATI' THEN 'BATI' ELSE 'NON_BATI' END;
   v_location_str := UPPER(v_contrib.commune || '/' || v_contrib.arrondissement || '/' || v_contrib.quartier);
@@ -307,38 +250,6 @@ BEGIN
     'annee', v_current_year,
     'first_article_num', v_last_article_num - 3,
     'last_article_num', v_last_article_num
-  );
-END;
-$$ LANGUAGE plpgsql;
-
--- C. ClÃ´ture de RÃ´le Actif
-CREATE OR REPLACE FUNCTION public.cloturer_role_actif(
-  p_commune TEXT
-) RETURNS JSONB AS $$
-DECLARE
-  v_role_id UUID;
-  v_old_num INTEGER;
-  v_new_num INTEGER;
-  v_current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
-BEGIN
-  SELECT id, numero_role INTO v_role_id, v_old_num
-  FROM public.roles
-  WHERE commune = UPPER(p_commune) AND annee = v_current_year AND status = 'ACTIF';
-
-  IF FOUND THEN
-    UPDATE public.roles SET status = 'CLOTURE' WHERE id = v_role_id;
-    v_new_num := v_old_num + 1;
-  ELSE
-    v_new_num := 1;
-  END IF;
-
-  INSERT INTO public.roles (commune, annee, numero_role, status)
-  VALUES (UPPER(p_commune), v_current_year, v_new_num, 'ACTIF');
-
-  RETURN jsonb_build_object(
-    'commune', UPPER(p_commune),
-    'annee', v_current_year,
-    'nouveau_numero_role', v_new_num
   );
 END;
 $$ LANGUAGE plpgsql;

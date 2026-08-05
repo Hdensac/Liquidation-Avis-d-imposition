@@ -1,4 +1,6 @@
-﻿export interface TaxpayerInput {
+export type TaxPropertyType = "NON_BATI" | "BATI";
+
+export interface TaxpayerInput {
   // Infos Contribuable
   fullname: string;
   ifuNpi: string;
@@ -10,9 +12,10 @@
   quartier: string;
 
   // Caracteristiques
+  typeBien: TaxPropertyType;
   superficie: number | "";
   /**
-   * Superficie reellement imposable (m²).
+   * Superficie reellement imposable (m�).
    * Definie uniquement en cas d'exoneration partielle (ex : zone cultivee).
    * Les calculs utilisent cette valeur a la place de `superficie`.
    * Convention BDD : superficie_imposable (NULL si pas d'exoneration).
@@ -26,10 +29,10 @@
 
 export interface TaxExercise {
   year: number;
-  taxNature: string; // "TFU/FNB"
+  taxNature: string;
   description: string;
   baseImposable: number; // SURF * VA
-  taux: number; // 0.04 (4%) pour annee 1, 0.05 (5%) pour annees 2, 3, 4
+  taux: number;
   droitSimple: number; // Base * Taux
 }
 

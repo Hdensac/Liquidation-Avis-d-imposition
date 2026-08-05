@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -30,6 +30,7 @@ type Liquidation = {
   superficie_imposable?: number | null;
   valeur_locative: number;
   start_year: number;
+  type_bien?: string | null;
   contribuable: Contribuable[] | Contribuable;
 };
 
@@ -56,6 +57,7 @@ function liquidationToFormData(liq: Liquidation): TaxpayerInput {
     commune: contribuable.commune || "",
     arrondissement: contribuable.arrondissement || "",
     quartier: contribuable.quartier || "",
+    typeBien: liq.type_bien === "BATI" ? "BATI" : "NON_BATI",
     superficie: Number(liq.superficie) || 0,
     superficieImposable:
       typeof liq.superficie_imposable === "number" && liq.superficie_imposable > 0

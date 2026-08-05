@@ -17,6 +17,7 @@ const EMPTY_FORM: TaxpayerInput = {
   commune: "",
   arrondissement: "",
   quartier: "",
+  typeBien: "NON_BATI",
   superficie: "",
   valeurLocative: "",
   startYear: 2023,

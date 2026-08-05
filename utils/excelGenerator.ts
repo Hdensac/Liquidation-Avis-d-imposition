@@ -9,7 +9,7 @@ export const generateExcelLiquidation = async (
   workbook.creator = "Système de Liquidation d'Impôt Foncier";
   workbook.created = new Date();
 
-  const worksheet = workbook.addWorksheet("Liquidation TFU-FNB", {
+  const worksheet = workbook.addWorksheet("Liquidation TFU", {
     pageSetup: { paperSize: 9, orientation: "portrait" }, // A4
   });
 
@@ -32,7 +32,7 @@ export const generateExcelLiquidation = async (
   // 2. Sous-titre officiel centré (A2:F2)
   worksheet.mergeCells("A2:F2");
   const subTitleCell = worksheet.getCell("A2");
-  subTitleCell.value = "Impôt Foncier Unique (TFU / FNB)";
+  subTitleCell.value = "Impot Foncier Unique (TFU)";
   subTitleCell.font = { name: "Calibri", size: 11, italic: true };
   subTitleCell.alignment = { horizontal: "center" };
 

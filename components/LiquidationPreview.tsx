@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo } from "react";
 import { TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
 import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
+import { getTaxRuleForYear } from "@/utils/taxRules";
 
 interface LiquidationPreviewProps {
   formData: TaxpayerInput;
@@ -43,15 +44,15 @@ function buildPreviewCalculations(formData: TaxpayerInput) {
 
   const exercises = Array.from({ length: 4 }, (_, index) => {
     const year = startYear + index;
-    const taux = index === 0 ? 0.04 : 0.05;
-    const droitSimple = baseImposable * taux;
+    const taxRule = getTaxRuleForYear(year, formData.typeBien);
+    const droitSimple = baseImposable * taxRule.taux;
 
     return {
       year,
-      taxNature: "TFU/FNB",
+      taxNature: taxRule.natureImpot,
       description,
       baseImposable,
-      taux,
+      taux: taxRule.taux,
       droitSimple,
     };
   });
@@ -103,7 +104,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
         </div>
 
         <div className="text-center font-semibold text-slate-700 italic text-sm -mt-2">
-          Impot Foncier Unique (TFU / FNB)
+          Impot Foncier Unique (TFU)
         </div>
 
         <div className="text-center my-3">
@@ -117,7 +118,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
               <span>{formData.fullname || "________________________"}</span>
             </div>
             <div className="col-span-4 flex items-center gap-1">
-              <span className="font-extrabold uppercase">N° IFU/NPI :</span>
+              <span className="font-extrabold uppercase">N� IFU/NPI :</span>
               <span className="font-mono">{formData.ifuNpi || "________________"}</span>
             </div>
             <div className="col-span-3 flex items-center gap-1 justify-end">

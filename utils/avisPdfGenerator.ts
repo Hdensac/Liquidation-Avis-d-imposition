@@ -32,6 +32,7 @@ export type AvisRecouvrementDetails = {
     superficie_imposable?: number | null;
     valeur_locative: number;
     start_year: number;
+    type_bien?: string | null;
     status: string;
     created_at: string;
   };

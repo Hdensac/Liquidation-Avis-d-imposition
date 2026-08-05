@@ -168,6 +168,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     superficieImposable,
     valeurLocative: data.valeurLocative,
     startYear: data.startYear,
+    typeBien: data.typeBien,
     base_imposable: (Number(superficieImposable) || Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0),
   });
 
@@ -182,6 +183,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     p_superficie: Number(data.superficie) || 0,
     p_valeur_locative: Number(data.valeurLocative) || 0,
     p_start_year: Number(data.startYear) || 2023,
+    p_type_bien: data.typeBien || "NON_BATI",
     // NULL si pas d'exonération → comportement identique à l'ancien code
     p_superficie_imposable: superficieImposable,
   });
@@ -204,7 +206,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -230,7 +232,7 @@ export async function fetchPendingLiquidationsPaginated({
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
       { count: "exact" }
     )
     .eq("status", "EN_ATTENTE")
@@ -388,7 +390,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
 
   const { data: liquidation, error: liquidationError } = await supabase
     .from("liquidations")
-    .select("id, reference_liq, superficie, valeur_locative, start_year, status, created_at")
+    .select("id, reference_liq, superficie, superficie_imposable, valeur_locative, start_year, type_bien, status, created_at")
     .eq("id", liquidationId)
     .maybeSingle();
 
@@ -441,8 +443,10 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
       id: liquidation.id,
       reference_liq: liquidation.reference_liq,
       superficie: Number(liquidation.superficie) || 0,
+      superficie_imposable: liquidation.superficie_imposable !== null ? Number(liquidation.superficie_imposable) : null,
       valeur_locative: Number(liquidation.valeur_locative) || 0,
       start_year: Number(liquidation.start_year) || getCurrentYear(),
+      type_bien: liquidation.type_bien || "NON_BATI",
       status: liquidation.status,
       created_at: liquidation.created_at,
     },

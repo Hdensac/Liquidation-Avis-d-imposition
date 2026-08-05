@@ -1,5 +1,6 @@
 import { TaxExercise, TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
 import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
+import { getTaxRuleForYear } from "@/utils/taxRules";
 
 export function buildLiquidationCalculations(formData: TaxpayerInput): LiquidationCalculations {
   const surfaceTotale = typeof formData.superficie === "number" ? formData.superficie : 0;
@@ -34,15 +35,15 @@ export function buildLiquidationCalculations(formData: TaxpayerInput): Liquidati
 
   for (let i = 0; i < 4; i++) {
     const year = startYear + i;
-    const taux = i === 0 ? 0.04 : 0.05;
-    const droitSimple = baseImposable * taux;
+    const taxRule = getTaxRuleForYear(year, formData.typeBien);
+    const droitSimple = baseImposable * taxRule.taux;
     totalDu += droitSimple;
     exercises.push({
       year,
-      taxNature: "TFU/FNB",
+      taxNature: taxRule.natureImpot,
       description: adresseDescription,
       baseImposable,
-      taux,
+      taux: taxRule.taux,
       droitSimple,
     });
   }
