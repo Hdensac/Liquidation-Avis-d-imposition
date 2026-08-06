@@ -10,21 +10,50 @@ export default function AuthConfirmPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    const checkSession = async () => {
-      // Le client Supabase extrait automatiquement les tokens du hash fragment (#access_token=...)
-      // et crée la session dans le navigateur.
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace("/dashboard");
-      } else {
-        // Écouter les changements d'état d'authentification au cas où l'initialisation prend un peu de temps
+    const handleConfirm = async () => {
+      try {
+        // 1. Essai d'extraction manuelle immédiate du hash fragment
+        // Parfois, Next.js ou le cycle de vie React retarde l'auto-détection de Supabase.
+        const hash = window.location.hash;
+        if (hash) {
+          const params = new URLSearchParams(hash.substring(1));
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+          const errorMsg = params.get("error_description") || params.get("error");
+
+          if (errorMsg) {
+            router.replace(`/login?error=${encodeURIComponent(errorMsg)}`);
+            return;
+          }
+
+          if (accessToken && refreshToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (!error && data.session) {
+              router.replace("/dashboard");
+              return;
+            }
+          }
+        }
+
+        // 2. Fallback sur la détection automatique standard
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          router.replace("/dashboard");
+          return;
+        }
+
+        // 3. Écoute des changements d'état
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
           if (currentSession) {
             router.replace("/dashboard");
           }
         });
 
-        // Sécurité : rediriger vers la connexion après 5 secondes si aucune session n'est détectée
+        // 4. Redirection en cas de timeout (si le jeton a expiré ou a déjà été consommé)
         const timeout = setTimeout(() => {
           router.replace("/login?error=session_timeout");
         }, 5000);
@@ -33,10 +62,13 @@ export default function AuthConfirmPage() {
           subscription.unsubscribe();
           clearTimeout(timeout);
         };
+      } catch (err) {
+        console.error("Erreur de confirmation d'authentification:", err);
+        router.replace("/login?error=confirmation_failed");
       }
     };
 
-    checkSession();
+    handleConfirm();
   }, [router, supabase.auth]);
 
   return (
