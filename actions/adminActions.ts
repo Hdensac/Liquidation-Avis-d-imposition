@@ -115,7 +115,7 @@ export async function inviteNewAgent(email: string, fullname: string) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { data, error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/confirm`,
       data: {
         full_name: fullname || "",
       },
