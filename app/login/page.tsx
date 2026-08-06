@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
-import React, { useTransition, Suspense } from "react";
+// CORRECTION : Ajout de useState ici pour régler l'erreur de build Vercel
+import React, { useState, useTransition, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { loginWithEmail, signInWithGoogle } from "@/actions/authActions";
 import { Lock, Mail, ShieldCheck, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -109,18 +110,15 @@ function LoginForm() {
       </form>
 
       <div className="relative flex items-center justify-center my-6">
-        {/* Ligne horizontale d'arrière-plan */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-gray-200 dark:border-gray-700" />
         </div>
-        {/* Texte centré qui recouvre la ligne */}
         <span className="relative bg-white dark:bg-gray-800 px-3 text-xs font-medium uppercase tracking-widest text-gray-400">
           Ou par Email
         </span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
         <div>
           <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
             Adresse Email
@@ -169,7 +167,6 @@ function LoginForm() {
           )}
         </button>
       </form>
-
     </div>
   );
 }
