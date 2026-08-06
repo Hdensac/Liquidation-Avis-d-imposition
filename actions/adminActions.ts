@@ -1,8 +1,10 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { UserRole } from "@/types/user";
+
 
 /** Vérifie si l'utilisateur actuellement connecté est ADMIN */
 async function ensureAdmin() {
@@ -104,3 +106,38 @@ export async function fetchAuditLogs({
     throw err;
   }
 }
+
+/** Invite un nouvel agent par e-mail */
+export async function inviteNewAgent(email: string, fullname: string) {
+  try {
+    const adminUser = await ensureAdmin();
+    const adminSupabase = createAdminClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+    const { data, error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${siteUrl}/auth/callback`,
+      data: {
+        full_name: fullname || "",
+      },
+    });
+
+    if (error) throw error;
+
+    // Le trigger handle_new_user va automatiquement créer une ligne dans profiles.
+    // Mettons à jour le rôle de cet utilisateur à 'AGENT' par défaut immédiatement.
+    if (data?.user?.id) {
+      const supabase = await createClient();
+      await supabase
+        .from("profiles")
+        .update({ role: "AGENT" })
+        .eq("id", data.user.id);
+    }
+
+    revalidatePath("/dashboard/admin");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Erreur inviteNewAgent:", err);
+    return { error: err.message || "Une erreur est survenue lors de l'invitation." };
+  }
+}
+

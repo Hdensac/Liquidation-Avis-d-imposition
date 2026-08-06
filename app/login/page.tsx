@@ -1,13 +1,12 @@
-﻿"use client";
+"use client";
 
-import React, { useState, useTransition, Suspense } from "react";
+import React, { useTransition, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { loginWithEmail, signUpWithEmail, signInWithGoogle } from "@/actions/authActions";
-import { Lock, Mail, User, ShieldCheck, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { loginWithEmail, signInWithGoogle } from "@/actions/authActions";
+import { Lock, Mail, ShieldCheck, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 // Sous-composant qui extrait les paramètres d'URL et gère l'UI du formulaire
 function LoginForm() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
@@ -20,19 +19,9 @@ function LoginForm() {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      if (isSignUp) {
-        const res = await signUpWithEmail(formData);
-        if (res?.error) {
-          setMessage({ type: "error", text: res.error });
-        } else if (res?.success) {
-          setMessage({ type: "success", text: res.success });
-          setIsSignUp(false);
-        }
-      } else {
-        const res = await loginWithEmail(formData);
-        if (res?.error) {
-          setMessage({ type: "error", text: res.error });
-        }
+      const res = await loginWithEmail(formData);
+      if (res?.error) {
+        setMessage({ type: "error", text: res.error });
       }
     });
   };
@@ -60,7 +49,7 @@ function LoginForm() {
           Administration Fiscale
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {isSignUp ? "Créer un compte agent fiscal" : "Connectez-vous à votre espace agent"}
+          Connectez-vous à votre espace agent
         </p>
       </div>
 
@@ -130,25 +119,7 @@ function LoginForm() {
         </span>
       </div>
 
-      {/* Email & Password Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {isSignUp && (
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-              Nom complet
-            </label>
-            <div className="relative">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                name="fullname"
-                required
-                placeholder="Jean KPANOU"
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-              />
-            </div>
-          </div>
-        )}
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
@@ -192,43 +163,13 @@ function LoginForm() {
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <>
-              {isSignUp ? "Créer mon compte" : "Se connecter"}
+              Se connecter
               <ArrowRight size={16} />
             </>
           )}
         </button>
       </form>
 
-      {/* Toggle Sign In / Sign Up */}
-      <div className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
-        {isSignUp ? (
-          <>
-            Vous avez déjà un compte ?{" "}
-            <button
-              onClick={() => {
-                setIsSignUp(false);
-                setMessage(null);
-              }}
-              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline ml-1"
-            >
-              Se connecter
-            </button>
-          </>
-        ) : (
-          <>
-            Vous n'avez pas de compte agent ?{" "}
-            <button
-              onClick={() => {
-                setIsSignUp(true);
-                setMessage(null);
-              }}
-              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline ml-1"
-            >
-              S'inscrire
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 }

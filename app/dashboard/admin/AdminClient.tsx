@@ -11,9 +11,11 @@ import {
   Check, 
   AlertCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserPlus,
+  Loader2
 } from "lucide-react";
-import { fetchAuditLogs, updateUserRole } from "@/actions/adminActions";
+import { fetchAuditLogs, updateUserRole, inviteNewAgent } from "@/actions/adminActions";
 import type { UserRole } from "@/types/user";
 
 type Profile = {
@@ -53,6 +55,9 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
   const [isPending, startTransition] = useTransition();
   const [isLogsPending, startLogsTransition] = useTransition();
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFullname, setInviteFullname] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
 
   // Filtrer les profils
   const filteredProfiles = profiles.filter(p => 
@@ -108,6 +113,40 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
         setTimeout(() => setNotification(null), 3000);
       }
     });
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteFullname) return;
+    setIsInviting(true);
+    try {
+      const res = await inviteNewAgent(inviteEmail, inviteFullname);
+      if (res.success) {
+        setNotification({ type: "success", message: "Invitation envoyée avec succès !" });
+        setInviteEmail("");
+        setInviteFullname("");
+        
+        // Ajouter temporairement le profil pour feedback visuel immédiat
+        const tempId = Math.random().toString();
+        setProfiles(prev => [
+          {
+            id: tempId,
+            email: inviteEmail,
+            fullname: inviteFullname,
+            role: "AGENT",
+            created_at: new Date().toISOString()
+          },
+          ...prev
+        ]);
+      } else {
+        setNotification({ type: "error", message: res.error || "Une erreur est survenue lors de l'invitation." });
+      }
+    } catch (err) {
+      setNotification({ type: "error", message: "Erreur lors de la communication avec le serveur." });
+    } finally {
+      setIsInviting(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   return (
@@ -167,6 +206,52 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
       <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl overflow-hidden">
         {activeTab === "users" ? (
           <div>
+            {/* Formulaire d'invitation d'agent */}
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/10">
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 mb-4">
+                <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                Inviter un nouvel agent fiscal
+              </h2>
+              <form onSubmit={handleInvite} className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
+                <div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nom complet de l'agent"
+                    value={inviteFullname}
+                    onChange={(e) => setInviteFullname(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Adresse email (ex: agent@fisc.bj)"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isInviting}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-200 hover:scale-[1.01] active:scale-[0.99] text-sm disabled:opacity-60"
+                  >
+                    {isInviting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        Envoyer l'invitation
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Search and Filters */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/20">
               <div className="relative max-w-sm w-full">
