@@ -19,6 +19,7 @@ export default function AuthConfirmPage() {
           const params = new URLSearchParams(hash.substring(1));
           const accessToken = params.get("access_token");
           const refreshToken = params.get("refresh_token");
+          const tokenType = params.get("type"); // 'invite' pour les invitations, 'recovery' pour reset
           const errorMsg = params.get("error_description") || params.get("error");
 
           if (errorMsg) {
@@ -33,7 +34,12 @@ export default function AuthConfirmPage() {
             });
 
             if (!error && data.session) {
-              router.replace("/dashboard");
+              // Si c'est une invitation => forcer la création du mot de passe
+              if (tokenType === "invite") {
+                router.replace("/auth/set-password");
+              } else {
+                router.replace("/dashboard");
+              }
               return;
             }
           }

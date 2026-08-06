@@ -59,6 +59,14 @@ export async function middleware(request: NextRequest) {
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
   const isUnauthorizedRoute = request.nextUrl.pathname.startsWith("/unauthorized");
+  const isSetPasswordRoute = request.nextUrl.pathname === "/auth/set-password";
+
+  // Protection de la page de définition du mot de passe :
+  // accessible uniquement si l'utilisateur est connecté (session valide)
+  if (isSetPasswordRoute && !user) {
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
+  }
 
   if (isDashboardRoute && !user) {
     const loginUrl = new URL("/login", request.url);
@@ -99,5 +107,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/unauthorized"],
+  matcher: ["/dashboard/:path*", "/unauthorized", "/auth/set-password"],
 };
