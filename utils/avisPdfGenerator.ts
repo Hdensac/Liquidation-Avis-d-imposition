@@ -322,7 +322,9 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: AvisTableRow[]) {
   const startY = 68;
 
-  const widths = [10, 13, 17, 36, 42, 22, 12, 25, 13, 15, 33];
+  // Nature d'Impôt élargi (17 -> 24) pour que "TFU/FNB" tienne sur une seule ligne.
+  // Compensé sur Localisation (36 -> 32) et Description (42 -> 39) pour garder la même largeur totale.
+  const widths = [10, 13, 24, 32, 39, 22, 12, 25, 13, 15, 33];
   const headers = [
     ["N°", "Article"],
     ["Exercice"],
@@ -371,10 +373,10 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   const firstRow = rows[0];
   const rawLoc = firstRow ? firstRow.localisation : "";
 
-  // 1. Découpage pour la Localisation
+  // 1. Découpage pour la Localisation (cellule fusionnée verticalement)
   const finalLocLines = wrap(pdf, rawLoc, widths[3] - 4);
 
-  // 2. Traitement personnalisé de la Description (Ligne par Ligne)
+  // 2. Traitement personnalisé de la Description (Ligne par Ligne, cellule fusionnée verticalement)
   const sup = toNumber(details.liquidation.superficie, 0);
   const comm = titleCase(details.contribuable.commune || "");
   const arrt = titleCase(details.contribuable.arrondissement || "");
@@ -394,14 +396,15 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     finalDescLines.push(...wrappedLine);
   });
 
-  // 1. Précalcul des hauteurs de lignes
+  // 3. Hauteur "naturelle" de chaque ligne, calculée UNIQUEMENT à partir des colonnes
+  //    propres à la ligne (N°, Exercice, Nature, Base, Taux, Droit, Pénalité, Acompte, Reste).
+  //    Localisation et Description sont des cellules fusionnées sur toutes les lignes :
+  //    elles ne doivent pas gonfler la hauteur de chaque ligne individuelle.
   const rowHeights = rows.map((row) => {
     const values = [
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      "",
-      "",
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
@@ -409,20 +412,35 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       formatNumber(row.acompte_paye, true),
       formatNumber(row.reste_du, true),
     ];
+    const colIdxs = [0, 1, 2, 5, 6, 7, 8, 9, 10];
 
-    const wrapped = values.map((val, idx) => {
-      if (idx === 3) return finalLocLines;
-      if (idx === 4) return finalDescLines;
-      if (idx >= 5 && idx <= 10) return [String(val)];
-      return wrap(pdf, val, widths[idx] - 2);
+    const wrapped = values.map((val, i) => {
+      const idx = colIdxs[i];
+      // seule "Nature d'Impôt" peut légitimement se découper si le texte est très long
+      if (idx === 2) return wrap(pdf, val, widths[idx] - 2);
+      return [String(val)];
     });
 
     return Math.max(13, ...wrapped.map((lines) => lines.length * 3.6 + 2.5));
   });
 
-  const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
+  let totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 2. Dessin des lignes numériques et textuelles standards
+  // 4. Si la Localisation ou la Description (cellules fusionnées) ont besoin de plus de place
+  //    que la somme naturelle des lignes, on répartit l'excédent proportionnellement sur toutes les lignes.
+  const locNeeded = finalLocLines.length * 4.0 + 6;
+  const descNeeded = finalDescLines.length * 4.0 + 6;
+  const neededMerged = Math.max(locNeeded, descNeeded);
+
+  if (neededMerged > totalTableHeight) {
+    const factor = neededMerged / totalTableHeight;
+    for (let i = 0; i < rowHeights.length; i++) {
+      rowHeights[i] = rowHeights[i] * factor;
+    }
+    totalTableHeight = neededMerged;
+  }
+
+  // 5. Dessin des lignes numériques et textuelles standards
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -467,7 +485,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     y += currentHeight;
   });
 
-  // 3. Dessin des cellules fusionnées (Localisation et Description)
+  // 6. Dessin des cellules fusionnées (Localisation et Description)
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
   const descX = locX + widths[3];
 
