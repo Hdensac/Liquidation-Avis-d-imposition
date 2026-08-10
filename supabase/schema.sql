@@ -1,6 +1,6 @@
 -- ============================================================================
 -- SCRIPT DE MIGRATION SUPABASE : SYSTEME D'ADMINISTRATION FISCALE D'ETAT
--- Avis de Mise en Recouvrement (TFU / FNB) - République du Bénin
+-- Avis de Mise en Recouvrement (TFU / FNB) - RÃ©publique du BÃ©nin
 -- ============================================================================
 
 -- 1. EXTENSIONS & TYPES
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.liquidations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Table 4: recouvrements (Paiements validés)
+-- Table 4: recouvrements (Paiements validÃ©s)
 CREATE TABLE IF NOT EXISTS public.recouvrements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   liquidation_id UUID UNIQUE NOT NULL REFERENCES public.liquidations(id) ON DELETE RESTRICT,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.recouvrements (
   date_paiement TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Table 5: articles_recouvrement (Lignes d'exercice numérotées)
+-- Table 5: articles_recouvrement (Lignes d'exercice numÃ©rotÃ©es)
 CREATE TABLE IF NOT EXISTS public.articles_recouvrement (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recouvrement_id UUID NOT NULL REFERENCES public.recouvrements(id) ON DELETE CASCADE,
@@ -90,7 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_liquidations_status ON public.liquidations(status
 CREATE INDEX IF NOT EXISTS idx_contribuables_ifu ON public.contribuables(ifu_npi);
 CREATE INDEX IF NOT EXISTS idx_articles_recouvrement_recouvrement ON public.articles_recouvrement(recouvrement_id);
 
--- 4. ROW LEVEL SECURITY (RLS) - Permettre la lecture/écriture publique (Anon Key)
+-- 4. ROW LEVEL SECURITY (RLS) - Permettre la lecture/Ã©criture publique (Anon Key)
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contribuables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.liquidations ENABLE ROW LEVEL SECURITY;
@@ -105,7 +105,7 @@ CREATE POLICY "Allow anon read/write articles" ON public.articles_recouvrement F
 
 -- 5. PROCEDURES STOCKEES (RPC)
 
--- A. Création d'une Liquidation en Attente
+-- A. CrÃ©ation d'une Liquidation en Attente
 CREATE OR REPLACE FUNCTION public.creer_liquidation(
   p_nom_prenoms TEXT,
   p_ifu_npi TEXT,
@@ -152,12 +152,12 @@ BEGIN
     quartier = EXCLUDED.quartier
   RETURNING id INTO v_contrib_id;
 
-  -- Calcul r�f�rence
+  -- Calcul référence
   SELECT COUNT(*) + 1 INTO v_count FROM public.liquidations;
   v_ref_liq := 'LIQ-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-' || LPAD(v_count::text, 5, '0');
   v_base := COALESCE(v_superficie_imposable, p_superficie) * p_valeur_locative;
 
-  -- Cr�er la liquidation
+  -- Créer la liquidation
   INSERT INTO public.liquidations (
     reference_liq,
     contribuable_id,
@@ -191,7 +191,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- B. Validation du Paiement & Génération de l'Avis de Mise en Recouvrement
+-- B. Validation du Paiement & GÃ©nÃ©ration de l'Avis de Mise en Recouvrement
 CREATE OR REPLACE FUNCTION public.valider_paiement_liquidation(
   p_liquidation_id UUID
 ) RETURNS JSONB AS $$
@@ -227,7 +227,7 @@ BEGIN
   -- Charger le contribuable
   SELECT * INTO v_contrib FROM public.contribuables WHERE id = v_liq.contribuable_id;
 
-  -- Obtenir ou cr�er le R�le ACTIF
+  -- Obtenir ou créer le Rôle ACTIF
   SELECT id, numero_role INTO v_role_id, v_role_num
   FROM public.roles
   WHERE commune = v_contrib.commune AND annee = v_current_year AND status = 'ACTIF'
@@ -241,13 +241,13 @@ BEGIN
     RETURNING id, numero_role INTO v_role_id, v_role_num;
   END IF;
 
-  -- Obtenir le dernier num�ro d'article du r�le
+  -- Obtenir le dernier numéro d'article du rôle
   SELECT COALESCE(MAX(ar.numero_article), 0) INTO v_last_article_num
   FROM public.articles_recouvrement ar
   JOIN public.recouvrements r ON ar.recouvrement_id = r.id
   WHERE r.role_id = v_role_id;
 
-  -- Cr�er le recouvrement
+  -- Créer le recouvrement
   INSERT INTO public.recouvrements (liquidation_id, role_id, contribuable_id)
   VALUES (p_liquidation_id, v_role_id, v_contrib.id)
   RETURNING id INTO v_recouvrement_id;
@@ -260,7 +260,7 @@ BEGIN
     validated_at = now()
   WHERE id = p_liquidation_id;
 
-  -- G�n�rer les 4 articles s�quentiels
+  -- Générer les 4 articles séquentiels
   v_base := COALESCE(v_liq.superficie_imposable, v_liq.superficie) * v_liq.valeur_locative;
   v_type_bien := CASE WHEN UPPER(COALESCE(v_liq.type_bien, 'NON_BATI')) = 'BATI' THEN 'BATI' ELSE 'NON_BATI' END;
   v_location_str := UPPER(v_contrib.commune || '/' || v_contrib.arrondissement || '/' || v_contrib.quartier);
@@ -311,7 +311,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- C. Clôture de Rôle Actif
+-- C. ClÃ´ture de RÃ´le Actif
 CREATE OR REPLACE FUNCTION public.cloturer_role_actif(
   p_commune TEXT
 ) RETURNS JSONB AS $$
@@ -323,7 +323,8 @@ DECLARE
 BEGIN
   SELECT id, numero_role INTO v_role_id, v_old_num
   FROM public.roles
-  WHERE commune = UPPER(p_commune) AND annee = v_current_year AND status = 'ACTIF';
+  WHERE commune = UPPER(p_commune) AND annee = v_current_year AND status = 'ACTIF'
+  FOR UPDATE;
 
   IF FOUND THEN
     UPDATE public.roles SET status = 'CLOTURE' WHERE id = v_role_id;
