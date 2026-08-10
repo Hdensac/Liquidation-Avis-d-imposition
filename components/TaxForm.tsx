@@ -5,7 +5,7 @@ import { TaxpayerInput } from "@/types/liquidation";
 import { User, MapPin, Building, Calendar, RefreshCw, Loader2 } from "lucide-react";
 import { fetchValeurAdministrative } from "@/actions/liquidationActions";
 
-const COMMUNE_OPTIONS = [
+export const COMMUNE_OPTIONS = [
   { value: "ALLADA", label: "ALLADA" },
   { value: "TOFFO", label: "TOFFO" },
   { value: "TORI-BOSSITO", label: "TORI-BOSSITO" },
@@ -16,7 +16,7 @@ const COMMUNE_OPTIONS = [
  * Mapping statique des arrondissements par commune.
  * Clés alignées sur les valeurs de COMMUNE_OPTIONS (trait d'union pour TORI-BOSSITO).
  */
-const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
+export const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
   ALLADA: [
     "Agbanou",
     "Ahouannonzoun",
