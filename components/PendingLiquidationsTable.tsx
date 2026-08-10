@@ -1,16 +1,17 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { fetchPendingLiquidationsPaginated, validatePayment, updateLiquidation, cancelLiquidation } from "@/actions/liquidationActions";
+import { fetchPendingLiquidationsPaginated, validatePayment, updateLiquidation, cancelLiquidation, fetchValeurAdministrative } from "@/actions/liquidationActions";
 import { useToast, ToastContainer } from "./useToast";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 import { LiquidationPreview } from "@/components/LiquidationPreview";
 import { generatePDFFromElement } from "@/utils/pdfGenerator";
-import { FileText, Loader2, Search, X } from "lucide-react";
+import { FileText, Loader2, Search, X, Edit, Trash2, AlertTriangle } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
 import type { TaxpayerInput } from "@/types/liquidation";
+import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE } from "@/components/TaxForm";
 import { createClient } from "@/utils/supabase/client";
 
 type Contribuable = {
