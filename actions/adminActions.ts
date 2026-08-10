@@ -186,7 +186,7 @@ export async function fetchCommunesWithRoles(annee: number): Promise<string[]> {
 
     if (error) throw error;
     // Extraire les communes uniques
-    const communes = [...new Set((data ?? []).map((r: any) => r.commune))];
+    const communes = Array.from(new Set((data ?? []).map((r: any) => r.commune)));
     return communes;
   } catch (err: any) {
     console.error("Erreur fetchCommunesWithRoles:", err);
