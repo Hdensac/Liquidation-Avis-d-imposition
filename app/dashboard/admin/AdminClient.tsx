@@ -211,7 +211,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
             }`}
           >
             <Settings className="w-4 h-4" />
-            Config Rôles
+            Config Rï¿½les
           </button>
         </div>
       </div>
@@ -383,7 +383,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   {filteredProfiles.length === 0 && (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-slate-500 dark:text-slate-400">
-                        Aucun utilisateur trouvÃ©.
+                        Aucun utilisateur trouvÃ© .
                       </td>
                     </tr>
                   )}
@@ -594,7 +594,7 @@ function RoleSettingsPanel() {
       }
       setSettings((prev) => ({ ...prev, [communeUpper]: value }));
       setDrafts((prev) => ({ ...prev, [communeUpper]: String(value) }));
-      setMessage({ type: "success", text: `Configuration enregistrée pour ${communeUpper}.` });
+      setMessage({ type: "success", text: `Configuration enregistrï¿½e pour ${communeUpper}.` });
     } finally {
       setSavingCommune(null);
       window.setTimeout(() => setMessage(null), 3500);
@@ -607,14 +607,14 @@ function RoleSettingsPanel() {
         <div>
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            Configuration des rôles par commune
+            Configuration des rï¿½les par commune
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Le numéro initial reste modifiable seulement avant l'émission du premier rôle de la commune pour l'année.
+            Le numï¿½ro initial reste modifiable seulement avant l'ï¿½mission du premier rï¿½le de la commune pour l'annï¿½e.
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-          Année
+          Annï¿½e
           <input
             type="number"
             min={2023}
@@ -640,7 +640,7 @@ function RoleSettingsPanel() {
           <thead>
             <tr className="bg-slate-100/40 dark:bg-slate-900/30 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700/50">
               <th className="py-4 px-6">Commune</th>
-              <th className="py-4 px-6">Numéro initial</th>
+              <th className="py-4 px-6">Numï¿½ro initial</th>
               <th className="py-4 px-6">Statut</th>
               <th className="py-4 px-6 text-right">Action</th>
             </tr>
@@ -669,12 +669,12 @@ function RoleSettingsPanel() {
                   <td className="py-4 px-6 text-xs">
                     {locked ? (
                       <span className="text-amber-700 dark:text-amber-300 font-medium">
-                        Verrouillé : rôle déjà émis pour {year}
+                        Verrouillï¿½ : rï¿½le dï¿½jï¿½ ï¿½mis pour {year}
                       </span>
                     ) : settings[commune] ? (
-                      <span className="text-emerald-700 dark:text-emerald-300 font-medium">Configuré</span>
+                      <span className="text-emerald-700 dark:text-emerald-300 font-medium">Configurï¿½</span>
                     ) : (
-                      <span className="text-slate-500 dark:text-slate-400">Défaut : 1</span>
+                      <span className="text-slate-500 dark:text-slate-400">Dï¿½faut : 1</span>
                     )}
                   </td>
                   <td className="py-4 px-6 text-right">
