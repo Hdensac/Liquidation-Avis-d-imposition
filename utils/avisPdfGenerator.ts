@@ -294,8 +294,29 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number, dgiLogo: H
   pdf.text("TAXE FONCIERE UNIQUE", MAIN_X + MAIN_W / 2, 20, { align: "center" });
 
   if (dgiLogo) {
-    // Affiche le logo DGI dans le coin supérieur droit
-    pdf.addImage(dgiLogo, "PNG", MAIN_X + MAIN_W - 26, 4, 24, 12);
+    // Boîte maximale réservée au logo (coin supérieur droit)
+    const maxW = 24;
+    const maxH = 18;
+
+    // Dimensions naturelles de l'image pour calculer son ratio réel
+    const naturalW = dgiLogo.naturalWidth || dgiLogo.width || maxW;
+    const naturalH = dgiLogo.naturalHeight || dgiLogo.height || maxH;
+    const ratio = naturalW / naturalH;
+
+    // On inscrit l'image dans la boîte max SANS la déformer (contain, pas stretch)
+    let drawW = maxW;
+    let drawH = maxW / ratio;
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = maxH * ratio;
+    }
+
+    // Centrage horizontal et vertical dans la zone réservée
+    const boxRight = MAIN_X + MAIN_W;
+    const boxX = boxRight - maxW + (maxW - drawW) / 2;
+    const boxY = 4 + (maxH - drawH) / 2;
+
+    pdf.addImage(dgiLogo, "PNG", boxX, boxY, drawW, drawH);
   }
 
   pdf.setFontSize(10);
