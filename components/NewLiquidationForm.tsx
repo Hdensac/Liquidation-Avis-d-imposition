@@ -27,6 +27,12 @@ interface NewLiquidationFormProps {
   canApplyExoneration: boolean;
 }
 
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat("fr-FR", {
+    style: "decimal",
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount));
+
 export default function NewLiquidationForm({ canApplyExoneration }: NewLiquidationFormProps) {
   const [formData, setFormData] = useState<TaxpayerInput>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
@@ -72,6 +78,28 @@ export default function NewLiquidationForm({ canApplyExoneration }: NewLiquidati
         onReset={handleReset}
         canApplyExoneration={canApplyExoneration}
       />
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase text-slate-500">Nom</p>
+            <p className="mt-1 truncate text-sm font-bold text-slate-900">
+              {effectiveFormData.fullname || "Non renseigne"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase text-slate-500">NPI / IFU</p>
+            <p className="mt-1 truncate text-sm font-bold text-slate-900">
+              {effectiveFormData.ifuNpi || "Non renseigne"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase text-slate-500">Total</p>
+            <p className="mt-1 text-sm font-extrabold text-emerald-700">
+              {formatMoney(calculations.totalDu)} FCFA
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="no-print">
         <ExportButtons formData={effectiveFormData} calculations={calculations} previewElementId="liquidation-document" />
       </div>
