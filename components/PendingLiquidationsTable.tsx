@@ -94,6 +94,7 @@ export default function PendingLiquidationsTable() {
   const [loadingVa, setLoadingVa] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Charger le rôle utilisateur au montage
   useEffect(() => {
@@ -135,8 +136,7 @@ export default function PendingLiquidationsTable() {
 
   useEffect(() => {
     loadData(currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, loadData]);
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -206,6 +206,7 @@ export default function PendingLiquidationsTable() {
   const handleOpenEdit = (liq: Liquidation) => {
     setSelectedLiquidation(liq);
     setEditFormData(liquidationToFormData(liq));
+    setEditError(null);
     setIsEditOpen(true);
   };
 
@@ -246,6 +247,7 @@ export default function PendingLiquidationsTable() {
     if (!selectedLiquidation || !editFormData) return;
 
     setIsSaving(true);
+    setEditError(null);
     try {
       await updateLiquidation(selectedLiquidation.id, editFormData);
       toast.success("Liquidation modifiee avec succes.");
@@ -253,7 +255,7 @@ export default function PendingLiquidationsTable() {
       loadData(currentPage);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Erreur lors de la modification de la liquidation.");
+      setEditError(err.message || "Erreur lors de la modification de la liquidation.");
     } finally {
       setIsSaving(false);
     }
@@ -607,6 +609,12 @@ export default function PendingLiquidationsTable() {
               </div>
 
               {/* Pied de formulaire */}
+              {editError && (
+                <div className="flex items-start gap-2.5 p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 rounded-xl">
+                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700 dark:text-red-400 font-medium">{editError}</p>
+                </div>
+              )}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
                 <button
                   type="button"
