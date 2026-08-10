@@ -208,7 +208,7 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   let dateY = 72;
   pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
   pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
-  pdf.text("Date de majoration   : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
+  pdf.text("Date de majoration    : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
 
   const boxY = 85;
   const boxH = 98;
@@ -322,8 +322,6 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: AvisTableRow[]) {
   const startY = 68;
 
-  // Réajustement des largeurs : gain de place sur les colonnes simples
-  // injecté directement dans Localisation (36) et Description (42) pour éviter tout chevauchement.
   const widths = [10, 13, 17, 36, 42, 22, 12, 25, 13, 15, 33];
   const headers = [
     ["N°", "Article"],
@@ -370,16 +368,31 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   let y = startY + 16;
   const startRowsY = y;
 
-  // Récupération des données textuelles globales pour les cellules fusionnées
   const firstRow = rows[0];
   const rawLoc = firstRow ? firstRow.localisation : "";
-  const rawDesc = firstRow ? firstRow.description : "";
 
-  // Découpage automatique et propre selon la largeur allouée
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(9);
+  // 1. Découpage pour la Localisation
   const finalLocLines = wrap(pdf, rawLoc, widths[3] - 4);
-  const finalDescLines = wrap(pdf, rawDesc, widths[4] - 4);
+
+  // 2. Traitement personnalisé de la Description (Ligne par Ligne)
+  const sup = toNumber(details.liquidation.superficie, 0);
+  const comm = titleCase(details.contribuable.commune || "");
+  const arrt = titleCase(details.contribuable.arrondissement || "");
+  const quart = titleCase(details.contribuable.quartier || "");
+
+  const rawDescLines = [
+    "PARCELLE DE",
+    `${sup}m² sise a`,
+    comm,
+    arrt ? `/ ${arrt}` : "",
+    quart ? `/ ${quart}` : ""
+  ].filter(Boolean);
+
+  const finalDescLines: string[] = [];
+  rawDescLines.forEach(line => {
+    const wrappedLine = wrap(pdf, line, widths[4] - 4);
+    finalDescLines.push(...wrappedLine);
+  });
 
   // 1. Précalcul des hauteurs de lignes
   const rowHeights = rows.map((row) => {
@@ -454,7 +467,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     y += currentHeight;
   });
 
-  // 3. Dessin des cellules fusionnées (Mise en page propre et centrée verticalement)
+  // 3. Dessin des cellules fusionnées (Localisation et Description)
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
   const descX = locX + widths[3];
 
@@ -495,11 +508,11 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 
   pdf.setFontSize(10);
   pdf.setFont("times", "bold");
-  pdf.text(`ALLADA , le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 32, { align: "right" });
+  pdf.text(`ALLADA , le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 31, { align: "right" });
 
   pdf.setFontSize(11);
-  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 39, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 58, { align: "right" });
+  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 38, { align: "right" });
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 56, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
