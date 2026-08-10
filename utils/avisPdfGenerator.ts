@@ -275,17 +275,29 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     pdf.text(line, SIDEBAR_X + 3, calcY);
     calcY += 2.5;
   });
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+  });
 }
 
-function drawStaticHeader(pdf: jsPDF, commune: string, annee: number) {
+function drawStaticHeader(pdf: jsPDF, commune: string, annee: number, dgiLogo: HTMLImageElement | null) {
   pdf.setFont("times", "bold");
   pdf.setFontSize(16);
   pdf.text(`COMMUNE : ${commune}`, MAIN_X + MAIN_W / 2, 14, { align: "center" });
   pdf.setFontSize(13);
   pdf.text("TAXE FONCIERE UNIQUE", MAIN_X + MAIN_W / 2, 20, { align: "center" });
 
+  if (dgiLogo) {
+    // Affiche le logo DGI dans le coin supérieur droit
+    pdf.addImage(dgiLogo, "PNG", MAIN_X + MAIN_W - 26, 4, 24, 12);
+  }
+
   pdf.setFontSize(10);
-  pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25, { align: "right" });
+  pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25.5, { align: "right" });
 
   pdf.setLineWidth(0.4);
   pdf.setDrawColor(0);
@@ -559,10 +571,15 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
     format: "a4",
   });
 
-  pdf.setTextColor(0, 0, 0);
+  let dgiLogo: HTMLImageElement | null = null;
+  try {
+    dgiLogo = await loadImage("/dgi_lg.png");
+  } catch (err) {
+    console.error("Erreur lors du chargement du logo DGI :", err);
+  }
 
   drawStaticSidebar(pdf, commune);
-  drawStaticHeader(pdf, commune, annee);
+  drawStaticHeader(pdf, commune, annee, dgiLogo);
   drawRecipientBlock(pdf, details);
   const endY = drawArticlesTable(pdf, details, rows);
   drawFooter(pdf, details, endY, totalDu, dateEmission);
