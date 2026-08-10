@@ -176,7 +176,7 @@ export async function createLiquidation(data: TaxpayerInput) {
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
     p_nom_prenoms: data.fullname,
     p_ifu_npi: data.ifuNpi,
-    p_telephone: data.phone,
+    p_telephone: data.phone === "01" ? null : data.phone,
     p_commune: normalizeCommune(data.commune),
     p_arrondissement: data.arrondissement,
     p_quartier: data.quartier,
@@ -710,7 +710,7 @@ export async function updateLiquidation(
       .update({
         nom_prenoms: data.fullname,
         ifu_npi: data.ifuNpi,
-        telephone: data.phone,
+        telephone: data.phone === "01" ? null : data.phone,
         commune: normalizeCommune(data.commune),
         arrondissement: data.arrondissement,
         quartier: data.quartier,

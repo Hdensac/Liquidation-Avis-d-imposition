@@ -13,7 +13,7 @@ import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 const EMPTY_FORM: TaxpayerInput = {
   fullname: "",
   ifuNpi: "",
-  phone: "",
+  phone: "01",
   commune: "",
   arrondissement: "",
   quartier: "",
