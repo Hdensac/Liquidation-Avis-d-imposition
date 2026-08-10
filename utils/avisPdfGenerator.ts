@@ -370,11 +370,19 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   let y = startY + 16;
   const startRowsY = y;
 
-  const firstRow = rows[0];
-  const rawLoc = firstRow ? firstRow.localisation : "";
+  // 1. Traitement personnalisé de la Localisation (Ligne par Ligne, cellule fusionnée verticalement)
+  //    Commune / Arrondissement / Quartier, chacun sur sa propre ligne (même principe que la Description)
+  const locCommune = normalizeCommune(details.contribuable.commune);
+  const locArrondissement = normalizeCommune(details.contribuable.arrondissement);
+  const locQuartier = normalizeCommune(details.contribuable.quartier);
 
-  // 1. Découpage pour la Localisation (cellule fusionnée verticalement)
-  const finalLocLines = wrap(pdf, rawLoc, widths[3] - 4);
+  const rawLocLines = [locCommune, locArrondissement, locQuartier].filter(Boolean);
+
+  const finalLocLines: string[] = [];
+  rawLocLines.forEach((line) => {
+    const wrappedLine = wrap(pdf, line, widths[3] - 4);
+    finalLocLines.push(...wrappedLine);
+  });
 
   // 2. Traitement personnalisé de la Description (Ligne par Ligne, cellule fusionnée verticalement)
   const sup = toNumber(details.liquidation.superficie, 0);
