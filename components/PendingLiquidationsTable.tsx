@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -11,6 +11,7 @@ import { FileText, Loader2, Search, X } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
 import type { TaxpayerInput } from "@/types/liquidation";
+import { createClient } from "@/utils/supabase/client";
 
 type Contribuable = {
   nom_prenoms: string;
