@@ -67,6 +67,19 @@ export async function loginWithEmail(formData: FormData) {
   });
 
   if (error) {
+    // Supabase retourne "Invalid login credentials" si le compte n'a pas de mot de passe
+    // (ex : compte créé uniquement via Google OAuth)
+    const isInvalidCredentials =
+      error.message.toLowerCase().includes("invalid login credentials") ||
+      error.message.toLowerCase().includes("invalid_credentials");
+
+    if (isInvalidCredentials) {
+      return {
+        error:
+          "Identifiants incorrects. Si vous utilisez habituellement Google pour vous connecter, veuillez utiliser le bouton « Continuer avec Google ».",
+      };
+    }
+
     return { error: error.message };
   }
 
