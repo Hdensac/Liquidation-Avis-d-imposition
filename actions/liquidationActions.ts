@@ -695,34 +695,62 @@ export async function updateLiquidation(
     // 2.5 Vérifier si le nouvel IFU/NPI est déjà utilisé par un autre contribuable
     const { data: existingContrib } = await supabase
       .from("contribuables")
-      .select("id")
+      .select("id, nom_prenoms")
       .eq("ifu_npi", data.ifuNpi)
       .neq("id", currentLiq.contribuable_id)
       .maybeSingle();
 
+    const oldContribId = currentLiq.contribuable_id;
+    let finalContribId = oldContribId;
+
     if (existingContrib) {
-      return { success: false, error: "Cet IFU/NPI est deja attribue a un autre contribuable dans le systeme." };
+      // Comparer les noms pour s'assurer que c'est la même personne (insensible à la casse, espaces ignorés)
+      const cleanName = (n: string) => n.trim().toUpperCase().replace(/\s+/g, " ");
+      if (cleanName(existingContrib.nom_prenoms) === cleanName(data.fullname)) {
+        // C'est le même contribuable, on va lier cette liquidation à l'existant
+        finalContribId = existingContrib.id;
+      } else {
+        // Noms différents : on l'empêche pour éviter de lier accidentellement à la mauvaise personne
+        return { 
+          success: false, 
+          error: `Cet IFU/NPI est déjà associé au contribuable "${existingContrib.nom_prenoms}" dans le système.` 
+        };
+      }
     }
 
-    // 3. Mettre à jour le contribuable
-    const { error: contribError } = await supabase
-      .from("contribuables")
-      .update({
-        nom_prenoms: data.fullname,
-        ifu_npi: data.ifuNpi,
-        telephone: data.phone === "01" ? null : data.phone,
-        commune: normalizeCommune(data.commune),
-        arrondissement: data.arrondissement,
-        quartier: data.quartier,
-      })
-      .eq("id", currentLiq.contribuable_id);
+    if (finalContribId === oldContribId) {
+      // 3. Mettre à jour le contribuable existant
+      const { error: contribError } = await supabase
+        .from("contribuables")
+        .update({
+          nom_prenoms: data.fullname,
+          ifu_npi: data.ifuNpi,
+          telephone: data.phone === "01" ? null : data.phone,
+          commune: normalizeCommune(data.commune),
+          arrondissement: data.arrondissement,
+          quartier: data.quartier,
+        })
+        .eq("id", oldContribId);
 
-    if (contribError) return { success: false, error: "Erreur lors de la mise a jour du contribuable." };
+      if (contribError) return { success: false, error: "Erreur lors de la mise a jour du contribuable." };
+    } else {
+      // Mettre à jour les informations du contribuable cible (au cas où d'autres infos auraient changé)
+      await supabase
+        .from("contribuables")
+        .update({
+          telephone: data.phone === "01" ? null : data.phone,
+          commune: normalizeCommune(data.commune),
+          arrondissement: data.arrondissement,
+          quartier: data.quartier,
+        })
+        .eq("id", finalContribId);
+    }
 
-    // 4. Mettre à jour la liquidation
+    // 4. Mettre à jour la liquidation (avec le bon finalContribId)
     const { error: liqError } = await supabase
       .from("liquidations")
       .update({
+        contribuable_id: finalContribId,
         superficie: Number(data.superficie) || 0,
         superficie_imposable: superficieImposable,
         valeur_locative: Number(data.valeurLocative) || 0,
@@ -735,6 +763,22 @@ export async function updateLiquidation(
       .eq("id", liquidationId);
 
     if (liqError) return { success: false, error: "Erreur lors de la mise a jour de la liquidation." };
+
+    // Si on a fusionné/réassocié à un autre contribuable, nettoyer l'ancien contribuable s'il est devenu orphelin
+    if (finalContribId !== oldContribId) {
+      const { count, error: countError } = await supabase
+        .from("liquidations")
+        .select("id", { count: "exact", head: true })
+        .eq("contribuable_id", oldContribId);
+
+      if (!countError && count === 0) {
+        // Aucun autre enregistrement n'utilise ce contribuable, on peut le supprimer
+        await supabase
+          .from("contribuables")
+          .delete()
+          .eq("id", oldContribId);
+      }
+    }
 
     // 5. Logger l'action
     await logAction("MODIFICATION_LIQUIDATION", {
