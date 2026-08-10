@@ -376,7 +376,11 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   const locArrondissement = normalizeCommune(details.contribuable.arrondissement);
   const locQuartier = normalizeCommune(details.contribuable.quartier);
 
-  const rawLocLines = [locCommune, locArrondissement, locQuartier].filter(Boolean);
+  const rawLocLines = [
+    locCommune,
+    locArrondissement ? `/ ${locArrondissement}` : "",
+    locQuartier ? `/ ${locQuartier}` : "",
+  ].filter(Boolean);
 
   const finalLocLines: string[] = [];
   rawLocLines.forEach((line) => {
@@ -538,7 +542,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 
   pdf.setFontSize(11);
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 38, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 56, { align: "right" });
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 58, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
