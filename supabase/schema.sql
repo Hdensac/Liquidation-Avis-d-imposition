@@ -236,8 +236,17 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND THEN
+    -- Lire le numero de depart configure pour la commune et l'annee (defaut a 1)
+    SELECT COALESCE(s.initial_numero_role, 1) INTO v_role_num
+    FROM public.role_commune_settings s
+    WHERE s.commune = v_contrib.commune AND s.annee = v_current_year;
+
+    IF v_role_num IS NULL THEN
+      v_role_num := 1;
+    END IF;
+
     INSERT INTO public.roles (commune, annee, numero_role, status)
-    VALUES (v_contrib.commune, v_current_year, 1, 'ACTIF')
+    VALUES (v_contrib.commune, v_current_year, v_role_num, 'ACTIF')
     RETURNING id, numero_role INTO v_role_id, v_role_num;
   END IF;
 
@@ -330,7 +339,14 @@ BEGIN
     UPDATE public.roles SET status = 'CLOTURE' WHERE id = v_role_id;
     v_new_num := v_old_num + 1;
   ELSE
-    v_new_num := 1;
+    -- Lire le numero de depart configure pour la commune et l'annee (defaut a 1)
+    SELECT COALESCE(s.initial_numero_role, 1) INTO v_new_num
+    FROM public.role_commune_settings s
+    WHERE s.commune = UPPER(p_commune) AND s.annee = v_current_year;
+
+    IF v_new_num IS NULL THEN
+      v_new_num := 1;
+    END IF;
   END IF;
 
   INSERT INTO public.roles (commune, annee, numero_role, status)
