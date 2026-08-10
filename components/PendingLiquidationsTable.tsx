@@ -534,11 +534,11 @@ export default function PendingLiquidationsTable() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Caracteristiques de la parcelle</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Type de bien *</label>
+                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Type de bien (Non modifiable)</label>
                     <select
+                      disabled
                       value={editFormData.typeBien}
-                      onChange={(e) => setEditFormData({ ...editFormData, typeBien: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
                     >
                       <option value="NON_BATI">Non bâti</option>
                       <option value="BATI">Bâtiment / Construit</option>
@@ -556,15 +556,13 @@ export default function PendingLiquidationsTable() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Valeur administrative (VL) *</label>
+                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Valeur administrative (VL) (Fixe)</label>
                     <div className="relative">
                       <input
                         type="number"
-                        required
-                        min={1}
+                        disabled
                         value={editFormData.valeurLocative}
-                        onChange={(e) => setEditFormData({ ...editFormData, valeurLocative: Number(e.target.value) || "" })}
-                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
                       />
                       {loadingVa && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
@@ -577,15 +575,12 @@ export default function PendingLiquidationsTable() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Année de départ *</label>
+                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Année de départ (Non modifiable)</label>
                     <input
                       type="number"
-                      required
-                      min={2000}
-                      max={2100}
+                      disabled
                       value={editFormData.startYear}
-                      onChange={(e) => setEditFormData({ ...editFormData, startYear: Number(e.target.value) || 2023 })}
-                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
                     />
                   </div>
                   {canApplyExo && (
