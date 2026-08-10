@@ -34,8 +34,10 @@ export default function AuthConfirmPage() {
             });
 
             if (!error && data.session) {
-              // Si c'est une invitation => forcer la création du mot de passe
-              if (tokenType === "invite") {
+              // "invite" = nouvel agent invité par l'admin
+              // "recovery" = réinitialisation de mot de passe oublié
+              // Dans les deux cas on redirige vers set-password
+              if (tokenType === "invite" || tokenType === "recovery") {
                 router.replace("/auth/set-password");
               } else {
                 router.replace("/dashboard");

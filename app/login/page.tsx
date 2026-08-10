@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 // CORRECTION : Ajout de useState ici pour régler l'erreur de build Vercel
 import React, { useState, useTransition, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { loginWithEmail, signInWithGoogle } from "@/actions/authActions";
 import { Lock, Mail, ShieldCheck, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -136,9 +137,17 @@ function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-            Mot de passe
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Mot de passe
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              className="text-xs text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition font-medium"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </div>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input

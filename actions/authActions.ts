@@ -91,3 +91,24 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function requestPasswordReset(formData: FormData) {
+  const supabase = await createClient();
+  const email = formData.get("email") as string;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+  if (!email) {
+    return { error: "Veuillez renseigner votre adresse email." };
+  }
+
+  // Sécurité : on appelle Supabase même si l'email n'existe pas.
+  // On retourne toujours le même message pour éviter l'énumération de comptes.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/confirm`,
+  });
+
+  return {
+    success:
+      "Si un compte est associé à cet email, vous recevrez un lien de réinitialisation dans quelques minutes. Pensez à vérifier vos spams.",
+  };
+}
