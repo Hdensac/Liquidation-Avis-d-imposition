@@ -460,12 +460,16 @@ export default function PendingLiquidationsTable() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">IFU / NPI (Non modifiable)</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">IFU / NPI *</label>
                     <input
                       type="text"
-                      disabled
+                      required
                       value={editFormData.ifuNpi}
-                      className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, "");
+                        setEditFormData({ ...editFormData, ifuNpi: val });
+                      }}
+                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>

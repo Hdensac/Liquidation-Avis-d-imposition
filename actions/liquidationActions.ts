@@ -696,6 +696,7 @@ export async function updateLiquidation(
     .from("contribuables")
     .update({
       nom_prenoms: data.fullname,
+      ifu_npi: data.ifuNpi,
       telephone: data.phone,
       commune: normalizeCommune(data.commune),
       arrondissement: data.arrondissement,
