@@ -104,7 +104,7 @@ export async function requestPasswordReset(formData: FormData) {
   // Sécurité : on appelle Supabase même si l'email n'existe pas.
   // On retourne toujours le même message pour éviter l'énumération de comptes.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/confirm`,
+    redirectTo: `${siteUrl}/auth/reset-callback`,
   });
 
   return {
