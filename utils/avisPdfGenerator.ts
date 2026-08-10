@@ -275,6 +275,8 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
     pdf.text(line, SIDEBAR_X + 3, calcY);
     calcY += 2.5;
   });
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
