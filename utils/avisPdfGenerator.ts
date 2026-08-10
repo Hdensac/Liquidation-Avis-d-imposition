@@ -322,9 +322,9 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: AvisTableRow[]) {
   const startY = 68;
 
-  // Ajustement des largeurs (Total = 238)
-  // Pénalité (23 -> 15), Acompte Payé (26 -> 16) | Différence gagnée (+18) injectée dans Localisation et Description
-  const widths = [12, 14, 19, 28, 33, 24, 14, 28, 15, 16, 35];
+  // Réajustement des largeurs : gain de place sur les colonnes simples
+  // injecté directement dans Localisation (36) et Description (42) pour éviter tout chevauchement.
+  const widths = [10, 13, 17, 36, 42, 22, 12, 25, 13, 15, 33];
   const headers = [
     ["N°", "Article"],
     ["Exercice"],
@@ -353,7 +353,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     pdf.setDrawColor(0, 0, 0);
     pdf.rect(cellX, startY, cellW, 16, "S");
     pdf.setFont("times", "bold");
-    pdf.setFontSize(8.5); // Légèrement augmenté pour l'en-tête aussi
+    pdf.setFontSize(8.5);
 
     if (headerLines.length === 1) {
       pdf.text(headerLines[0], cellX + cellW / 2, startY + 9, { align: "center" });
@@ -370,27 +370,18 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   let y = startY + 16;
   const startRowsY = y;
 
-  // Préparation du contenu forcé à la ligne pour Localisation & Description
-  const commune = normalizeCommune(details.contribuable.commune);
-  const arrondissement = normalizeCommune(details.contribuable.arrondissement);
-  const quartier = normalizeCommune(details.contribuable.quartier);
-  const superficie = toNumber(details.liquidation.superficie);
+  // Récupération des données textuelles globales pour les cellules fusionnées
+  const firstRow = rows[0];
+  const rawLoc = firstRow ? firstRow.localisation : "";
+  const rawDesc = firstRow ? firstRow.description : "";
 
-  const finalLocLines = [
-    commune,
-    arrondissement ? `/${arrondissement}` : "",
-    quartier ? `/${quartier}` : ""
-  ].filter(Boolean);
+  // Découpage automatique et propre selon la largeur allouée
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(9);
+  const finalLocLines = wrap(pdf, rawLoc, widths[3] - 4);
+  const finalDescLines = wrap(pdf, rawDesc, widths[4] - 4);
 
-  const finalDescLines = [
-    `PARCELLE DE`,
-    `${superficie} M2 SISE A`,
-    commune,
-    arrondissement ? `/${arrondissement}` : "",
-    quartier ? `/${quartier}` : ""
-  ].filter(Boolean);
-
-  // 2. Précalcul des hauteurs de chaque ligne (avec prise en compte de la police à 9)
+  // 1. Précalcul des hauteurs de lignes
   const rowHeights = rows.map((row) => {
     const values = [
       String(row.numero_article),
@@ -410,7 +401,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       if (idx === 3) return finalLocLines;
       if (idx === 4) return finalDescLines;
       if (idx >= 5 && idx <= 10) return [String(val)];
-      return wrap(pdf, val, widths[idx] - 3);
+      return wrap(pdf, val, widths[idx] - 2);
     });
 
     return Math.max(16, ...wrapped.map((lines) => lines.length * 4.2 + 4));
@@ -418,7 +409,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
   const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 3. Dessin des lignes numériques et textuelles standards
+  // 2. Dessin des lignes numériques et textuelles standards
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -447,9 +438,9 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       pdf.rect(currentX, y, widths[idx], currentHeight);
 
       pdf.setFont("times", "bold");
-      pdf.setFontSize(9); // Augmentation globale de la police des chiffres à 9
+      pdf.setFontSize(9);
 
-      const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 3);
+      const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 2);
 
       const textX = currentX + widths[idx] / 2;
       const textHeight = wrapped.length * 3.8;
@@ -463,23 +454,20 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     y += currentHeight;
   });
 
-  // 4. Dessin des cellules fusionnées avec alignement forcé par ligne
+  // 3. Dessin des cellules fusionnées (Mise en page propre et centrée verticalement)
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
   const descX = locX + widths[3];
-
-  pdf.setFont("times", "bold");
-  pdf.setFontSize(9); // Police augmentée également ici pour uniformité
 
   // Rendu Localisation
   pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
   const locTextHeight = finalLocLines.length * 4.0;
-  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3.2;
+  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3.0;
   pdf.text(finalLocLines, locX + widths[3] / 2, locY, { align: "center" });
 
   // Rendu Description
   pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
   const descTextHeight = finalDescLines.length * 4.0;
-  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.2;
+  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
   pdf.text(finalDescLines, descX + widths[4] / 2, descY, { align: "center" });
 
   return y;
