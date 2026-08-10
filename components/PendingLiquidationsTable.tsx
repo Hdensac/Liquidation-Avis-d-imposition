@@ -248,17 +248,15 @@ export default function PendingLiquidationsTable() {
 
     setIsSaving(true);
     setEditError(null);
-    try {
-      await updateLiquidation(selectedLiquidation.id, editFormData);
-      toast.success("Liquidation modifiee avec succes.");
-      setIsEditOpen(false);
-      loadData(currentPage);
-    } catch (err: any) {
-      console.error(err);
-      setEditError(err.message || "Erreur lors de la modification de la liquidation.");
-    } finally {
-      setIsSaving(false);
+    const result = await updateLiquidation(selectedLiquidation.id, editFormData);
+    setIsSaving(false);
+    if (!result.success) {
+      setEditError(result.error || "Erreur lors de la modification de la liquidation.");
+      return;
     }
+    toast.success("Liquidation modifiee avec succes.");
+    setIsEditOpen(false);
+    loadData(currentPage);
   };
 
   // Ouvrir la modale d'annulation
@@ -273,17 +271,15 @@ export default function PendingLiquidationsTable() {
     if (!selectedLiquidation || !cancelReason.trim()) return;
 
     setIsSaving(true);
-    try {
-      await cancelLiquidation(selectedLiquidation.id, cancelReason);
-      toast.success("Liquidation annulee avec succes.");
-      setIsCancelOpen(false);
-      loadData(currentPage);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Erreur lors de l'annulation de la liquidation.");
-    } finally {
-      setIsSaving(false);
+    const result = await cancelLiquidation(selectedLiquidation.id, cancelReason);
+    setIsSaving(false);
+    if (!result.success) {
+      toast.error(result.error || "Erreur lors de l'annulation de la liquidation.");
+      return;
     }
+    toast.success("Liquidation annulee avec succes.");
+    setIsCancelOpen(false);
+    loadData(currentPage);
   };
 
   const handleDownloadPdf = (liquidation: Liquidation) => {

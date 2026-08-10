@@ -654,156 +654,164 @@ export async function getRoleCouvertureData(roleId: string): Promise<RoleCouvert
 export async function updateLiquidation(
   liquidationId: string,
   data: TaxpayerInput
-) {
-  const supabase = await createClient();
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
 
-  // 1. Récupérer l'utilisateur courant et son rôle
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error("Vous devez etre authentifie pour modifier une liquidation.");
+    // 1. Récupérer l'utilisateur courant et son rôle
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Vous devez etre authentifie pour modifier une liquidation." };
+    }
+
+    const currentRole = await fetchCurrentUserRole();
+    const hasExoneration =
+      typeof data.superficieImposable === "number" && data.superficieImposable > 0;
+
+    if (hasExoneration && !canApplyExoneration(currentRole)) {
+      return { success: false, error: "Exoneration reservee aux inspecteurs et administrateurs." };
+    }
+
+    // 2. Vérifier que la liquidation est bien en attente
+    const { data: currentLiq, error: getError } = await supabase
+      .from("liquidations")
+      .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien")
+      .eq("id", liquidationId)
+      .single();
+
+    if (getError || !currentLiq) {
+      return { success: false, error: "Liquidation introuvable." };
+    }
+
+    if (currentLiq.status !== "EN_ATTENTE") {
+      return { success: false, error: "Seules les liquidations en attente peuvent etre modifiees." };
+    }
+
+    const superficieImposable = hasExoneration ? data.superficieImposable : null;
+    const baseImposable =
+      (Number(superficieImposable) || Number(data.superficie) || 0) *
+      (Number(data.valeurLocative) || 0);
+
+    // 2.5 Vérifier si le nouvel IFU/NPI est déjà utilisé par un autre contribuable
+    const { data: existingContrib } = await supabase
+      .from("contribuables")
+      .select("id")
+      .eq("ifu_npi", data.ifuNpi)
+      .neq("id", currentLiq.contribuable_id)
+      .maybeSingle();
+
+    if (existingContrib) {
+      return { success: false, error: "Cet IFU/NPI est deja attribue a un autre contribuable dans le systeme." };
+    }
+
+    // 3. Mettre à jour le contribuable
+    const { error: contribError } = await supabase
+      .from("contribuables")
+      .update({
+        nom_prenoms: data.fullname,
+        ifu_npi: data.ifuNpi,
+        telephone: data.phone,
+        commune: normalizeCommune(data.commune),
+        arrondissement: data.arrondissement,
+        quartier: data.quartier,
+      })
+      .eq("id", currentLiq.contribuable_id);
+
+    if (contribError) return { success: false, error: "Erreur lors de la mise a jour du contribuable." };
+
+    // 4. Mettre à jour la liquidation
+    const { error: liqError } = await supabase
+      .from("liquidations")
+      .update({
+        superficie: Number(data.superficie) || 0,
+        superficie_imposable: superficieImposable,
+        valeur_locative: Number(data.valeurLocative) || 0,
+        start_year: Number(data.startYear) || 2023,
+        type_bien: data.typeBien || "NON_BATI",
+        base_imposable: baseImposable,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", liquidationId);
+
+    if (liqError) return { success: false, error: "Erreur lors de la mise a jour de la liquidation." };
+
+    // 5. Logger l'action
+    await logAction("MODIFICATION_LIQUIDATION", {
+      reference_liq: currentLiq.reference_liq,
+      avant: {
+        superficie: currentLiq.superficie,
+        superficie_imposable: currentLiq.superficie_imposable,
+        valeur_locative: currentLiq.valeur_locative,
+        start_year: currentLiq.start_year,
+        type_bien: currentLiq.type_bien,
+      },
+      apres: {
+        superficie: data.superficie,
+        superficie_imposable: superficieImposable,
+        valeur_locative: data.valeurLocative,
+        start_year: data.startYear,
+        type_bien: data.typeBien,
+      },
+    });
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "Une erreur inattendue est survenue." };
   }
-  
-  const currentRole = await fetchCurrentUserRole();
-  const hasExoneration =
-    typeof data.superficieImposable === "number" && data.superficieImposable > 0;
-
-  if (hasExoneration && !canApplyExoneration(currentRole)) {
-    throw new Error("Exoneration reservee aux inspecteurs et administrateurs.");
-  }
-
-  // 2. Vérifier que la liquidation est bien en attente
-  const { data: currentLiq, error: getError } = await supabase
-    .from("liquidations")
-    .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien")
-    .eq("id", liquidationId)
-    .single();
-
-  if (getError || !currentLiq) {
-    throw new Error("Liquidation introuvable.");
-  }
-
-  if (currentLiq.status !== "EN_ATTENTE") {
-    throw new Error("Seules les liquidations en attente peuvent etre modifiees.");
-  }
-
-  const superficieImposable = hasExoneration ? data.superficieImposable : null;
-  const baseImposable =
-    (Number(superficieImposable) || Number(data.superficie) || 0) *
-    (Number(data.valeurLocative) || 0);
-
-  // 2.5 Vérifier si le nouvel IFU/NPI est déjà utilisé par un autre contribuable
-  const { data: existingContrib } = await supabase
-    .from("contribuables")
-    .select("id")
-    .eq("ifu_npi", data.ifuNpi)
-    .neq("id", currentLiq.contribuable_id)
-    .maybeSingle();
-
-  if (existingContrib) {
-    throw new Error("Cet IFU/NPI est deja attribue a un autre contribuable dans le systeme.");
-  }
-
-  // 3. Mettre à jour le contribuable
-  const { error: contribError } = await supabase
-    .from("contribuables")
-    .update({
-      nom_prenoms: data.fullname,
-      ifu_npi: data.ifuNpi,
-      telephone: data.phone,
-      commune: normalizeCommune(data.commune),
-      arrondissement: data.arrondissement,
-      quartier: data.quartier,
-    })
-    .eq("id", currentLiq.contribuable_id);
-
-  if (contribError) throw contribError;
-
-  // 4. Mettre à jour la liquidation
-  const { error: liqError } = await supabase
-    .from("liquidations")
-    .update({
-      superficie: Number(data.superficie) || 0,
-      superficie_imposable: superficieImposable,
-      valeur_locative: Number(data.valeurLocative) || 0,
-      start_year: Number(data.startYear) || 2023,
-      type_bien: data.typeBien || "NON_BATI",
-      base_imposable: baseImposable,
-      updated_by: user.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", liquidationId);
-
-  if (liqError) throw liqError;
-
-  // 5. Logger l'action
-  await logAction("MODIFICATION_LIQUIDATION", {
-    reference_liq: currentLiq.reference_liq,
-    avant: {
-      superficie: currentLiq.superficie,
-      superficie_imposable: currentLiq.superficie_imposable,
-      valeur_locative: currentLiq.valeur_locative,
-      start_year: currentLiq.start_year,
-      type_bien: currentLiq.type_bien,
-    },
-    apres: {
-      superficie: data.superficie,
-      superficie_imposable: superficieImposable,
-      valeur_locative: data.valeurLocative,
-      start_year: data.startYear,
-      type_bien: data.typeBien,
-    },
-  });
-
-  return { success: true };
 }
 
 /** Annule une liquidation EN_ATTENTE */
 export async function cancelLiquidation(
   liquidationId: string,
   reason: string
-) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    throw new Error("Vous devez etre authentifie pour annuler une liquidation.");
+    if (!user) {
+      return { success: false, error: "Vous devez etre authentifie pour annuler une liquidation." };
+    }
+
+    // 1. Vérifier le statut actuel
+    const { data: currentLiq, error: getError } = await supabase
+      .from("liquidations")
+      .select("status, reference_liq")
+      .eq("id", liquidationId)
+      .single();
+
+    if (getError || !currentLiq) {
+      return { success: false, error: "Liquidation introuvable." };
+    }
+
+    if (currentLiq.status !== "EN_ATTENTE") {
+      return { success: false, error: "Seules les liquidations en attente peuvent etre annulees." };
+    }
+
+    // 2. Mettre à jour la liquidation
+    const { error: cancelError } = await supabase
+      .from("liquidations")
+      .update({
+        status: "ANNULE",
+        cancelled_by: user.id,
+        cancelled_at: new Date().toISOString(),
+        cancel_reason: reason,
+      })
+      .eq("id", liquidationId);
+
+    if (cancelError) return { success: false, error: "Erreur lors de l'annulation de la liquidation." };
+
+    // 3. Logger l'action
+    await logAction("ANNULATION_LIQUIDATION", {
+      reference_liq: currentLiq.reference_liq,
+      reason,
+    });
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "Une erreur inattendue est survenue." };
   }
-
-  // 1. Vérifier le statut actuel
-  const { data: currentLiq, error: getError } = await supabase
-    .from("liquidations")
-    .select("status, reference_liq")
-    .eq("id", liquidationId)
-    .single();
-
-  if (getError || !currentLiq) {
-    throw new Error("Liquidation introuvable.");
-  }
-
-  if (currentLiq.status !== "EN_ATTENTE") {
-    throw new Error("Seules les liquidations en attente peuvent etre annulees.");
-  }
-
-  // 2. Mettre à jour la liquidation
-  const { error: cancelError } = await supabase
-    .from("liquidations")
-    .update({
-      status: "ANNULE",
-      cancelled_by: user.id,
-      cancelled_at: new Date().toISOString(),
-      cancel_reason: reason,
-    })
-    .eq("id", liquidationId);
-
-  if (cancelError) throw cancelError;
-
-  // 3. Logger l'action
-  await logAction("ANNULATION_LIQUIDATION", {
-    reference_liq: currentLiq.reference_liq,
-    reason,
-  });
-
-  return { success: true };
 }
 
 
