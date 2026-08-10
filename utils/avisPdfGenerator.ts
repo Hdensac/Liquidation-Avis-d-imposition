@@ -1,3 +1,4 @@
+```typescript
 import jsPDF from "jspdf";
 import { formatDescriptionBien } from "@/utils/descriptionBien";
 
@@ -24,6 +25,7 @@ export type AvisRecouvrementDetails = {
     contribuable_id: string;
     date_paiement?: string | null;
   };
+
   liquidation: {
     id: string;
     reference_liq: string;
@@ -36,6 +38,7 @@ export type AvisRecouvrementDetails = {
     status: string;
     created_at: string;
   };
+
   role: {
     id: string;
     numero_role: number;
@@ -43,6 +46,7 @@ export type AvisRecouvrementDetails = {
     annee: number;
     status: string;
   };
+
   contribuable: {
     id: string;
     nom_prenoms: string;
@@ -52,6 +56,7 @@ export type AvisRecouvrementDetails = {
     arrondissement?: string;
     quartier?: string;
   };
+
   articles: AvisRecouvrementArticle[];
 };
 
@@ -114,7 +119,10 @@ function normalizeCommune(value?: string) {
 }
 
 function getBaseImposable(details: AvisRecouvrementDetails) {
-  return toNumber(details.liquidation.superficie) * toNumber(details.liquidation.valeur_locative);
+  return (
+    toNumber(details.liquidation.superficie) *
+    toNumber(details.liquidation.valeur_locative)
+  );
 }
 
 function sanitizeText(s: unknown) {
@@ -132,15 +140,25 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
   return rows.map((article, index) => {
     const base = toNumber(article.base, baseImposable);
     const taux = toNumber(article.taux, 0);
-    const droitSimple = toNumber(article.droit_simple, base * taux);
+    const droitSimple = toNumber(
+      article.droit_simple,
+      base * taux
+    );
     const penalite = toNumber(article.penalite, 0);
     const acomptePaye = toNumber(article.acompte_paye, 0);
-    const resteDu = toNumber(article.reste_du, Math.max(0, droitSimple + penalite - acomptePaye));
+    const resteDu = toNumber(
+      article.reste_du,
+      Math.max(0, droitSimple + penalite - acomptePaye)
+    );
 
     return {
       numero_article: toNumber(article.numero_article, index + 1),
-      exercice: toNumber(article.exercice, details.liquidation.start_year + index),
+      exercice: toNumber(
+        article.exercice,
+        details.liquidation.start_year + index
+      ),
       nature_impot: article.nature_impot || "TFU/FNB",
+
       localisation:
         article.localisation ||
         [
@@ -150,15 +168,18 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
         ]
           .filter(Boolean)
           .join("/"),
+
       description:
         sanitizeText(article.description) ||
         formatDescriptionBien({
           superficie: toNumber(details.liquidation.superficie),
-          superficieImposable: details.liquidation.superficie_imposable ?? null,
+          superficieImposable:
+            details.liquidation.superficie_imposable ?? null,
           commune: details.contribuable.commune,
           arrondissement: details.contribuable.arrondissement,
           quartier: details.contribuable.quartier,
         }),
+
       base,
       taux,
       droit_simple: Math.round(droitSimple),
@@ -196,8 +217,10 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   ];
 
   let currentY = 10;
+
   headerLines.forEach((line) => {
     const wrapped = pdf.splitTextToSize(line, SIDEBAR_W - 4);
+
     wrapped.forEach((subLine: string) => {
       pdf.text(subLine, cx, currentY, { align: "center" });
       currentY += 3.2;
@@ -205,23 +228,55 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   });
 
   pdf.setFontSize(6.2);
+
   let dateY = 72;
-  pdf.text("Date de notification : .……/……/20……", SIDEBAR_X + 1, dateY);
-  pdf.text("Date de mise en rec.  : .……/……/20……", SIDEBAR_X + 1, dateY + 5.5);
-  pdf.text("Date de majoration    : .……/……/20……", SIDEBAR_X + 1, dateY + 11);
+
+  pdf.text(
+    "Date de notification : .……/……/20……",
+    SIDEBAR_X + 1,
+    dateY
+  );
+
+  pdf.text(
+    "Date de mise en rec.  : .……/……/20……",
+    SIDEBAR_X + 1,
+    dateY + 5.5
+  );
+
+  pdf.text(
+    "Date de majoration    : .……/……/20……",
+    SIDEBAR_X + 1,
+    dateY + 11
+  );
 
   const boxY = 85;
   const boxH = 98;
+
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.3);
-  pdf.roundedRect(SIDEBAR_X + 1, boxY, SIDEBAR_W - 2, boxH, 3, 3);
+
+  pdf.roundedRect(
+    SIDEBAR_X + 1,
+    boxY,
+    SIDEBAR_W - 2,
+    boxH,
+    3,
+    3
+  );
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(8.5);
-  pdf.text("AVIS AUX CONTRIBUABLES", cx, boxY + 6, { align: "center" });
+
+  pdf.text(
+    "AVIS AUX CONTRIBUABLES",
+    cx,
+    boxY + 6,
+    { align: "center" }
+  );
 
   pdf.setFont("times", "normal");
   pdf.setFontSize(5.8);
+
   const avisText = [
     "Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois qui suivent la notification du présent avis d'imposition.",
     "Les demandes en remise ou modération doivent être adressées au Directeur des Impôts dans le mois de l'événement qui les motive. Celles qui sont motivées par la gêne ou l’indigène peuvent être présentées à toute époque.",
@@ -230,16 +285,26 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   ];
 
   let tY = boxY + 12;
+
   avisText.forEach((paragraph) => {
     const lines = wrap(pdf, paragraph, SIDEBAR_W - 5);
+
     pdf.text(lines, SIDEBAR_X + 3, tY);
+
     tY += lines.length * 2.6 + 1.2;
   });
 
   pdf.setLineWidth(0.1);
-  pdf.line(SIDEBAR_X + 3, tY + 1, SIDEBAR_X + SIDEBAR_W - 3, tY + 1);
+
+  pdf.line(
+    SIDEBAR_X + 3,
+    tY + 1,
+    SIDEBAR_X + SIDEBAR_W - 3,
+    tY + 1
+  );
 
   pdf.setFontSize(5.2);
+
   const abbrev = [
     "Abréviations : FNB = Foncier Non Bâti | FB = Foncier Bâti",
     "VV = Valeur Vénale | VL = Valeur Locative | RN = Revenu Net",
@@ -248,22 +313,46 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   ];
 
   let abY = tY + 4.5;
+
   abbrev.forEach((line) => {
     pdf.setFont("times", "normal");
-    const wrappedLines = wrap(pdf, line, SIDEBAR_W - 6);
-    pdf.text(wrappedLines, SIDEBAR_X + 3, abY);
+
+    const wrappedLines = wrap(
+      pdf,
+      line,
+      SIDEBAR_W - 6
+    );
+
+    pdf.text(
+      wrappedLines,
+      SIDEBAR_X + 3,
+      abY
+    );
+
     abY += wrappedLines.length * 2.6;
   });
 
-  pdf.line(SIDEBAR_X + 3, abY + 1, SIDEBAR_X + SIDEBAR_W - 3, abY + 1);
+  pdf.line(
+    SIDEBAR_X + 3,
+    abY + 1,
+    SIDEBAR_X + SIDEBAR_W - 3,
+    abY + 1
+  );
 
   let calcY = abY + 4.5;
+
   pdf.setFont("times", "bold");
   pdf.setFontSize(5.5);
-  pdf.text("Mode de calcul des Impôts :", SIDEBAR_X + 3, calcY);
+
+  pdf.text(
+    "Mode de calcul des Impôts :",
+    SIDEBAR_X + 3,
+    calcY
+  );
 
   pdf.setFont("times", "normal");
   pdf.setFontSize(5.0);
+
   const calcLines = [
     "TFU/FNB = VV × Taux de la TFU/FNB",
     "TFU/FB = VL × Taux de la TFU/FB",
@@ -271,35 +360,81 @@ function drawStaticSidebar(pdf: jsPDF, commune: string) {
   ];
 
   calcY += 2.8;
+
   calcLines.forEach((line) => {
     pdf.text(line, SIDEBAR_X + 3, calcY);
     calcY += 2.5;
   });
 }
 
-function drawStaticHeader(pdf: jsPDF, commune: string, annee: number) {
+function drawStaticHeader(
+  pdf: jsPDF,
+  commune: string,
+  annee: number
+) {
   pdf.setFont("times", "bold");
+
   pdf.setFontSize(16);
-  pdf.text(`COMMUNE : ${commune}`, MAIN_X + MAIN_W / 2, 14, { align: "center" });
+
+  pdf.text(
+    `COMMUNE : ${commune}`,
+    MAIN_X + MAIN_W / 2,
+    14,
+    { align: "center" }
+  );
+
   pdf.setFontSize(13);
-  pdf.text("TAXE FONCIERE UNIQUE", MAIN_X + MAIN_W / 2, 20, { align: "center" });
+
+  pdf.text(
+    "TAXE FONCIERE UNIQUE",
+    MAIN_X + MAIN_W / 2,
+    20,
+    { align: "center" }
+  );
 
   pdf.setFontSize(10);
-  pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25, { align: "right" });
+
+  pdf.text(
+    `Année : ${annee}`,
+    MAIN_X + MAIN_W - 2,
+    25,
+    { align: "right" }
+  );
 
   pdf.setLineWidth(0.4);
   pdf.setDrawColor(0);
-  pdf.rect(MAIN_X + 30, 28, MAIN_W - 60, 7, "S");
+
+  pdf.rect(
+    MAIN_X + 30,
+    28,
+    MAIN_W - 60,
+    7,
+    "S"
+  );
+
   pdf.setFontSize(11);
-  pdf.text("AVIS DE MISE EN RECOUVREMENT", MAIN_X + MAIN_W / 2, 32.8, { align: "center" });
+
+  pdf.text(
+    "AVIS DE MISE EN RECOUVREMENT",
+    MAIN_X + MAIN_W / 2,
+    32.8,
+    { align: "center" }
+  );
 }
 
-function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
+function drawRecipientBlock(
+  pdf: jsPDF,
+  details: AvisRecouvrementDetails
+) {
   const commune = normalizeCommune(details.role.commune);
-  const roleLabel = `Role N°${details.role.numero_role}/${commune}/${details.role.annee}`;
+
+  const roleLabel =
+    `Role N°${details.role.numero_role}/${commune}/${details.role.annee}`;
+
   const address = formatDescriptionBien({
     superficie: toNumber(details.liquidation.superficie),
-    superficieImposable: details.liquidation.superficie_imposable ?? null,
+    superficieImposable:
+      details.liquidation.superficie_imposable ?? null,
     commune: details.contribuable.commune,
     arrondissement: details.contribuable.arrondissement,
     quartier: details.contribuable.quartier,
@@ -307,22 +442,63 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(9);
+
   pdf.text("DESTINATAIRE :", MAIN_X, 43);
   pdf.text("N° IFU/NPI :", MAIN_X, 49);
   pdf.text("ADRESSE :", MAIN_X, 55);
 
-  pdf.text(details.contribuable.nom_prenoms, MAIN_X + 30, 43);
-  pdf.text(details.contribuable.ifu_npi, MAIN_X + 30, 49);
-  pdf.text(`Tél : ${details.contribuable.telephone || "-"}`, MAIN_X + 150, 49);
-  pdf.text(wrap(pdf, address, 160), MAIN_X + 30, 55);
+  pdf.text(
+    details.contribuable.nom_prenoms,
+    MAIN_X + 30,
+    43
+  );
 
-  pdf.text(roleLabel, MAIN_X + 30, 62);
+  pdf.text(
+    details.contribuable.ifu_npi,
+    MAIN_X + 30,
+    49
+  );
+
+  pdf.text(
+    `Tél : ${details.contribuable.telephone || "-"}`,
+    MAIN_X + 150,
+    49
+  );
+
+  pdf.text(
+    wrap(pdf, address, 160),
+    MAIN_X + 30,
+    55
+  );
+
+  pdf.text(
+    roleLabel,
+    MAIN_X + 30,
+    62
+  );
 }
 
-function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: AvisTableRow[]) {
+function drawArticlesTable(
+  pdf: jsPDF,
+  details: AvisRecouvrementDetails,
+  rows: AvisTableRow[]
+) {
   const startY = 68;
 
-  const widths = [10, 13, 17, 36, 42, 22, 12, 25, 13, 15, 33];
+  const widths = [
+    10,
+    13,
+    17,
+    36,
+    42,
+    22,
+    12,
+    25,
+    13,
+    15,
+    33,
+  ];
+
   const headers = [
     ["N°", "Article"],
     ["Exercice"],
@@ -338,6 +514,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   ];
 
   let x = MAIN_X;
+
   pdf.setDrawColor(0, 0, 0);
   pdf.setLineWidth(0.3);
 
@@ -347,18 +524,51 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
     pdf.setFillColor(215, 215, 215);
     pdf.setTextColor(0, 0, 0);
-    pdf.rect(cellX, startY, cellW, 16, "F");
+
+    pdf.rect(
+      cellX,
+      startY,
+      cellW,
+      16,
+      "F"
+    );
+
     pdf.setDrawColor(0, 0, 0);
-    pdf.rect(cellX, startY, cellW, 16, "S");
+
+    pdf.rect(
+      cellX,
+      startY,
+      cellW,
+      16,
+      "S"
+    );
+
     pdf.setFont("times", "bold");
     pdf.setFontSize(8.5);
 
     if (headerLines.length === 1) {
-      pdf.text(headerLines[0], cellX + cellW / 2, startY + 9, { align: "center" });
+      pdf.text(
+        headerLines[0],
+        cellX + cellW / 2,
+        startY + 9,
+        { align: "center" }
+      );
     } else {
-      pdf.text(headerLines[0], cellX + cellW / 2, startY + 6, { align: "center" });
-      pdf.text(headerLines[1], cellX + cellW / 2, startY + 12, { align: "center" });
+      pdf.text(
+        headerLines[0],
+        cellX + cellW / 2,
+        startY + 6,
+        { align: "center" }
+      );
+
+      pdf.text(
+        headerLines[1],
+        cellX + cellW / 2,
+        startY + 12,
+        { align: "center" }
+      );
     }
+
     x += cellW;
   });
 
@@ -369,28 +579,52 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   const startRowsY = y;
 
   const firstRow = rows[0];
-  const rawLoc = firstRow ? firstRow.localisation : "";
+  const rawLoc = firstRow
+    ? firstRow.localisation
+    : "";
 
   // 1. Découpage pour la Localisation
-  const finalLocLines = wrap(pdf, rawLoc, widths[3] - 4);
+  const finalLocLines = wrap(
+    pdf,
+    rawLoc,
+    widths[3] - 4
+  );
 
-  // 2. Traitement personnalisé de la Description (Ligne par Ligne)
-  const sup = toNumber(details.liquidation.superficie, 0);
-  const comm = titleCase(details.contribuable.commune || "");
-  const arrt = titleCase(details.contribuable.arrondissement || "");
-  const quart = titleCase(details.contribuable.quartier || "");
+  // 2. Traitement personnalisé de la Description
+  const sup = toNumber(
+    details.liquidation.superficie,
+    0
+  );
+
+  const comm = titleCase(
+    details.contribuable.commune || ""
+  );
+
+  const arrt = titleCase(
+    details.contribuable.arrondissement || ""
+  );
+
+  const quart = titleCase(
+    details.contribuable.quartier || ""
+  );
 
   const rawDescLines = [
     "PARCELLE DE",
     `${sup}m² sise a`,
     comm,
     arrt ? `/ ${arrt}` : "",
-    quart ? `/ ${quart}` : ""
+    quart ? `/ ${quart}` : "",
   ].filter(Boolean);
 
   const finalDescLines: string[] = [];
-  rawDescLines.forEach(line => {
-    const wrappedLine = wrap(pdf, line, widths[4] - 4);
+
+  rawDescLines.forEach((line) => {
+    const wrappedLine = wrap(
+      pdf,
+      line,
+      widths[4] - 4
+    );
+
     finalDescLines.push(...wrappedLine);
   });
 
@@ -414,13 +648,28 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       if (idx === 3) return finalLocLines;
       if (idx === 4) return finalDescLines;
       if (idx >= 5 && idx <= 10) return [String(val)];
-      return wrap(pdf, val, widths[idx] - 2);
+
+      return wrap(
+        pdf,
+        val,
+        widths[idx] - 2
+      );
     });
 
-    return Math.max(16, ...wrapped.map((lines) => lines.length * 4.2 + 4));
+    // MODIFICATION :
+    // Hauteur des cellules réduite
+    return Math.max(
+      13,
+      ...wrapped.map(
+        (lines) => lines.length * 3.6 + 2.5
+      )
+    );
   });
 
-  const totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
+  const totalTableHeight = rowHeights.reduce(
+    (acc, h) => acc + h,
+    0
+  );
 
   // 2. Dessin des lignes numériques et textuelles standards
   rows.forEach((row, rowIndex) => {
@@ -448,18 +697,45 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
         return;
       }
 
-      pdf.rect(currentX, y, widths[idx], currentHeight);
+      pdf.rect(
+        currentX,
+        y,
+        widths[idx],
+        currentHeight
+      );
 
       pdf.setFont("times", "bold");
-      pdf.setFontSize(9);
 
-      const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 2);
+      // MODIFICATION :
+      // Police des chiffres légèrement augmentée
+      pdf.setFontSize(10);
 
-      const textX = currentX + widths[idx] / 2;
-      const textHeight = wrapped.length * 3.8;
-      const textY = y + (currentHeight - textHeight) / 2 + 3.0;
+      const wrapped =
+        idx >= 5 && idx <= 10
+          ? [val]
+          : wrap(
+              pdf,
+              val,
+              widths[idx] - 2
+            );
 
-      pdf.text(wrapped, textX, textY, { align: "center" });
+      const textX =
+        currentX + widths[idx] / 2;
+
+      const textHeight =
+        wrapped.length * 3.4;
+
+      const textY =
+        y +
+        (currentHeight - textHeight) / 2 +
+        2.8;
+
+      pdf.text(
+        wrapped,
+        textX,
+        textY,
+        { align: "center" }
+      );
 
       currentX += widths[idx];
     });
@@ -467,38 +743,106 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     y += currentHeight;
   });
 
-  // 3. Dessin des cellules fusionnées (Localisation et Description)
-  const locX = MAIN_X + widths[0] + widths[1] + widths[2];
-  const descX = locX + widths[3];
+  // 3. Dessin des cellules fusionnées
+  // (Localisation et Description)
+  const locX =
+    MAIN_X +
+    widths[0] +
+    widths[1] +
+    widths[2];
+
+  const descX =
+    locX + widths[3];
 
   // Rendu Localisation
-  pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
-  const locTextHeight = finalLocLines.length * 4.0;
-  const locY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3.0;
-  pdf.text(finalLocLines, locX + widths[3] / 2, locY, { align: "center" });
+  pdf.rect(
+    locX,
+    startRowsY,
+    widths[3],
+    totalTableHeight
+  );
+
+  const locTextHeight =
+    finalLocLines.length * 4.0;
+
+  const locY =
+    startRowsY +
+    (totalTableHeight - locTextHeight) / 2 +
+    3.0;
+
+  pdf.text(
+    finalLocLines,
+    locX + widths[3] / 2,
+    locY,
+    { align: "center" }
+  );
 
   // Rendu Description
-  pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
-  const descTextHeight = finalDescLines.length * 4.0;
-  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
-  pdf.text(finalDescLines, descX + widths[4] / 2, descY, { align: "center" });
+  pdf.rect(
+    descX,
+    startRowsY,
+    widths[4],
+    totalTableHeight
+  );
+
+  const descTextHeight =
+    finalDescLines.length * 4.0;
+
+  const descY =
+    startRowsY +
+    (totalTableHeight - descTextHeight) / 2 +
+    3.0;
+
+  pdf.text(
+    finalDescLines,
+    descX + widths[4] / 2,
+    descY,
+    { align: "center" }
+  );
 
   return y;
 }
 
-function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, totalDu: number, dateEmission: Date) {
+function drawFooter(
+  pdf: jsPDF,
+  details: AvisRecouvrementDetails,
+  endY: number,
+  totalDu: number,
+  dateEmission: Date
+) {
   const blockY = endY + 4;
   const totalWidth = MAIN_W;
 
   pdf.setFillColor(210, 210, 210);
-  pdf.rect(MAIN_X, blockY, totalWidth, 12, "FD");
+
+  pdf.rect(
+    MAIN_X,
+    blockY,
+    totalWidth,
+    12,
+    "FD"
+  );
+
   pdf.setFont("times", "bold");
   pdf.setFontSize(13);
-  pdf.text("TOTAL DÛ", MAIN_X + 70, blockY + 8, { align: "center" });
-  pdf.text(formatNumber(totalDu, true), MAIN_X + totalWidth - 15, blockY + 8, { align: "right" });
+
+  pdf.text(
+    "TOTAL DÛ",
+    MAIN_X + 70,
+    blockY + 8,
+    { align: "center" }
+  );
+
+  pdf.text(
+    formatNumber(totalDu, true),
+    MAIN_X + totalWidth - 15,
+    blockY + 8,
+    { align: "right" }
+  );
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(9);
+
   pdf.text(
     "Rendu exécutoire en vertu des dispositions des articles 596 et 597 du Code Général des Impôts,",
     MAIN_X + totalWidth / 2,
@@ -508,20 +852,55 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 
   pdf.setFontSize(10);
   pdf.setFont("times", "bold");
-  pdf.text(`ALLADA , le ${formatDateLong(dateEmission)}`, MAIN_X + totalWidth - 10, blockY + 31, { align: "right" });
+
+  pdf.text(
+    `ALLADA , le ${formatDateLong(dateEmission)}`,
+    MAIN_X + totalWidth - 10,
+    blockY + 31,
+    { align: "right" }
+  );
 
   pdf.setFontSize(11);
-  pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 38, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 56, { align: "right" });
+
+  pdf.text(
+    "Le Chef du Service de Gestion",
+    MAIN_X + totalWidth - 10,
+    blockY + 38,
+    { align: "right" }
+  );
+
+  pdf.text(
+    "HOPESON HOUNSINOU ",
+    MAIN_X + totalWidth - 10,
+    blockY + 56,
+    { align: "right" }
+  );
 }
 
-export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
-  const commune = normalizeCommune(details.role.commune) || normalizeCommune(details.contribuable.commune);
-  const annee = toNumber(details.role.annee, new Date().getFullYear());
-  const dateEmission = details.recouvrement.date_paiement ? new Date(details.recouvrement.date_paiement) : new Date();
+export async function generateAvisRecouvrementPdf(
+  details: AvisRecouvrementDetails,
+  filename?: string
+) {
+  const commune =
+    normalizeCommune(details.role.commune) ||
+    normalizeCommune(details.contribuable.commune);
+
+  const annee = toNumber(
+    details.role.annee,
+    new Date().getFullYear()
+  );
+
+  const dateEmission =
+    details.recouvrement.date_paiement
+      ? new Date(details.recouvrement.date_paiement)
+      : new Date();
+
   const rows = buildRows(details);
 
-  const totalDu = rows.reduce((sum, row) => sum + row.reste_du, 0);
+  const totalDu = rows.reduce(
+    (sum, row) => sum + row.reste_du,
+    0
+  );
 
   const pdf = new jsPDF({
     orientation: "landscape",
@@ -534,8 +913,24 @@ export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetai
   drawStaticSidebar(pdf, commune);
   drawStaticHeader(pdf, commune, annee);
   drawRecipientBlock(pdf, details);
-  const endY = drawArticlesTable(pdf, details, rows);
-  drawFooter(pdf, details, endY, totalDu, dateEmission);
 
-  pdf.save(filename || `Avis_Recouvrement_${details.liquidation.reference_liq}.pdf`);
+  const endY = drawArticlesTable(
+    pdf,
+    details,
+    rows
+  );
+
+  drawFooter(
+    pdf,
+    details,
+    endY,
+    totalDu,
+    dateEmission
+  );
+
+  pdf.save(
+    filename ||
+      `Avis_Recouvrement_${details.liquidation.reference_liq}.pdf`
+  );
 }
+```
