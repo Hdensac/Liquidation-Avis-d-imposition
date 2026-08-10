@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 
 type ToastType = "success" | "error" | "info";
 
@@ -20,11 +20,14 @@ export function useToast() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   }, []);
 
-  const toast = {
-    success: (msg: string) => addToast(msg, "success"),
-    error: (msg: string) => addToast(msg, "error"),
-    info: (msg: string) => addToast(msg, "info"),
-  };
+  const toast = useMemo(
+    () => ({
+      success: (msg: string) => addToast(msg, "success"),
+      error: (msg: string) => addToast(msg, "error"),
+      info: (msg: string) => addToast(msg, "info"),
+    }),
+    [addToast]
+  );
 
   return { toast, toasts };
 }
