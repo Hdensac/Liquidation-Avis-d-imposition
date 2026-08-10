@@ -691,6 +691,18 @@ export async function updateLiquidation(
     (Number(superficieImposable) || Number(data.superficie) || 0) *
     (Number(data.valeurLocative) || 0);
 
+  // 2.5 Vérifier si le nouvel IFU/NPI est déjà utilisé par un autre contribuable
+  const { data: existingContrib } = await supabase
+    .from("contribuables")
+    .select("id")
+    .eq("ifu_npi", data.ifuNpi)
+    .neq("id", currentLiq.contribuable_id)
+    .maybeSingle();
+
+  if (existingContrib) {
+    throw new Error("Cet IFU/NPI est deja attribue a un autre contribuable dans le systeme.");
+  }
+
   // 3. Mettre à jour le contribuable
   const { error: contribError } = await supabase
     .from("contribuables")
