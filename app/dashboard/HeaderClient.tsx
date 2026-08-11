@@ -41,7 +41,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   return (
     <div>
       <Navbar
-        brand="Administration Fiscale"
+        brand="CIPE-ALLADA"
         items={items}
         activeKey={activeKey}
         onNavigate={onNavigate}
