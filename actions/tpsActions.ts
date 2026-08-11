@@ -102,7 +102,7 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
 
 export async function fetchPendingLiquidationsTps(params: { page: number }) {
   const supabase = await createClient();
-  const { from, to } = getRange(params.page, PAGE_SIZE);
+  const [from, to] = getRange(params.page, PAGE_SIZE);
 
   const { data, error, count } = await supabase
     .from("tps_liquidations")
@@ -157,7 +157,7 @@ export async function validerPaiementTps(id: string) {
 
 export async function fetchAvisValidesTps(params: { page: number }) {
   const supabase = await createClient();
-  const { from, to } = getRange(params.page, PAGE_SIZE);
+  const [from, to] = getRange(params.page, PAGE_SIZE);
 
   const { data, error, count } = await supabase
     .from("tps_liquidations")
