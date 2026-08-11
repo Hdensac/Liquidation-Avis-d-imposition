@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: Props) {
       <header className="sticky top-0 z-20 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-white/20 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <h1 className="text-2xl sm:text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Administration Fiscale – TFU / FNB
+            CIPE ALLADA  – TFU / FNB
           </h1>
 
           <nav className="flex items-center gap-3">
