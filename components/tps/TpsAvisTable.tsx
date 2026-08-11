@@ -315,7 +315,7 @@ export default function TpsAvisTable() {
           <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-center">
             <Pagination
               currentPage={currentPage}
-              totalItems={totalCount}
+              totalCount={totalCount}
               pageSize={PAGE_SIZE}
               onPageChange={handlePageChange}
             />
