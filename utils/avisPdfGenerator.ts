@@ -609,7 +609,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 
   pdf.setFontSize(11);
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 38, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 59, { align: "right" });
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 61, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
