@@ -320,7 +320,7 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number, dgiLogo: H
   }
 
   pdf.setFontSize(10);
-  pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 25.7, { align: "right" });
+  pdf.text(`Année : ${annee}`, MAIN_X + MAIN_W - 2, 27, { align: "right" });
 
   pdf.setLineWidth(0.4);
   pdf.setDrawColor(0);
@@ -405,6 +405,25 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   let y = startY + 16;
   const startRowsY = y;
 
+  // Auto-fit générique : certains noms (ex. arrondissements longs comme "AHOUANNONZOUN") ne
+  // tiennent pas sur une seule ligne à la taille normale (10pt), et jsPDF coupe alors le mot au
+  // milieu sans tiret, ce qui est illisible. On réduit la taille de police (par pas de 0.5,
+  // jusqu'à 7pt min) UNIQUEMENT pour la ligne concernée, pour la forcer à tenir sur une seule
+  // ligne. Utilisé pour Localisation ET Description.
+  const CELL_MAX_FONT = 10;
+  const CELL_MIN_FONT = 7;
+  function fitCellFontSize(text: string, width: number): number {
+    let size = CELL_MAX_FONT;
+    while (size > CELL_MIN_FONT) {
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(size);
+      const lines = wrap(pdf, text, width);
+      if (lines.length <= 1) break;
+      size -= 0.5;
+    }
+    return size;
+  }
+
   // 1. Traitement personnalisé de la Localisation (Ligne par Ligne, cellule fusionnée verticalement)
   //    Commune / Arrondissement / Quartier, chacun sur sa propre ligne (même principe que la Description)
   const locCommune = normalizeCommune(details.contribuable.commune);
@@ -417,29 +436,10 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     locQuartier ? `/ ${locQuartier}` : "",
   ].filter(Boolean);
 
-  // Auto-fit : certains noms (ex. arrondissements longs comme "AHOUANNONZOUN") ne tiennent pas
-  // sur une seule ligne à la taille normale (10pt) et jsPDF coupe alors le mot au milieu sans
-  // tiret, ce qui est illisible. On réduit la taille de police (par pas de 0.5, jusqu'à 7pt min)
-  // UNIQUEMENT pour les lignes concernées, pour forcer chaque entité (commune/arrondissement/
-  // quartier) à tenir sur sa propre ligne unique.
-  const LOC_MAX_FONT = 10;
-  const LOC_MIN_FONT = 7;
-  function fitLocFontSize(text: string): number {
-    let size = LOC_MAX_FONT;
-    while (size > LOC_MIN_FONT) {
-      pdf.setFont("times", "bold");
-      pdf.setFontSize(size);
-      const lines = wrap(pdf, text, widths[3] - 4);
-      if (lines.length <= 1) break;
-      size -= 0.5;
-    }
-    return size;
-  }
-
   const finalLocLines: string[] = [];
   const finalLocFontSizes: number[] = [];
   rawLocLines.forEach((line) => {
-    const fontSize = fitLocFontSize(line);
+    const fontSize = fitCellFontSize(line, widths[3] - 4);
     pdf.setFont("times", "bold");
     pdf.setFontSize(fontSize);
     const wrappedLine = wrap(pdf, line, widths[3] - 4);
@@ -449,6 +449,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     });
   });
   pdf.setFontSize(10);
+
 
   // 2. Traitement personnalisé de la Description (Ligne par Ligne, cellule fusionnée verticalement)
   const sup = toNumber(details.liquidation.superficie, 0);
@@ -465,10 +466,18 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   ].filter(Boolean);
 
   const finalDescLines: string[] = [];
+  const finalDescFontSizes: number[] = [];
   rawDescLines.forEach(line => {
+    const fontSize = fitCellFontSize(line, widths[4] - 4);
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(fontSize);
     const wrappedLine = wrap(pdf, line, widths[4] - 4);
-    finalDescLines.push(...wrappedLine);
+    wrappedLine.forEach((subLine: string) => {
+      finalDescLines.push(subLine);
+      finalDescFontSizes.push(fontSize);
+    });
   });
+  pdf.setFontSize(10);
 
   // 3. Hauteur "naturelle" de chaque ligne, calculée UNIQUEMENT à partir des colonnes
   //    propres à la ligne (N°, Exercice, Nature, Base, Taux, Droit, Pénalité, Acompte, Reste).
@@ -574,11 +583,16 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   });
   pdf.setFontSize(10);
 
-  // Rendu Description
+  // Rendu Description (chaque ligne peut avoir sa propre taille de police, cf. auto-fit ci-dessus)
   pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
   const descTextHeight = finalDescLines.length * 4.0;
-  const descY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
-  pdf.text(finalDescLines, descX + widths[4] / 2, descY, { align: "center" });
+  const descStartY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
+  finalDescLines.forEach((line, i) => {
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(finalDescFontSizes[i] || 10);
+    pdf.text(line, descX + widths[4] / 2, descStartY + i * 4.0, { align: "center" });
+  });
+  pdf.setFontSize(10);
 
   return y;
 }
@@ -609,7 +623,7 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 
   pdf.setFontSize(11);
   pdf.text("Le Chef du Service de Gestion", MAIN_X + totalWidth - 10, blockY + 38, { align: "right" });
-  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 61, { align: "right" });
+  pdf.text("HOPESON HOUNSINOU ", MAIN_X + totalWidth - 10, blockY + 62, { align: "right" });
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
