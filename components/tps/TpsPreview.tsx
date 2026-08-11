@@ -54,16 +54,17 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
       <div
         ref={documentRef}
         id={documentId}
-        className="a4-document text-black text-xs space-y-3 relative p-8 bg-white border border-slate-300 font-serif leading-relaxed"
+        className="a4-document text-black text-xs space-y-3 relative p-8 bg-white border border-slate-300 leading-relaxed"
         style={{
           width: "794px",
           minHeight: "1123px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "'Times New Roman', Times, serif",
         }}
       >
-        {/* EN-TETE */}
-        <div className="border-b-2 border-black pb-2 relative min-h-[90px]">
-          <div className="absolute left-0 top-0 text-[10px] leading-tight text-left">
+        {/* EN-TETE — flex, PAS d'absolute, pour éviter tout chevauchement */}
+        <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-2">
+          {/* Bloc gauche : identité administrative */}
+          <div className="text-[10px] leading-tight text-left shrink-0 w-[230px]">
             <div>République du Bénin</div>
             <div>Ministère de l'Économie et des Finances</div>
             <div>Direction Générale des Impôts</div>
@@ -73,25 +74,26 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
             <div className="font-bold">d'{formData.commune || "Allada"}</div>
           </div>
 
-          <div className="text-center">
+          {/* Bloc droit : titre de l'avis, centré dans l'espace restant */}
+          <div className="flex-1 text-center pt-1">
             <div className="font-bold text-sm uppercase tracking-wide">
               Avis de mise en recouvrement TPS
             </div>
-            <div className="flex justify-center gap-10 font-bold text-[11px] mt-1">
-              <span>ANNÉE: {assessmentYear}</span>
+            <div className="flex justify-center gap-10 font-bold text-[11px] mt-1.5">
+              <span>ANNEE: {assessmentYear}</span>
               <span>EXERCICE: {exerciseYear}</span>
             </div>
-            <div className="font-bold text-[11px] mt-0.5">
+            <div className="font-bold text-[11px] mt-1">
               Commune de: {formData.commune || "Allada"}
             </div>
           </div>
         </div>
 
         {/* DETAILS ET IDENTIFICATION CONTRIBUABLE */}
-        <div className="grid grid-cols-12 gap-4 pt-2">
+        <div className="grid grid-cols-12 gap-4 pt-3">
           {/* Côté Gauche : Dates et Rôle */}
           <div className="col-span-6 space-y-3">
-            <div className="space-y-1.5 text-[11px]">
+            <div className="space-y-2 text-[11px]">
               <div>
                 <span className="font-bold">Date de mise en recouvrement :</span> ……/…../…….
               </div>
@@ -102,32 +104,38 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                 <span className="font-bold">Date de majoration :</span> ……/…../…….
               </div>
             </div>
-            <div className="pt-2 text-[11px] font-bold">
-              Rôle : TPS
-            </div>
-            <div className="text-center font-bold text-xs">
+            <div className="pt-2 text-[11px] font-bold">Rôle : TPS</div>
+            <div className="text-center font-bold text-sm">
               ARTICLES : {articleNumbers}
             </div>
           </div>
 
-          {/* Côté Droit : Identification du Contribuable */}
-          <div className="col-span-6 border border-black p-2">
+          {/* Côté Droit : Identification du Contribuable — fond grisé comme l'original */}
+          <div className="col-span-6 border border-black bg-slate-200 p-3">
             <div className="text-center font-bold border-b border-black pb-1 mb-2 text-[11px]">
               Identification du contribuable
             </div>
-            <table className="w-full text-[10px] border-none">
+            <table className="w-full table-fixed text-[10px] border-none">
+              <colgroup>
+                <col className="w-[85px]" />
+                <col />
+              </colgroup>
               <tbody>
                 <tr>
-                  <td className="font-bold py-0.5 w-24 align-top">N°IFU/NC:</td>
-                  <td className="font-mono">{formData.ifuNc || "A saisir"}</td>
+                  <td className="font-bold py-0.5 align-top">N°IFU/NC:</td>
+                  <td className="font-mono break-words">{formData.ifuNc || "A saisir"}</td>
                 </tr>
                 <tr>
-                  <td className="font-bold py-0.5 align-top">Nom ou Raison Sociale:</td>
-                  <td className="font-bold">{formData.nomRaisonSociale || "A saisir"}</td>
+                  <td className="font-bold py-0.5 align-top">
+                    Nom ou Raison Sociale:
+                  </td>
+                  <td className="font-bold break-words">
+                    {formData.nomRaisonSociale || "A saisir"}
+                  </td>
                 </tr>
                 <tr>
                   <td className="font-bold py-0.5 align-top">Adresse:</td>
-                  <td className="font-bold">
+                  <td className="font-bold break-words">
                     {formData.commune
                       ? `${formData.commune}/${formData.arrondissement}/${formData.quartier}`
                       : "A saisir"}
@@ -135,12 +143,12 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                   </td>
                 </tr>
                 <tr>
-                  <td className="font-bold py-0.5">QIP:</td>
-                  <td></td>
+                  <td className="font-bold py-0.5 align-top">QIP:</td>
+                  <td className="break-words"></td>
                 </tr>
                 <tr>
-                  <td className="font-bold py-0.5">Activité:</td>
-                  <td>{formData.activite || "A saisir"}</td>
+                  <td className="font-bold py-0.5 align-top">Activité:</td>
+                  <td className="break-words">{formData.activite || "A saisir"}</td>
                 </tr>
               </tbody>
             </table>
@@ -149,21 +157,26 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
 
         {/* TABLEAU DES RUBRIQUES */}
         <div className="pt-3">
-          <table className="w-full border-collapse border border-black text-[11px]">
+          <table className="w-full table-fixed border-collapse border border-black text-[11px]">
+            <colgroup>
+              <col className="w-[140px]" />
+              <col />
+              <col className="w-[140px]" />
+            </colgroup>
             <thead>
-              <tr className="bg-slate-100 font-bold border-b border-black">
+              <tr className="bg-slate-300 font-bold border-b border-black">
                 <th className="border-r border-black p-1.5 text-left" colSpan={2}>
                   Rubriques
                 </th>
-                <th className="p-1.5 w-32 text-right">Montant</th>
+                <th className="p-1.5 text-right">Montant</th>
               </tr>
             </thead>
             <tbody>
-              {/* CHIFFRE D'AFFAIRES (cellule fusionnée) */}
+              {/* CHIFFRE D'AFFAIRES (cellule fusionnée verticalement) */}
               <tr>
                 <td
                   rowSpan={6}
-                  className="border-r border-b border-black p-1 align-middle font-bold w-28"
+                  className="border-r border-b border-black p-1 align-middle font-bold"
                 >
                   Chiffre d'Affaires
                 </td>
@@ -205,9 +218,9 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                 </td>
               </tr>
 
-              {/* Ligne vide (comme sur le document original) */}
+              {/* Ligne vide (comme sur le document officiel) */}
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-1">&nbsp;</td>
+                <td colSpan={2} className="border-r border-b border-black p-1 h-5">&nbsp;</td>
                 <td className="border-b border-black p-1">&nbsp;</td>
               </tr>
 
