@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default function Navbar({
-  brand = "Administration Fiscale",
+  brand = "CIPE-ALLADA",
   items = [
     { key: "new", label: "Nouvelle liquidation", icon: FilePlus },
     { key: "pending", label: "En attente", icon: Clock },
