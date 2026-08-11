@@ -61,10 +61,10 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
           fontFamily: "'Times New Roman', Times, serif",
         }}
       >
-        {/* EN-TETE — flex, PAS d'absolute, pour éviter tout chevauchement */}
+        {/* EN-TETE — 3 colonnes : Admin à gauche, Logo DGI au milieu, Titre à droite */}
         <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-2">
           {/* Bloc gauche : identité administrative */}
-          <div className="text-[10px] leading-tight text-left shrink-0 w-[230px]">
+          <div className="text-[10px] leading-tight text-left shrink-0 w-[210px]">
             <div>République du Bénin</div>
             <div>Ministère de l'Économie et des Finances</div>
             <div>Direction Générale des Impôts</div>
@@ -72,6 +72,15 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
               Centre des Impôts des Petites Entreprises
             </div>
             <div className="font-bold">d'{formData.commune || "Allada"}</div>
+          </div>
+
+          {/* Logo DGI au milieu en haut */}
+          <div className="shrink-0 flex justify-center items-center pt-1">
+            <img
+              src="/dgi_lg.png"
+              alt="Logo DGI"
+              className="h-16 w-16 object-contain"
+            />
           </div>
 
           {/* Bloc droit : titre de l'avis, centré dans l'espace restant */}
@@ -92,20 +101,22 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         {/* DETAILS ET IDENTIFICATION CONTRIBUABLE */}
         <div className="grid grid-cols-12 gap-4 pt-3">
           {/* Côté Gauche : Dates et Rôle */}
-          <div className="col-span-6 space-y-3">
-            <div className="space-y-2 text-[11px]">
-              <div>
-                <span className="font-bold">Date de mise en recouvrement :</span> ……/…../…….
+          <div className="col-span-6 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="space-y-2 text-[11px]">
+                <div>
+                  <span className="font-bold">Date de mise en recouvrement :</span> ……/…../…….
+                </div>
+                <div>
+                  <span className="font-bold">Date de distribution :</span> ……/…../…….
+                </div>
+                <div>
+                  <span className="font-bold">Date de majoration :</span> ……/…../…….
+                </div>
               </div>
-              <div>
-                <span className="font-bold">Date de distribution :</span> ……/…../…….
-              </div>
-              <div>
-                <span className="font-bold">Date de majoration :</span> ……/…../…….
-              </div>
+              <div className="pt-2 text-[11px] font-bold">Rôle : TPS</div>
             </div>
-            <div className="pt-2 text-[11px] font-bold">Rôle : TPS</div>
-            <div className="text-center font-bold text-sm">
+            <div className="text-center font-bold text-sm pb-2">
               ARTICLES : {articleNumbers}
             </div>
           </div>
