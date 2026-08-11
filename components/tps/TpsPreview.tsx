@@ -54,7 +54,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
       <div
         ref={documentRef}
         id={documentId}
-        className="a4-document text-black text-xs space-y-3 relative p-8 bg-white border border-slate-300 leading-relaxed"
+        className="a4-document text-black text-xs space-y-2 relative p-6 bg-white border border-slate-300 leading-normal"
         style={{
           width: "794px",
           minHeight: "1123px",
@@ -151,6 +151,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                       ? `${formData.commune}/${formData.arrondissement}/${formData.quartier}`
                       : "A saisir"}
                     {formData.localisation ? ` /${formData.localisation}` : ""}
+                    {formData.telephone ? ` Tél : ${formData.telephone}` : ""}
                   </td>
                 </tr>
                 <tr>
@@ -320,10 +321,16 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
           <div className="w-16 h-16 border border-slate-300 bg-slate-100 flex items-center justify-center text-[8px] italic text-slate-400">
             [ QR Code ]
           </div>
-          <div className="text-right font-bold">
-            <span>
-              A {formData.commune || "Allada"}, le {formattedDate}
-            </span>
+          <div className="text-right font-bold space-y-4">
+            <div>
+              <span>
+                {formData.commune ? formData.commune.toUpperCase() : "ALLADA"} , le {formattedDate}
+              </span>
+            </div>
+            <div className="pt-2">
+              <div>Le Chef du Service de Gestion</div>
+              <div className="font-bold pt-6">HOPESON HOUNSINOU</div>
+            </div>
           </div>
         </div>
       </div>
