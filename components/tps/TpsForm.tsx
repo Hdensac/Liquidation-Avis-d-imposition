@@ -268,15 +268,14 @@ export const TpsForm: React.FC<TpsFormProps> = ({
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Acomptes Payés <span className="text-red-500">*</span>
+                Acomptes Payés
               </label>
               <input
                 type="number"
                 name="acomptesPayes"
-                value={formData.acomptesPayes || ""}
+                value={formData.acomptesPayes === 0 ? "0" : formData.acomptesPayes || ""}
                 onChange={handleChange}
-                required
-                placeholder="Ex: 10000"
+                placeholder="Ex: 0"
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
