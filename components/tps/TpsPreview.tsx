@@ -54,17 +54,18 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
       <div
         ref={documentRef}
         id={documentId}
-        className="a4-document text-black text-xs space-y-1.5 relative p-4 bg-white border border-slate-300 leading-tight"
+        className="a4-document text-black relative p-4 bg-white border border-slate-300"
         style={{
           width: "794px",
           minHeight: "1123px",
           fontFamily: "'Times New Roman', Times, serif",
+          lineHeight: 1.35,
         }}
       >
         {/* EN-TETE — 3 colonnes : Admin à gauche, Logo DGI au milieu, Titre à droite */}
         <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-2">
           {/* Bloc gauche : identité administrative */}
-          <div className="text-[10px] leading-tight text-left shrink-0 w-[210px]">
+          <div className="text-[11px] text-left shrink-0 w-[220px]" style={{ lineHeight: 1.3 }}>
             <div>République du Bénin</div>
             <div>Ministère de l'Économie et des Finances</div>
             <div>Direction Générale des Impôts</div>
@@ -85,14 +86,14 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
 
           {/* Bloc droit : titre de l'avis, centré dans l'espace restant */}
           <div className="flex-1 text-center pt-1">
-            <div className="font-bold text-sm uppercase tracking-wide">
+            <div className="font-bold text-base uppercase tracking-wide">
               Avis de mise en recouvrement TPS
             </div>
-            <div className="flex justify-center gap-10 font-bold text-[11px] mt-1.5">
+            <div className="flex justify-center gap-10 font-bold text-[12.5px] mt-2">
               <span>ANNEE: {assessmentYear}</span>
               <span>EXERCICE: {exerciseYear}</span>
             </div>
-            <div className="font-bold text-[11px] mt-1">
+            <div className="font-bold text-[12.5px] mt-1">
               Commune de: {formData.commune || "Allada"}
             </div>
           </div>
@@ -103,7 +104,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
           {/* Côté Gauche : Dates et Rôle */}
           <div className="col-span-6 flex flex-col justify-between">
             <div className="space-y-3">
-              <div className="space-y-2 text-[11px]">
+              <div className="space-y-2 text-[12px]">
                 <div>
                   <span className="font-bold">Date de mise en recouvrement :</span> ……/…../…….
                 </div>
@@ -114,21 +115,21 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                   <span className="font-bold">Date de majoration :</span> ……/…../…….
                 </div>
               </div>
-              <div className="pt-2 text-[11px] font-bold">Rôle : TPS</div>
+              <div className="pt-2 text-[12px] font-bold">Rôle : TPS</div>
             </div>
-            <div className="text-center font-bold text-sm pb-2">
+            <div className="text-center font-bold text-base pb-2">
               ARTICLES : {articleNumbers}
             </div>
           </div>
 
           {/* Côté Droit : Identification du Contribuable — fond grisé comme l'original */}
           <div className="col-span-6 border border-black bg-slate-200 p-3">
-            <div className="text-center font-bold border-b border-black pb-1 mb-2 text-[11px]">
+            <div className="text-center font-bold border-b border-black pb-1 mb-2 text-[12px]">
               Identification du contribuable
             </div>
-            <table className="w-full table-fixed text-[10px] border-none">
+            <table className="w-full table-fixed text-[11px] border-none" style={{ lineHeight: 1.35 }}>
               <colgroup>
-                <col className="w-[85px]" />
+                <col className="w-[95px]" />
                 <col />
               </colgroup>
               <tbody>
@@ -151,8 +152,11 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                       ? `${formData.commune}/${formData.arrondissement}/${formData.quartier}`
                       : "A saisir"}
                     {formData.localisation ? ` /${formData.localisation}` : ""}
-                    {formData.telephone ? ` Tél : ${formData.telephone}` : ""}
                   </td>
+                </tr>
+                <tr>
+                  <td className="font-bold py-0.5 align-top">Tél:</td>
+                  <td className="break-words">{formData.telephone || "-"}</td>
                 </tr>
                 <tr>
                   <td className="font-bold py-0.5 align-top">QIP:</td>
@@ -168,19 +172,22 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         </div>
 
         {/* TABLEAU DES RUBRIQUES */}
-        <div className="pt-1">
-          <table className="w-full table-fixed border-collapse border border-black text-[10.5px]">
+        <div className="pt-2">
+          <table
+            className="w-full table-fixed border border-black text-[12px]"
+            style={{ borderCollapse: "collapse", lineHeight: 1.4 }}
+          >
             <colgroup>
               <col className="w-[140px]" />
               <col />
-              <col className="w-[140px]" />
+              <col className="w-[150px]" />
             </colgroup>
             <thead>
               <tr className="bg-slate-300 font-bold border-b border-black">
-                <th className="border-r border-black p-1 text-left" colSpan={2}>
+                <th className="border-r border-black p-1.5 text-left" colSpan={2}>
                   Rubriques
                 </th>
-                <th className="p-1 text-right">Montant</th>
+                <th className="p-1.5 text-right">Montant</th>
               </tr>
             </thead>
             <tbody>
@@ -188,98 +195,98 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
               <tr>
                 <td
                   rowSpan={6}
-                  className="border-r border-b border-black p-0.5 align-middle font-bold text-center"
+                  className="border-r border-b border-black p-1 align-middle font-bold text-center"
                 >
                   Chiffre d'Affaires
                 </td>
-                <td className="border-r border-b border-black p-0.5">Exportation de biens</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td className="border-r border-b border-black p-1">Exportation de biens</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr>
-                <td className="border-r border-b border-black p-0.5">Vente de biens</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td className="border-r border-b border-black p-1">Vente de biens</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr>
-                <td className="border-r border-b border-black p-0.5">Exportation de services</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td className="border-r border-b border-black p-1">Exportation de services</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr>
-                <td className="border-r border-b border-black p-0.5">Autres activités</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">
+                <td className="border-r border-b border-black p-1">Autres activités</td>
+                <td className="border-b border-black p-1 text-right font-mono">
                   {formatMoney(formData.montantAutresActivites)}
                 </td>
               </tr>
               <tr>
-                <td className="border-r border-b border-black p-0.5">Transport</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td className="border-r border-b border-black p-1">Transport</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr className="font-bold">
-                <td className="border-r border-b border-black p-0.5">Total</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">
+                <td className="border-r border-b border-black p-1">Total</td>
+                <td className="border-b border-black p-1 text-right font-mono">
                   {formatMoney(formData.montantAutresActivites)}
                 </td>
               </tr>
 
               {/* TPS */}
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5">
+                <td colSpan={2} className="border-r border-b border-black p-1">
                   TPS
                 </td>
-                <td className="border-b border-black p-0.5 text-right font-mono">
+                <td className="border-b border-black p-1 text-right font-mono">
                   {formatMoney(calculations.tpsCalcule)}
                 </td>
               </tr>
 
               {/* Ligne vide (comme sur le document officiel) */}
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5 h-4">&nbsp;</td>
-                <td className="border-b border-black p-0.5">&nbsp;</td>
+                <td colSpan={2} className="border-r border-b border-black p-1 h-5">&nbsp;</td>
+                <td className="border-b border-black p-1">&nbsp;</td>
               </tr>
 
               {/* PORTB */}
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5">
+                <td colSpan={2} className="border-r border-b border-black p-1">
                   PORTB
                 </td>
-                <td className="border-b border-black p-0.5 text-right font-mono">
+                <td className="border-b border-black p-1 text-right font-mono">
                   {formatMoney(calculations.portb)}
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5">Pénalités</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td colSpan={2} className="border-r border-b border-black p-1">Pénalités</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5">Amendes</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td colSpan={2} className="border-r border-b border-black p-1">Amendes</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-0.5">PEO</td>
-                <td className="border-b border-black p-0.5 text-right font-mono">0</td>
+                <td colSpan={2} className="border-r border-b border-black p-1">PEO</td>
+                <td className="border-b border-black p-1 text-right font-mono">0</td>
               </tr>
 
               {/* TOTAUX FINAUX */}
               <tr className="font-bold">
-                <td colSpan={2} className="border-r border-b border-black p-1">
+                <td colSpan={2} className="border-r border-b border-black p-1.5">
                   Impôt du
                 </td>
-                <td className="border-b border-black p-1 text-right font-mono">
+                <td className="border-b border-black p-1.5 text-right font-mono">
                   {formatMoney(calculations.impotDu)}
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} className="border-r border-b border-black p-1">
+                <td colSpan={2} className="border-r border-b border-black p-1.5">
                   Acomptes payés
                 </td>
-                <td className="border-b border-black p-1 text-right font-mono">
+                <td className="border-b border-black p-1.5 text-right font-mono">
                   {formatMoney(formData.acomptesPayes)}
                 </td>
               </tr>
               <tr className="font-bold">
-                <td colSpan={2} className="border-r border-black p-1">
+                <td colSpan={2} className="border-r border-black p-1.5">
                   Reste dû
                 </td>
-                <td className="border-black p-1 text-right font-mono">
+                <td className="border-black p-1.5 text-right font-mono">
                   {formatMoney(calculations.resteDu)}
                 </td>
               </tr>
@@ -288,9 +295,9 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         </div>
 
         {/* AVIS AUX CONTRIBUABLES */}
-        <div className="border border-black p-2 text-[9px] leading-tight">
-          <div className="font-bold uppercase mb-0.5">Avis aux contribuables</div>
-          <ul className="space-y-0.5 list-disc pl-3">
+        <div className="border border-black p-2 text-[10px] mt-2" style={{ lineHeight: 1.3 }}>
+          <div className="font-bold uppercase mb-1">Avis aux contribuables</div>
+          <ul className="space-y-1 list-disc pl-4">
             <li>
               Les demandes en décharge ou réduction doivent être adressées au Directeur Général des
               Impôts dans les trois mois qui suivent la date de mise en recouvrement inscrite sur l'avis.
@@ -310,26 +317,26 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         </div>
 
         {/* MENTION LEGALE CENTREE */}
-        <div className="text-center font-bold text-[10px] pt-1">
+        <div className="text-center font-bold text-[11px] pt-2">
           Le présent avis de mise en recouvrement est rendu exécutoire en vertu des
           <br />
           dispositions des articles 596 et 597 du Code général des impôts.
         </div>
 
         {/* FOOTER & DATE D'EMISSION */}
-        <div className="pt-2 flex justify-between items-end text-[10px]">
+        <div className="pt-2 flex justify-between items-end text-[11px]">
           <div className="w-16 h-16 border border-slate-300 bg-slate-100 flex items-center justify-center text-[8px] italic text-slate-400">
             [ QR Code ]
           </div>
-          <div className="text-right font-bold space-y-4">
+          <div className="text-right font-bold space-y-3">
             <div>
               <span>
                 {formData.commune ? formData.commune.toUpperCase() : "ALLADA"} , le {formattedDate}
               </span>
             </div>
-            <div className="pt-2">
+            <div className="pt-1">
               <div>Le Chef du Service de Gestion</div>
-              <div className="font-bold pt-6">HOPESON HOUNSINOU</div>
+              <div className="font-bold pt-4">HOPESON HOUNSINOU</div>
             </div>
           </div>
         </div>
