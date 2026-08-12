@@ -66,11 +66,11 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-2">
           {/* Bloc gauche : identité administrative */}
           <div className="text-[11px] text-left shrink-0 w-[220px]" style={{ lineHeight: 1.3 }}>
-            <div>République du Bénin</div>
+            <div>        République du Bénin</div>
             <div>Ministère de l'Économie et des Finances</div>
-            <div>Direction Générale des Impôts</div>
+            <div>      Direction Générale des Impôts</div>
             <div className="font-bold mt-1">
-              Centre des Impôts des Petites Entreprises
+                Centre des Impôts des Petites Entreprises
             </div>
             <div className="font-bold">d'{formData.commune || "Allada"}</div>
           </div>
@@ -325,8 +325,12 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
 
         {/* FOOTER & DATE D'EMISSION */}
         <div className="pt-2 flex justify-between items-end text-[11px]">
-          <div className="w-16 h-16 border border-slate-300 bg-slate-100 flex items-center justify-center text-[8px] italic text-slate-400">
-            [ QR Code ]
+          <div className="w-16 h-16 flex items-center justify-center">
+            <img
+              src="/qrcode.png"
+              alt="QR Code"
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <div className="text-right font-bold space-y-3">
             <div>
