@@ -345,7 +345,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
             </div>
             <div>
               <div>Le Chef du Service de Gestion</div>
-              <div className="font-bold pt-3">HOPESON HOUNSINOU</div>
+              <div className="font-bold pt-12">HOPESON HOUNSINOU</div>
             </div>
           </div>
         </div>
