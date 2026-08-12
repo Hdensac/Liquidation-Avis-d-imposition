@@ -63,11 +63,11 @@ export default function HeaderClient({ user }: HeaderClientProps) {
           {/* BRAND */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow">
-              AF
+              CA
             </div>
             <div>
               <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">CIPE-ALLADA</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">Administration Fiscale</div>
+              <div className="text-[10px] text-gray-400 mt-0.5"></div>
             </div>
           </div>
 
