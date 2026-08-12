@@ -330,8 +330,12 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
 
         {/* FOOTER & DATE D'EMISSION */}
         <div className="pt-1.5 flex justify-between items-end text-[11.5px]">
-          <div className="w-14 h-14 border border-slate-300 bg-slate-100 flex items-center justify-center text-[8px] italic text-slate-400">
-            [ QR Code ]
+          <div className="w-14 h-14 flex items-center justify-center">
+            <img
+              src="/qrcode.png"
+              alt="QR Code"
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <div className="text-right font-bold space-y-2">
             <div>
