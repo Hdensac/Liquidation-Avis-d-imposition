@@ -77,7 +77,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
             <div className="font-bold mt-1">
               Centre des Impôts des Petites Entreprises
             </div>
-            <div className="font-bold">d'{formData.commune || "Allada"}</div>
+            <div className="font-bold">d'Allada </div>
           </div>
 
           {/* Logo DGI au milieu en haut */}
