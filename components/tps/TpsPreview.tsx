@@ -134,7 +134,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
             </div>
             <table className="w-full table-fixed text-[11.5px] border-none" style={{ lineHeight: 1.3 }}>
               <colgroup>
-                <col className="w-[95px]" />
+                <col className="w-[125px]" />
                 <col />
               </colgroup>
               <tbody>
@@ -143,12 +143,8 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                   <td className="font-mono break-words">{formData.ifuNc || "A saisir"}</td>
                 </tr>
                 <tr>
-                  <td className="font-bold py-0.5 align-top">
-                    Nom ou Raison Sociale:
-                  </td>
-                  <td className="font-bold break-words">
-                    {formData.nomRaisonSociale || "A saisir"}
-                  </td>
+                  <td className="font-bold py-0.5 align-top whitespace-nowrap">Nom ou Raison Sociale :</td>
+                  <td className="font-bold break-words">{formData.nomRaisonSociale || "A saisir"}</td>
                 </tr>
                 <tr>
                   <td className="font-bold py-0.5 align-top">Adresse:</td>
