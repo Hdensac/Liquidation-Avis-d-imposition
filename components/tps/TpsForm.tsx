@@ -239,7 +239,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Année de début d'exercice <span className="text-red-500">*</span>
+                Année  d'exercice <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
