@@ -321,7 +321,17 @@ export const TpsForm: React.FC<TpsFormProps> = ({
         </div>
 
         {/* BOUTON DE SOUMISSION */}
-        <div className="pt-2 flex justify-end">
+        <div className="pt-2 flex justify-end gap-3">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="w-full md:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-semibold px-6 py-3 rounded-lg shadow-sm transition-all disabled:opacity-50"
+            >
+              Annuler
+            </button>
+          )}
           <button
             type="submit"
             disabled={isSubmitting}

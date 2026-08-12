@@ -413,6 +413,7 @@ export default function TpsPendingTable() {
               onChange={setEditFormData}
               onReset={() => {}}
               onSubmit={handleEditSubmit}
+              onCancel={() => setIsEditOpen(false)}
               isSubmitting={isSaving}
             />
           </div>
