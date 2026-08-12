@@ -10,6 +10,7 @@ interface TpsFormProps {
   onChange: (data: TpsInput) => void;
   onReset: () => void;
   onSubmit: () => void;
+  onCancel?: () => void;
   isSubmitting?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({
   onChange,
   onReset,
   onSubmit,
+  onCancel,
   isSubmitting = false,
 }) => {
   const calculations = buildTpsCalculations({
