@@ -323,7 +323,7 @@ export default function TpsPendingTable() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
               Voulez-vous valider définitivement la fiche TPS de{" "}
-              <strong className="text-slate-900">
+              <strong className="text-slate-900 break-words inline-block max-w-full">
                 {selectedLiquidation.contribuable?.nom_raison_sociale}
               </strong>{" "}
               ? Cette action générera un numéro d'article dans le rôle communal actif de{" "}
@@ -360,7 +360,9 @@ export default function TpsPendingTable() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
               Êtes-vous sûr de vouloir annuler la fiche de{" "}
-              <strong>{selectedLiquidation.contribuable?.nom_raison_sociale}</strong> (Ref:{" "}
+              <strong className="text-slate-900 break-words inline-block max-w-full">
+                {selectedLiquidation.contribuable?.nom_raison_sociale}
+              </strong> (Ref:{" "}
               {selectedLiquidation.reference_tps}) ? Cette opération est irréversible.
             </p>
             <div className="flex justify-end gap-3 pt-2">

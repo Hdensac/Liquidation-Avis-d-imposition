@@ -70,7 +70,7 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         {/* EN-TETE — 3 colonnes : Admin à gauche, Logo DGI au milieu, Titre à droite */}
         <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-1.5">
           {/* Bloc gauche : identité administrative */}
-          <div className="text-[10px] text-center font-bold shrink-0 w-[230px]" style={{ lineHeight: 1.25 }}>
+          <div className="text-[10px] text-center  shrink-0 w-[230px]" style={{ lineHeight: 1.25 }}>
             <div>REPUBLIQUE DU BENIN</div>
             <div></div>
             <div>MINISTERE DE L'ECONOMIE ET DES FINANCES</div>
