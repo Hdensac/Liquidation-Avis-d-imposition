@@ -70,14 +70,14 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
         {/* EN-TETE — 3 colonnes : Admin à gauche, Logo DGI au milieu, Titre à droite */}
         <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-1.5">
           {/* Bloc gauche : identité administrative */}
-          <div className="text-[11.5px] text-left shrink-0 w-[220px]" style={{ lineHeight: 1.25 }}>
-            <div>République du Bénin</div>
-            <div>Ministère de l'Économie et des Finances</div>
-            <div>Direction Générale des Impôts</div>
-            <div className="font-bold mt-1">
-              Centre des Impôts des Petites Entreprises
-            </div>
-            <div className="font-bold">d'Allada </div>
+          <div className="text-[10px] text-center font-bold shrink-0 w-[230px]" style={{ lineHeight: 1.25 }}>
+            <div>REPUBLIQUE DU BENIN</div>
+            <div></div>
+            <div>MINISTERE DE L'ECONOMIE ET DES FINANCES</div>
+            <div></div>
+            <div>DIRECTION GENERALE DES IMPOTS</div>
+            <div></div>
+            <div>CENTRE DES IMPOTS DES PETITES ENTREPRISES D'ALLADA</div>
           </div>
 
           {/* Logo DGI au milieu en haut */}
