@@ -3,7 +3,7 @@ import HeaderClient from "./HeaderClient";
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Administration fiscale – Tableau de bord",
+  title: "Administration fiscale – Tableau de bord ",
 };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
