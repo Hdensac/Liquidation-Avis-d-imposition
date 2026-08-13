@@ -40,7 +40,7 @@ export const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
     "Tori-Gare",
   ],
   ZE: [
-    "Adja",
+    "Adjan",
     "Dawè",
     "Djigbé",
     "Dodji-Bata",
