@@ -36,7 +36,7 @@ export default async function UnauthorizedPage() {
         </h1>
 
         <p className="text-slate-300 text-sm leading-relaxed mb-8">
-          Désolé, le système ne reconnaît pas votre rôle actuel. Votre compte a bien été créé, mais un administrateur doit vous attribuer un rôle (<code className="text-amber-400 font-mono text-xs">ADMIN</code> ou <code className="text-amber-400 font-mono text-xs">AGENT</code>) avant que vous ne puissiez accéder à la plateforme.
+          Désolé, le système ne reconnaît pas  actuellement . Votre compte a bien été créé, mais un administrateur doit vous donnez l'autorisation avant que vous ne puissiez accéder à la plateforme.
         </p>
 
         <div className="bg-slate-900/60 border border-slate-700/30 rounded-xl p-4 mb-8 text-left">
@@ -46,7 +46,7 @@ export default async function UnauthorizedPage() {
           <ul className="text-xs text-slate-300 space-y-2 list-disc list-inside">
             <li>Contactez votre administrateur système.</li>
             <li>Fournissez-lui l'adresse email de votre compte.</li>
-            <li>Attendez l'attribution de votre rôle puis actualisez la page.</li>
+            <li>Attendez l'attribution de votre autorisation puis actualisez la page.</li>
           </ul>
         </div>
 
