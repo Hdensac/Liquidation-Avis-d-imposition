@@ -237,10 +237,9 @@ export default function TpsPendingTable() {
               <tr>
                 <th className="px-6 py-4 text-left">IFU / NC</th>
                 <th className="px-6 py-4 text-left">Raison Sociale</th>
-                <th className="px-6 py-4 text-left">Commune</th>
                 <th className="px-6 py-4 text-left">Référence</th>
                 <th className="px-6 py-4 text-right">Impôt dû</th>
-                <th className="px-6 py-4 text-right">Reste dû</th>
+                <th className="px-6 py-4 text-left">Créé le</th>
                 <th className="px-6 py-4 text-center">Actions</th>
               </tr>
             </thead>
@@ -253,15 +252,18 @@ export default function TpsPendingTable() {
                   <td className="px-6 py-4 font-semibold text-slate-900">
                     {liq.contribuable?.nom_raison_sociale}
                   </td>
-                  <td className="px-6 py-4 capitalize">
-                    {liq.contribuable?.commune.toLowerCase()}
-                  </td>
                   <td className="px-6 py-4 font-mono text-xs">{liq.reference_tps}</td>
                   <td className="px-6 py-4 text-right font-mono font-medium">
                     {liq.impot_du.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 text-right font-mono font-bold text-amber-600">
-                    {liq.reste_du.toLocaleString()}
+                  <td className="px-6 py-4 text-slate-600 font-mono text-xs">
+                    {liq.created_at ? new Date(liq.created_at).toLocaleDateString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    }) : "—"}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -292,7 +294,7 @@ export default function TpsPendingTable() {
               ))}
               {filteredLiquidations.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">
                     Aucune liquidation TPS en attente de validation.
                   </td>
                 </tr>
