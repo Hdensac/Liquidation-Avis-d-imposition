@@ -214,6 +214,14 @@ export default function HistoryTable() {
                         )}
                         Avis PDF
                       </button>
+                      {!hasBeenDownloaded && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold whitespace-nowrap border border-gray-200 dark:border-gray-700 shadow-sm"
+                          title="Jamais téléchargé"
+                        >
+                          📥 0
+                        </span>
+                      )}
                       {hasBeenDownloaded && (
                         <span
                           className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold whitespace-nowrap border border-emerald-200/50 shadow-sm"
