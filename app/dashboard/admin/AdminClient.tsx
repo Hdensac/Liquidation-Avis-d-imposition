@@ -672,7 +672,7 @@ function RoleSettingsPanel() {
                         Verrouillé : rôle déjà émis pour {year}
                       </span>
                     ) : settings[commune] ? (
-                      <span className="text-emerald-700 dark:text-emerald-300 font-medium">Configuré</span>
+                      <span className="text-emerald-700 dark:text-emerald-300 font-medium">Configuré </span>
                     ) : (
                       <span className="text-slate-500 dark:text-slate-400">Défaut : 1</span>
                     )}
