@@ -107,12 +107,19 @@ export async function fetchAuditLogs({
   }
 }
 
+import { headers } from "next/headers";
+
 /** Invite un nouvel agent par e-mail */
 export async function inviteNewAgent(email: string, fullname: string) {
   try {
     const adminUser = await ensureAdmin();
     const adminSupabase = createAdminClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    
+    // Détecter dynamiquement l'URL du site en fonction de la requête courante
+    const headersList = headers();
+    const host = headersList.get("host") || "localhost:3000";
+    const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+    const siteUrl = `${protocol}://${host}`;
 
     const { data, error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${siteUrl}/auth/confirm`,
