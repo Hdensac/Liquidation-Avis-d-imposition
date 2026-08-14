@@ -458,20 +458,45 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     pdf.setFontSize(fontSize);
     const wrappedLine = wrap(pdf, line, widths[3] - 4);
     wrappedLine.forEach((subLine: string) => {
-      finalLocLines.push(subLine);
-      finalLocFontSizes.push(fontSize);
+      fin  // Déterminer s'il faut fusionner verticalement la description (vrai si FNB, faux si FB)
+  const isBati = details.liquidation.type_bien === "BATI";
+  const mergeDescription = !isBati;
+
+  // Calcul du bloc de description FNB fusionné
+  const sup = toNumber(details.liquidation.superficie, 0);
+  const comm = titleCase(details.contribuable.commune || "");
+  const arrt = titleCase(details.contribuable.arrondissement || "");
+  const quart = titleCase(details.contribuable.quartier || "");
+  
+  const rawDescLines = [
+    "PARCELLE DE",
+    `${sup}m² sise a`,
+    comm,
+    arrt ? `/ ${arrt}` : "",
+    quart ? `/ ${quart}` : ""
+  ].filter(Boolean);
+
+  const finalDescLines: string[] = [];
+  const finalDescFontSizes: number[] = [];
+  rawDescLines.forEach(line => {
+    const fontSize = fitCellFontSize(line, widths[4] - 4);
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(fontSize);
+    const wrappedLine = wrap(pdf, line, widths[4] - 4);
+    wrappedLine.forEach((subLine: string) => {
+      finalDescLines.push(subLine);
+      finalDescFontSizes.push(fontSize);
     });
   });
   pdf.setFontSize(10);
 
-  // 2. Hauteur "naturelle" de chaque ligne, calculée à partir de toutes les colonnes
-  //    sauf la Localisation qui reste fusionnée verticalement.
+  // 2. Hauteur "naturelle" de chaque ligne
   const rowHeights = rows.map((row) => {
     const values = [
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      sanitizeText(row.description), 
+      mergeDescription ? "" : sanitizeText(row.description), // On n'inclut la description individuelle que si non fusionné (FB)
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
@@ -483,6 +508,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
     const wrapped = values.map((val, i) => {
       const idx = colIdxs[i];
+      if (idx === 4 && mergeDescription) return [""]; // Pas de calcul de hauteur individuelle pour description si fusionné
       if (idx === 2 || idx === 4) return wrap(pdf, val, widths[idx] - 2);
       return [String(val)];
     });
@@ -492,17 +518,20 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
   let totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 3. Si la Localisation (cellule fusionnée) a besoin de plus de place
+  // 3. Ajustement de hauteur si Localisation ou Description (lorsque fusionnée) a besoin de plus de place
   const locNeeded = finalLocLines.length * 4.0 + 6;
-  if (locNeeded > totalTableHeight) {
-    const factor = locNeeded / totalTableHeight;
+  const descNeeded = mergeDescription ? (finalDescLines.length * 4.0 + 6) : 0;
+  const neededMerged = Math.max(locNeeded, descNeeded);
+
+  if (neededMerged > totalTableHeight) {
+    const factor = neededMerged / totalTableHeight;
     for (let i = 0; i < rowHeights.length; i++) {
       rowHeights[i] = rowHeights[i] * factor;
     }
-    totalTableHeight = locNeeded;
+    totalTableHeight = neededMerged;
   }
 
-  // 4. Dessin des lignes standards (Description incluse !)
+  // 4. Dessin des lignes standards
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -510,8 +539,8 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
-      "",
-      sanitizeText(row.description),
+      "", // Localisation reste vide car fusionnée
+      mergeDescription ? "" : sanitizeText(row.description), // Vide si fusionnée
       formatNumber(row.base, true),
       row.nature_impot === "P-ORTB" ? "Forfait" : `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
@@ -523,7 +552,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     let currentX = MAIN_X;
 
     values.forEach((val, idx) => {
-      if (idx === 3) {
+      if (idx === 3 || (idx === 4 && mergeDescription)) {
         currentX += widths[idx];
         return;
       }
@@ -555,7 +584,6 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
   // 5. Dessin de la cellule fusionnée de la Localisation
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
-
   pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
   const locTextHeight = finalLocLines.length * 4.0;
   const locStartY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3.0;
@@ -565,6 +593,20 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     pdf.text(line, locX + widths[3] / 2, locStartY + i * 4.0, { align: "center" });
   });
   pdf.setFontSize(10);
+
+  // 6. Dessin de la cellule fusionnée de la Description (UNIQUEMENT pour FNB / NON_BATI)
+  if (mergeDescription) {
+    const descX = locX + widths[3];
+    pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
+    const descTextHeight = finalDescLines.length * 4.0;
+    const descStartY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
+    finalDescLines.forEach((line, i) => {
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(finalDescFontSizes[i] || 10);
+      pdf.text(line, descX + widths[4] / 2, descStartY + i * 4.0, { align: "center" });
+    });
+    pdf.setFontSize(10);
+  }
 
   return y;
 }
