@@ -332,13 +332,30 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number, dgiLogo: H
 function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
   const commune = normalizeCommune(details.role.commune);
   const roleLabel = `Role N°${details.role.numero_role}/${commune}/${details.role.annee}`;
-  const address = formatDescriptionBien({
-    superficie: toNumber(details.liquidation.superficie),
-    superficieImposable: details.liquidation.superficie_imposable ?? null,
-    commune: details.contribuable.commune,
-    arrondissement: details.contribuable.arrondissement,
-    quartier: details.contribuable.quartier,
-  });
+  
+  const isBati = details.liquidation.type_bien === "BATI";
+  let address = "";
+  
+  if (isBati) {
+    const locStr = [
+      normalizeCommune(details.contribuable.commune),
+      normalizeCommune(details.contribuable.arrondissement),
+      normalizeCommune(details.contribuable.quartier),
+    ].filter(Boolean).join("/");
+    
+    const descLibre = (details.liquidation.description || "").trim().toUpperCase();
+    address = descLibre 
+      ? `${descLibre} SISE A ${locStr}`
+      : `PROPRIETE SISE A ${locStr}`;
+  } else {
+    address = formatDescriptionBien({
+      superficie: toNumber(details.liquidation.superficie),
+      superficieImposable: details.liquidation.superficie_imposable ?? null,
+      commune: details.contribuable.commune,
+      arrondissement: details.contribuable.arrondissement,
+      quartier: details.contribuable.quartier,
+    });
+  }
 
   pdf.setFont("times", "bold");
   pdf.setFontSize(9);
@@ -452,18 +469,40 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
 
   // 2. Traitement personnalisé de la Description (Ligne par Ligne, cellule fusionnée verticalement)
+  const isBati = details.liquidation.type_bien === "BATI";
   const sup = toNumber(details.liquidation.superficie, 0);
   const comm = titleCase(details.contribuable.commune || "");
   const arrt = titleCase(details.contribuable.arrondissement || "");
   const quart = titleCase(details.contribuable.quartier || "");
 
-  const rawDescLines = [
-    "PARCELLE DE",
-    `${sup}m² sise a`,
-    comm,
-    arrt ? `/ ${arrt}` : "",
-    quart ? `/ ${quart}` : ""
-  ].filter(Boolean);
+  let rawDescLines: string[] = [];
+  if (isBati) {
+    const descLibre = (details.liquidation.description || "").trim();
+    if (descLibre) {
+      rawDescLines = [
+        descLibre.toUpperCase(),
+        "sise a",
+        comm,
+        arrt ? `/ ${arrt}` : "",
+        quart ? `/ ${quart}` : ""
+      ].filter(Boolean);
+    } else {
+      rawDescLines = [
+        "PROPRIETE DE",
+        comm,
+        arrt ? `/ ${arrt}` : "",
+        quart ? `/ ${quart}` : ""
+      ].filter(Boolean);
+    }
+  } else {
+    rawDescLines = [
+      "PARCELLE DE",
+      `${sup}m² sise a`,
+      comm,
+      arrt ? `/ ${arrt}` : "",
+      quart ? `/ ${quart}` : ""
+    ].filter(Boolean);
+  }
 
   const finalDescLines: string[] = [];
   const finalDescFontSizes: number[] = [];
