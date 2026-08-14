@@ -318,35 +318,38 @@ export default function PendingLiquidationsTable() {
 
       {/* ─── Avertissements limite d'articles par rôle ─── */}
       {activeRoles
-        .filter((r) => r.dernier_article >= 95)
-        .map((r) => (
-          <div
-            key={r.id}
-            className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-              r.dernier_article >= 100
-                ? "bg-red-50 border-red-300 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-300"
-                : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300"
-            }`}
-          >
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div>
-              {r.dernier_article >= 100 ? (
-                <>
-                  <span className="font-bold">Rôle #{r.numero_role} – {r.commune} bloqué :</span>{" "}
-                  Le numéro d&apos;article a atteint <strong>100/100</strong>. Vous devez{" "}
-                  <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider
-                  de nouveaux avis.
-                </>
-              ) : (
-                <>
-                  <span className="font-bold">Rôle #{r.numero_role} – {r.commune} :</span>{" "}
-                  Il reste <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur
-                  100. Pensez à clôturer ce rôle bientôt.
-                </>
-              )}
+        .filter((r) => r.dernier_article >= 93)
+        .map((r) => {
+          const willExceed = r.dernier_article + 4 > 100;
+          return (
+            <div
+              key={r.id}
+              className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+                willExceed
+                  ? "bg-red-50 border-red-300 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-300"
+                  : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300"
+              }`}
+            >
+              <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                {willExceed ? (
+                  <>
+                    <span className="font-bold">Rôle #{r.numero_role} – {r.commune} bloqué :</span>{" "}
+                    Le numéro d&apos;article actuel est de <strong>{r.dernier_article}/100</strong>.
+                    Une validation TFU crée 4 articles, ce qui dépasserait 100. Vous devez{" "}
+                    <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold">Rôle #{r.numero_role} – {r.commune} :</span>{" "}
+                    Il reste seulement <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
+                    Pensez à clôturer ce rôle bientôt.
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="relative flex-1 min-w-[260px]">
@@ -387,6 +390,9 @@ export default function PendingLiquidationsTable() {
           <tbody>
             {filteredLiquidations.map((liq) => {
               const c = getContribuable(liq.contribuable);
+              const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+              const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+
               return (
                 <tr
                   key={liq.id}
@@ -401,7 +407,17 @@ export default function PendingLiquidationsTable() {
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <button
                         onClick={() => handleValidate(liq.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded text-xs transition transform hover:scale-105"
+                        disabled={isBlocked}
+                        className={`font-medium py-1.5 px-3 rounded text-xs transition transform ${
+                          isBlocked
+                            ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed opacity-60"
+                            : "bg-blue-600 hover:bg-blue-700 text-white hover:scale-105"
+                        }`}
+                        title={
+                          isBlocked
+                            ? `Le numéro d'article dépasserait 100 (${activeRole.dernier_article} actuels, +4 requis)`
+                            : "Valider la liquidation"
+                        }
                       >
                         Valider
                       </button>

@@ -256,9 +256,9 @@ BEGIN
   JOIN public.recouvrements r ON ar.recouvrement_id = r.id
   WHERE r.role_id = v_role_id;
 
-  -- Block if article limit is reached
-  IF v_last_article_num >= 100 THEN
-    RAISE EXCEPTION 'Le numéro d''article ne peut pas dépasser 100. Veuillez clôturer le rôle actuel de % et en créer un nouveau.', v_contrib.commune;
+  -- Block if article limit will be exceeded (4 articles generated)
+  IF v_last_article_num + 4 > 100 THEN
+    RAISE EXCEPTION 'Le numéro d''article ne peut pas dépasser 100. (Actuel: %, requis: 4). Veuillez clôturer le rôle actuel de % et en créer un nouveau.', v_last_article_num, v_contrib.commune;
   END IF;
 
   -- Créer le recouvrement

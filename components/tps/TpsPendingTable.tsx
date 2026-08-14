@@ -223,33 +223,37 @@ export default function TpsPendingTable() {
       {/* ─── Avertissements limite d'articles par rôle TPS ─── */}
       {activeRolesTps
         .filter((r) => r.dernier_article >= 95)
-        .map((r) => (
-          <div
-            key={r.id}
-            className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-              r.dernier_article >= 100
-                ? "bg-red-50 border-red-300 text-red-800"
-                : "bg-amber-50 border-amber-300 text-amber-800"
-            }`}
-          >
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div>
-              {r.dernier_article >= 100 ? (
-                <>
-                  <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} bloqué :</span>{" "}
-                  Le numéro d&apos;article a atteint <strong>100/100</strong>. Vous devez{" "}
-                  <strong>clôturer ce rôle TPS</strong> avant de valider de nouveaux avis.
-                </>
-              ) : (
-                <>
-                  <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} :</span>{" "}
-                  Il reste <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
-                  Pensez à clôturer ce rôle bientôt.
-                </>
-              )}
+        .map((r) => {
+          const willExceed = r.dernier_article + 2 > 100;
+          return (
+            <div
+              key={r.id}
+              className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+                willExceed
+                  ? "bg-red-50 border-red-300 text-red-800"
+                  : "bg-amber-50 border-amber-300 text-amber-800"
+              }`}
+            >
+              <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                {willExceed ? (
+                  <>
+                    <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} bloqué :</span>{" "}
+                    Le numéro d&apos;article actuel est de <strong>{r.dernier_article}/100</strong>.
+                    Une validation TPS crée 2 articles, ce qui dépasserait 100. Vous devez{" "}
+                    <strong>clôturer ce rôle TPS</strong> et en créer un nouveau avant de pouvoir valider.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} :</span>{" "}
+                    Il reste seulement <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
+                    Pensez à clôturer ce rôle bientôt.
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="relative flex-1 min-w-[280px]">
@@ -289,36 +293,52 @@ export default function TpsPendingTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
-              {filteredLiquidations.map((liq) => (
-                <tr key={liq.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 font-mono font-medium text-slate-600">
-                    {liq.contribuable?.ifu_nc}
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-slate-900">
-                    {liq.contribuable?.nom_raison_sociale}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs">{liq.reference_tps}</td>
-                  <td className="px-6 py-4 text-right font-mono font-medium">
-                    {liq.impot_du.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 font-mono text-xs">
-                    {liq.created_at ? new Date(liq.created_at).toLocaleDateString("fr-FR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    }) : "—"}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleOpenValidate(liq)}
-                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition"
-                      >
-                        <CheckSquare className="w-3.5 h-3.5" />
-                        Valider
-                      </button>
+              {filteredLiquidations.map((liq) => {
+                const activeRole = activeRolesTps.find(
+                  (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+                );
+                const isBlocked = activeRole && activeRole.dernier_article + 2 > 100;
+
+                return (
+                  <tr key={liq.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 font-mono font-medium text-slate-600">
+                      {liq.contribuable?.ifu_nc}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-900">
+                      {liq.contribuable?.nom_raison_sociale}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs">{liq.reference_tps}</td>
+                    <td className="px-6 py-4 text-right font-mono font-medium">
+                      {liq.impot_du.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-mono text-xs">
+                      {liq.created_at ? new Date(liq.created_at).toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      }) : "—"}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleOpenValidate(liq)}
+                          disabled={isBlocked}
+                          className={`inline-flex items-center gap-1 text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition ${
+                            isBlocked
+                              ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          }`}
+                          title={
+                            isBlocked
+                              ? `Le numéro d'article dépasserait 100 (${activeRole.dernier_article} actuels, +2 requis)`
+                              : "Valider la fiche"
+                          }
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" />
+                          Valider
+                        </button>
                       <button
                         onClick={() => handleOpenEdit(liq)}
                         className="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition"
@@ -328,7 +348,8 @@ export default function TpsPendingTable() {
                       </button>
                       <button
                         onClick={() => handleOpenCancel(liq)}
-                        className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition"
+                        className="inline-flex items-center gap-1 bg-red-650 hover:bg-red-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition"
+                        style={{ backgroundColor: "#dc2626" }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         Annuler
@@ -336,7 +357,7 @@ export default function TpsPendingTable() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
               {filteredLiquidations.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">
