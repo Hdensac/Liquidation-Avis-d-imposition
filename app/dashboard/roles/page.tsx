@@ -237,7 +237,7 @@ export default function RolesPage() {
       </div>
 
       {/* --- TABLEAU DES ROLES --- */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-visible">
         {pageLoading ? (
           <div className="py-16 text-center text-gray-500 dark:text-gray-400">
             <RefreshCw size={28} className="animate-spin mx-auto mb-3 text-indigo-400" />
