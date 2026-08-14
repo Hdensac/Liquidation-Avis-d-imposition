@@ -248,7 +248,7 @@ export default function RolesPage() {
             Aucun role disponible pour le moment.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-visible">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -315,7 +315,7 @@ export default function RolesPage() {
                           </button>
 
                           {openDropdownId === role.id && (
-                            <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xl py-1 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div className="absolute right-0 bottom-full mb-1.5 w-52 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xl py-1 z-50 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
                               <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-800">
                                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Exports PDF</p>
                               </div>
