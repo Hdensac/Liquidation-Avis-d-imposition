@@ -2,10 +2,16 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  
+  // Détecter dynamiquement l'URL du site en fonction de la requête courante
+  const headersList = headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+  const siteUrl = `${protocol}://${host}`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -95,7 +101,12 @@ export async function signOut() {
 export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
   const email = formData.get("email") as string;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  
+  // Détecter dynamiquement l'URL du site
+  const headersList = headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+  const siteUrl = `${protocol}://${host}`;
 
   if (!email) {
     return { error: "Veuillez renseigner votre adresse email." };
