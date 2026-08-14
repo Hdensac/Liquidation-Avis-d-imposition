@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { fetchAllRoles, closeActiveRole, fetchRoleDetails, getRoleCouvertureData } from "../../../actions/liquidationActions";
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
-import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
+//import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
 import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText, ChevronDown } from "lucide-react";
 //import { generateRolePdf } from "../../../lib/generateRolePdf"; // Ajuste le chemin selon ton projet
 import { generateRolePdf } from "@/utils/rolePdfGenerator";
