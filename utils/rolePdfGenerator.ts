@@ -22,16 +22,32 @@ export function generateRolePdf(role: RoleSummary, items: RoleDetailItem[]) {
   const doc = new jsPDF();
 
   // En-tête / Titre
+  const isActif = role.status === "ACTIF";
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(sanitizePdfText(`RAPPORT DE CLÔTURE DU RÔLE #${role.numero_role}`), 14, 20);
+  const title = isActif 
+    ? `RAPPORT DU RÔLE #${role.numero_role} (EN COURS)`
+    : `RAPPORT DE CLÔTURE DU RÔLE #${role.numero_role}`;
+  doc.text(sanitizePdfText(title), 14, 20);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(sanitizePdfText(`Commune : ${role.commune}`), 14, 28);
   doc.text(sanitizePdfText(`Année d'exercice : ${role.annee}`), 14, 34);
-  doc.text("Statut : CLOTURE", 14, 40);
-  doc.text(sanitizePdfText(`Date du rapport : ${new Date().toLocaleDateString("fr-FR")}`), 14, 46);
+  doc.text(`Statut : ${role.status}`, 14, 40);
+
+  // Status watermark text
+  doc.setFont("helvetica", "bold");
+  if (isActif) {
+    doc.setTextColor(220, 38, 38); // Red
+    doc.text("RAPPORT PROVISOIRE (Rôle en cours)", 14, 46);
+  } else {
+    doc.setTextColor(5, 150, 105); // Green
+    doc.text("RAPPORT DÉFINITIF", 14, 46);
+  }
+  doc.setTextColor(0, 0, 0); // Reset color
+  doc.setFont("helvetica", "normal");
+  doc.text(sanitizePdfText(`Date du rapport : ${new Date().toLocaleDateString("fr-FR")}`), 14, 52);
 
   // Tableau des Avis / Liquidations
   const tableData = items.map((item) => [
@@ -43,7 +59,7 @@ export function generateRolePdf(role: RoleSummary, items: RoleDetailItem[]) {
   ]);
 
   autoTable(doc, {
-    startY: 52,
+    startY: 58,
     head: [[
       sanitizePdfText("Réf. Liquidation"),
       sanitizePdfText("IFU / NPI"),

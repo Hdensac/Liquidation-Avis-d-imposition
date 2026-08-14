@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { fetchPendingLiquidationsPaginated, validatePayment, updateLiquidation, cancelLiquidation, fetchValeurAdministrative } from "@/actions/liquidationActions";
+import { fetchPendingLiquidationsPaginated, validatePayment, updateLiquidation, cancelLiquidation, fetchValeurAdministrative, fetchAllRoles } from "@/actions/liquidationActions";
+import type { RoleSummary } from "@/actions/liquidationActions";
 import { useToast, ToastContainer } from "./useToast";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 import { LiquidationPreview } from "@/components/LiquidationPreview";
@@ -95,6 +96,7 @@ export default function PendingLiquidationsTable() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [activeRoles, setActiveRoles] = useState<RoleSummary[]>([]);
 
   // Charger le rôle utilisateur au montage
   useEffect(() => {
@@ -113,6 +115,13 @@ export default function PendingLiquidationsTable() {
       }
     };
     fetchUser();
+  }, []);
+
+  // Charger les rôles actifs pour l'affichage de l'avertissement de limite d'articles
+  useEffect(() => {
+    fetchAllRoles()
+      .then((roles) => setActiveRoles(roles.filter((r) => r.status === "ACTIF")))
+      .catch(console.error);
   }, []);
 
   const canApplyExo = userRole === "ADMIN" || userRole === "INSPECTEUR";
@@ -195,10 +204,16 @@ export default function PendingLiquidationsTable() {
     try {
       await validatePayment(id);
       toast.success("Paiement valide, avis de recouvrement genere.");
+      // Recharger les rôles actifs pour mettre à jour les indicateurs
+      fetchAllRoles()
+        .then((roles) => setActiveRoles(roles.filter((r) => r.status === "ACTIF")))
+        .catch(console.error);
       loadData(currentPage);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Erreur lors de la validation du paiement.");
+      // Afficher le message d'erreur du serveur (ex: limite de 100 articles)
+      const msg = e?.message || "Erreur lors de la validation du paiement.";
+      toast.error(msg);
     }
   };
   
@@ -300,6 +315,38 @@ export default function PendingLiquidationsTable() {
   return (
     <div className="space-y-4">
       <ToastContainer toasts={toasts} />
+
+      {/* ─── Avertissements limite d'articles par rôle ─── */}
+      {activeRoles
+        .filter((r) => r.dernier_article >= 95)
+        .map((r) => (
+          <div
+            key={r.id}
+            className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+              r.dernier_article >= 100
+                ? "bg-red-50 border-red-300 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-300"
+                : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300"
+            }`}
+          >
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div>
+              {r.dernier_article >= 100 ? (
+                <>
+                  <span className="font-bold">Rôle #{r.numero_role} – {r.commune} bloqué :</span>{" "}
+                  Le numéro d&apos;article a atteint <strong>100/100</strong>. Vous devez{" "}
+                  <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider
+                  de nouveaux avis.
+                </>
+              ) : (
+                <>
+                  <span className="font-bold">Rôle #{r.numero_role} – {r.commune} :</span>{" "}
+                  Il reste <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur
+                  100. Pensez à clôturer ce rôle bientôt.
+                </>
+              )}
+            </div>
+          </div>
+        ))}
 
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="relative flex-1 min-w-[260px]">

@@ -260,7 +260,7 @@ export async function fetchHistoryLiquidationsPaginated({
   const { data, error, count } = await supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)",
+      "id, reference_liq, status, created_at, download_count, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)",
       { count: "exact" }
     )
     .eq("status", "PAYE")
@@ -269,6 +269,29 @@ export async function fetchHistoryLiquidationsPaginated({
 
   if (error) throw error;
   return { data: data ?? [], totalCount: count ?? 0 };
+}
+
+/** Increments the download counter of a liquidation */
+export async function incrementLiquidationDownloadCount(liquidationId: string) {
+  const supabase = await createClient();
+  
+  // 1. Fetch current download count
+  const { data, error: fetchError } = await supabase
+    .from("liquidations")
+    .select("download_count")
+    .eq("id", liquidationId)
+    .single();
+    
+  if (fetchError) throw fetchError;
+  const currentCount = data?.download_count || 0;
+  
+  // 2. Update with incremented value
+  const { error: updateError } = await supabase
+    .from("liquidations")
+    .update({ download_count: currentCount + 1 })
+    .eq("id", liquidationId);
+    
+  if (updateError) throw updateError;
 }
 
 /** Validate payment and generate recouvrement/avis.

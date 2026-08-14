@@ -6,7 +6,8 @@ import {
   fetchPendingLiquidationsTps,
   validerPaiementTps,
   updateLiquidationTps,
-  cancelLiquidationTps
+  cancelLiquidationTps,
+  fetchRolesTps
 } from "@/actions/tpsActions";
 import { useToast, ToastContainer } from "@/components/useToast";
 import { TpsForm } from "./TpsForm";
@@ -63,6 +64,14 @@ export default function TpsPendingTable() {
   const [editFormData, setEditFormData] = useState<TpsInput | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [activeRolesTps, setActiveRolesTps] = useState<any[]>([]);
+
+  // Charger les rôles TPS actifs pour l'avertissement de limite d'articles
+  useEffect(() => {
+    fetchRolesTps()
+      .then((roles) => setActiveRolesTps((roles as any[]).filter((r) => r.status === "ACTIF")))
+      .catch(console.error);
+  }, []);
 
   const loadData = useCallback(
     async (page: number) => {
@@ -184,9 +193,14 @@ export default function TpsPendingTable() {
         `Fiche TPS validée ! Articles générés : ${result.first_article_num} et ${result.last_article_num}`
       );
       setIsValidateOpen(false);
+      // Recharger les rôles TPS actifs après validation
+      fetchRolesTps()
+        .then((roles) => setActiveRolesTps((roles as any[]).filter((r) => r.status === "ACTIF")))
+        .catch(console.error);
       loadData(currentPage);
     } catch (e: any) {
       console.error(e);
+      // Propager le message d'erreur serveur (limite 100 articles, etc.)
       toast.error(e.message || "Erreur lors de la validation.");
     } finally {
       setIsSaving(false);
@@ -205,6 +219,37 @@ export default function TpsPendingTable() {
   return (
     <div className="space-y-4">
       <ToastContainer toasts={toasts} />
+
+      {/* ─── Avertissements limite d'articles par rôle TPS ─── */}
+      {activeRolesTps
+        .filter((r) => r.dernier_article >= 95)
+        .map((r) => (
+          <div
+            key={r.id}
+            className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+              r.dernier_article >= 100
+                ? "bg-red-50 border-red-300 text-red-800"
+                : "bg-amber-50 border-amber-300 text-amber-800"
+            }`}
+          >
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div>
+              {r.dernier_article >= 100 ? (
+                <>
+                  <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} bloqué :</span>{" "}
+                  Le numéro d&apos;article a atteint <strong>100/100</strong>. Vous devez{" "}
+                  <strong>clôturer ce rôle TPS</strong> avant de valider de nouveaux avis.
+                </>
+              ) : (
+                <>
+                  <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} :</span>{" "}
+                  Il reste <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
+                  Pensez à clôturer ce rôle bientôt.
+                </>
+              )}
+            </div>
+          </div>
+        ))}
 
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="relative flex-1 min-w-[280px]">

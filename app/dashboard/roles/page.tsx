@@ -276,44 +276,43 @@ export default function RolesPage() {
                       {formatDate(role.created_at)}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      {role.status === "ACTIF" ? (
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {role.status === "ACTIF" && (
+                          <button
+                            onClick={() => setCloseTarget(role)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition"
+                          >
+                            Cloture
+                          </button>
+                        )}
+                        {/* Bouton Rapport PDF existant */}
                         <button
-                          onClick={() => setCloseTarget(role)}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition"
+                          onClick={() => handleDownloadReport(role)}
+                          disabled={downloadingId === role.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
                         >
-                          Cloture
+                          {downloadingId === role.id ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <FileText size={12} />
+                          )}
+                          Rapport PDF
                         </button>
-                      ) : (
-                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                          {/* Bouton Rapport PDF existant */}
-                          <button
-                            onClick={() => handleDownloadReport(role)}
-                            disabled={downloadingId === role.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
-                          >
-                            {downloadingId === role.id ? (
-                              <RefreshCw size={12} className="animate-spin" />
-                            ) : (
-                              <FileText size={12} />
-                            )}
-                            Rapport PDF
-                          </button>
 
-                          {/* Nouveau bouton Couverture */}
-                          <button
-                            onClick={() => handleDownloadCouverture(role)}
-                            disabled={downloadingCouvertureId === role.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 font-medium transition inline-flex items-center gap-1.5"
-                          >
-                            {downloadingCouvertureId === role.id ? (
-                              <RefreshCw size={12} className="animate-spin" />
-                            ) : (
-                              <span>📑</span>
-                            )}
-                            Couverture
-                          </button>
-                        </div>
-                      )}
+                        {/* Nouveau bouton Couverture */}
+                        <button
+                          onClick={() => handleDownloadCouverture(role)}
+                          disabled={downloadingCouvertureId === role.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 font-medium transition inline-flex items-center gap-1.5"
+                        >
+                          {downloadingCouvertureId === role.id ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <span>📑</span>
+                          )}
+                          Couverture
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

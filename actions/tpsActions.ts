@@ -174,16 +174,53 @@ export async function fetchAvisValidesTps(params: { page: number }) {
   };
 }
 
+export async function incrementTpsDownloadCount(liquidationId: string) {
+  const supabase = await createClient();
+
+  // 1. Fetch current download count
+  const { data, error: fetchError } = await supabase
+    .from("tps_liquidations")
+    .select("download_count")
+    .eq("id", liquidationId)
+    .single();
+
+  if (fetchError) throw fetchError;
+  const currentCount = data?.download_count || 0;
+
+  // 2. Update with incremented value
+  const { error: updateError } = await supabase
+    .from("tps_liquidations")
+    .update({ download_count: currentCount + 1 })
+    .eq("id", liquidationId);
+
+  if (updateError) throw updateError;
+}
+
 export async function fetchRolesTps() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tps_roles")
-    .select("*")
+    .select(`
+      *,
+      tps_articles (
+        numero_article
+      )
+    `)
     .order("commune", { ascending: true })
     .order("numero_role", { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  
+  return (data || []).map((role: any) => {
+    const articles = role.tps_articles || [];
+    const dernier_article = articles.reduce((max: number, art: any) => Math.max(max, art.numero_article), 0);
+    // Remove the articles relation to keep the payload clean
+    const { tps_articles, ...roleWithoutArticles } = role;
+    return {
+      ...roleWithoutArticles,
+      dernier_article,
+    };
+  });
 }
 
 export async function fetchRoleDetailsTps(roleId: string) {

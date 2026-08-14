@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { fetchAvisValidesTps } from "@/actions/tpsActions";
+import { fetchAvisValidesTps, incrementTpsDownloadCount } from "@/actions/tpsActions";
 import { useToast, ToastContainer } from "@/components/useToast";
 import { TpsPreview } from "./TpsPreview";
 import { generatePDFFromElement } from "@/utils/pdfGenerator";
@@ -53,6 +53,7 @@ type LiquidationTps = {
   start_year: number;
   contribuable: Contribuable;
   articles?: Article[];
+  download_count?: number;
 };
 
 export default function TpsAvisTable() {
@@ -120,9 +121,21 @@ export default function TpsAvisTable() {
     });
   }, [avisList, searchQuery]);
 
-  const handleDownloadPdf = (liq: LiquidationTps) => {
+  const handleDownloadPdf = async (liq: LiquidationTps) => {
     if (pdfLoadingId) return;
     setPdfLoadingId(liq.id);
+    try {
+      await incrementTpsDownloadCount(liq.id);
+      setAvisList((prev) =>
+        prev.map((item) =>
+          item.id === liq.id
+            ? { ...item, download_count: (item.download_count || 0) + 1 }
+            : item
+        )
+      );
+    } catch (e) {
+      console.error("Erreur lors de l'incrémentation du téléchargement TPS:", e);
+    }
     setPdfTarget(liq);
   };
 
@@ -261,8 +274,17 @@ export default function TpsAvisTable() {
                   ? `${arts[0].role.commune} Rôle ${arts[0].role.numero_role} (${arts[0].role.annee})`
                   : "-";
 
+                const hasBeenDownloaded = !!(liq.download_count && liq.download_count > 0);
+
                 return (
-                  <tr key={liq.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr
+                    key={liq.id}
+                    className={`transition-colors ${
+                      hasBeenDownloaded
+                        ? "bg-emerald-50/15 hover:bg-emerald-100/30 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 border-l-4 border-l-emerald-500/70"
+                        : "hover:bg-slate-50/80"
+                    }`}
+                  >
                     <td className="px-6 py-4 font-mono font-medium text-slate-600">
                       {liq.contribuable?.ifu_nc}
                     </td>
@@ -284,18 +306,28 @@ export default function TpsAvisTable() {
                       {liq.acomptes_payes.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleDownloadPdf(liq)}
-                        disabled={pdfLoadingId === liq.id}
-                        className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition"
-                      >
-                        {pdfLoadingId === liq.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleDownloadPdf(liq)}
+                          disabled={pdfLoadingId === liq.id}
+                          className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition"
+                        >
+                          {pdfLoadingId === liq.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                          Télécharger
+                        </button>
+                        {hasBeenDownloaded && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold whitespace-nowrap border border-emerald-200/50 shadow-sm"
+                            title={`${liq.download_count} téléchargement(s)`}
+                          >
+                            📥 {liq.download_count}
+                          </span>
                         )}
-                        Télécharger
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 );

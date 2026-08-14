@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useToast, ToastContainer } from "./useToast";
-import { fetchAvisRecouvrementDetails } from "@/actions/liquidationActions";
+import { fetchAvisRecouvrementDetails, incrementLiquidationDownloadCount } from "@/actions/liquidationActions";
 import { fetchHistoryLiquidationsPaginated } from "@/actions/liquidationActions";
 import { generateAvisRecouvrementPdf } from "@/utils/avisPdfGenerator";
 import { Download, Loader2, Search, X } from "lucide-react";
@@ -22,6 +22,7 @@ type Recouvrement = {
   status: string;
   created_at: string;
   contribuable: Contribuable[] | Contribuable;
+  download_count?: number;
 };
 
 function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
@@ -105,6 +106,17 @@ export default function HistoryTable() {
     if (actionLoadingId) return;
     setActionLoadingId(liquidationId);
     try {
+      // 1. Incrémenter en BDD
+      await incrementLiquidationDownloadCount(liquidationId);
+      // 2. Mettre à jour l'état local pour rafraîchir l'affichage immédiatement
+      setRecords((prev) =>
+        prev.map((rec) =>
+          rec.id === liquidationId
+            ? { ...rec, download_count: (rec.download_count || 0) + 1 }
+            : rec
+        )
+      );
+
       const details = await fetchAvisRecouvrementDetails(liquidationId);
       await generateAvisRecouvrementPdf(details, `Avis_Recouvrement_${reference}.pdf`);
       toast.success("Avis PDF généré.");
@@ -170,32 +182,47 @@ export default function HistoryTable() {
             {filteredRecords.map((rec) => {
               const c = getContribuable(rec.contribuable);
               const isActionLoading = actionLoadingId === rec.id;
+              const hasBeenDownloaded = !!(rec.download_count && rec.download_count > 0);
               return (
                 <tr
                   key={rec.id}
-                  className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  className={`border-b border-gray-300 dark:border-gray-600 transition ${
+                    hasBeenDownloaded
+                      ? "bg-emerald-50/15 hover:bg-emerald-100/30 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 border-l-4 border-l-emerald-500/70"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
                 >
                   <td className="px-4 py-2">{c.ifu_npi}</td>
                   <td className="px-4 py-2">{c.nom_prenoms}</td>
                   <td className="px-4 py-2">{c.telephone}</td>
-                  <td className="px-4 py-2">{rec.reference_liq}</td>
+                  <td className="px-4 py-2 font-mono">{rec.reference_liq}</td>
                   <td className="px-4 py-2">
                     {new Date(rec.created_at).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-2 text-center">{rec.status}</td>
                   <td className="px-4 py-2 text-center">
-                    <button
-                      onClick={() => handleDownloadAvis(rec.id, rec.reference_liq)}
-                      disabled={isActionLoading}
-                      className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1.5 px-3 rounded transition transform hover:scale-105"
-                    >
-                      {isActionLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleDownloadAvis(rec.id, rec.reference_liq)}
+                        disabled={isActionLoading}
+                        className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1.5 px-3 rounded transition transform hover:scale-105"
+                      >
+                        {isActionLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        Télécharger l&apos;Avis PDF
+                      </button>
+                      {hasBeenDownloaded && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold whitespace-nowrap border border-emerald-200/50 shadow-sm"
+                          title={`${rec.download_count} téléchargement(s)`}
+                        >
+                          📥 {rec.download_count}
+                        </span>
                       )}
-                      Télécharger l&apos;Avis PDF
-                    </button>
+                    </div>
                   </td>
                 </tr>
               );
