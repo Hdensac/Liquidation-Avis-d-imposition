@@ -212,7 +212,7 @@ export default function HistoryTable() {
                         ) : (
                           <Download className="w-4 h-4" />
                         )}
-                        Télécharger l&apos;Avis PDF
+                        Avis PDF
                       </button>
                       {hasBeenDownloaded && (
                         <span
