@@ -16,7 +16,7 @@ type Role = {
   annee: number;
   numero_role: number;
   status: string;
-};
+}; 
 
 type Article = {
   id: string;
