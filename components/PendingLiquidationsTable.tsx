@@ -34,6 +34,10 @@ type Liquidation = {
   valeur_locative: number;
   start_year: number;
   type_bien?: string | null;
+  // Champs Foncier Bâti (FB)
+  is_loue?: boolean | null;
+  valeur_irf?: number | null;
+  description?: string | null;
   contribuable: Contribuable[] | Contribuable;
 };
 
@@ -53,6 +57,7 @@ function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
 
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
   const contribuable = getContribuable(liq.contribuable);
+  const isBati = liq.type_bien === "BATI";
   return {
     fullname: contribuable.nom_prenoms || "",
     ifuNpi: contribuable.ifu_npi || "",
@@ -60,7 +65,7 @@ function liquidationToFormData(liq: Liquidation): TaxpayerInput {
     commune: contribuable.commune || "",
     arrondissement: contribuable.arrondissement || "",
     quartier: contribuable.quartier || "",
-    typeBien: liq.type_bien === "BATI" ? "BATI" : "NON_BATI",
+    typeBien: isBati ? "BATI" : "NON_BATI",
     superficie: Number(liq.superficie) || 0,
     superficieImposable:
       typeof liq.superficie_imposable === "number" && liq.superficie_imposable > 0
@@ -68,6 +73,10 @@ function liquidationToFormData(liq: Liquidation): TaxpayerInput {
         : "",
     valeurLocative: Number(liq.valeur_locative) || 0,
     startYear: Number(liq.start_year) || new Date().getFullYear(),
+    // Champs FB
+    isLoue: isBati ? (liq.is_loue ?? false) : false,
+    valeurIrf: isBati && liq.valeur_irf ? Number(liq.valeur_irf) : "",
+    description: isBati ? (liq.description ?? "") : "",
   };
 }
 
@@ -605,29 +614,42 @@ export default function PendingLiquidationsTable() {
                       value={editFormData.typeBien}
                       className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
                     >
-                      <option value="NON_BATI">Non bâti</option>
-                      <option value="BATI">Bâtiment / Construit</option>
+                      <option value="NON_BATI">Non bâti / FNB</option>
+                      <option value="BATI">F. Bâti / FB</option>
                     </select>
                   </div>
+
+                  {/* Superficie (FNB seulement) */}
+                  {editFormData.typeBien === "NON_BATI" && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Superficie totale (m²) *</label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        value={editFormData.superficie}
+                        onChange={(e) => setEditFormData({ ...editFormData, superficie: Number(e.target.value) || "" })}
+                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Valeur locative */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Superficie totale (m²) *</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={editFormData.superficie}
-                      onChange={(e) => setEditFormData({ ...editFormData, superficie: Number(e.target.value) || "" })}
-                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Valeur administrative (VL) (Fixe)</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      {editFormData.typeBien === "BATI" ? "Valeur Locative / VL (FCFA) *" : "Valeur administrative (VL) (Fixe)"}
+                    </label>
                     <div className="relative">
                       <input
                         type="number"
-                        disabled
+                        disabled={editFormData.typeBien === "NON_BATI"}
                         value={editFormData.valeurLocative}
-                        className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
+                        onChange={(e) => setEditFormData({ ...editFormData, valeurLocative: Number(e.target.value) || "" })}
+                        className={`w-full px-3.5 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none ${
+                          editFormData.typeBien === "BATI"
+                            ? "bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                            : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 cursor-not-allowed"
+                        }`}
                       />
                       {loadingVa && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
@@ -640,7 +662,7 @@ export default function PendingLiquidationsTable() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Année de départ (Non modifiable)</label>
+                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Année / Exercice Principal (Non modifiable)</label>
                     <input
                       type="number"
                       disabled
@@ -648,7 +670,7 @@ export default function PendingLiquidationsTable() {
                       className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
                     />
                   </div>
-                  {canApplyExo && (
+                  {editFormData.typeBien === "NON_BATI" && canApplyExo && (
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                         Superficie Imposable (Optionnel - Exonération)
@@ -665,6 +687,63 @@ export default function PendingLiquidationsTable() {
                     </div>
                   )}
                 </div>
+
+                {/* Champs supplémentaires FB */}
+                {editFormData.typeBien === "BATI" && (
+                  <div className="mt-4 space-y-3">
+                    {/* Description bâtiment */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Description du bâtiment (TFU/FB)</label>
+                      <input
+                        type="text"
+                        value={editFormData.description ?? ""}
+                        onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                        placeholder="Ex: 1BAT DE 1P X 6 SISE A ..."
+                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Checkbox En Location */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/30">
+                      <input
+                        type="checkbox"
+                        id="editIsLoue"
+                        checked={editFormData.isLoue ?? false}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          isLoue: e.target.checked,
+                          valeurIrf: e.target.checked ? editFormData.valeurIrf : "",
+                        })}
+                        className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                      />
+                      <label htmlFor="editIsLoue" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                        Logement / En Location
+                        <span className="ml-1 text-xs font-normal text-gray-400">(IRF Micro Foncier + P-ORTB)</span>
+                      </label>
+                    </div>
+
+                    {/* Valeur IRF conditionnelle */}
+                    {editFormData.isLoue && (
+                      <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
+                        <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                          Valeur IRF — Base Micro Foncier (FCFA) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={0}
+                          value={editFormData.valeurIrf ?? ""}
+                          onChange={(e) => setEditFormData({ ...editFormData, valeurIrf: e.target.value === "" ? "" : Number(e.target.value) })}
+                          placeholder="Ex: 216 000"
+                          className="w-full px-3.5 py-2 bg-white dark:bg-gray-900/50 border border-blue-300 dark:border-blue-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          IRF = Valeur IRF × 12% — Exercice : {editFormData.startYear - 1}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Pied de formulaire */}

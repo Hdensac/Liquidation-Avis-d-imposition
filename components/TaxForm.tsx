@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { TaxpayerInput } from "@/types/liquidation";
-import { User, MapPin, Building, Calendar, RefreshCw, Loader2 } from "lucide-react";
+import { User, MapPin, Building, Calendar, RefreshCw, Loader2, Home } from "lucide-react";
 import { fetchValeurAdministrative } from "@/actions/liquidationActions";
 
 export const COMMUNE_OPTIONS = [
@@ -66,6 +66,17 @@ export const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
   ],
 };
 
+/** Années disponibles pour l'exercice principal FB */
+function getExerciceOptions(): { value: number; label: string }[] {
+  const current = new Date().getFullYear();
+  return [
+    { value: current,     label: `Année en cours (${current})` },
+    { value: current - 1, label: `n-1 (${current - 1})` },
+    { value: current - 2, label: `n-2 (${current - 2})` },
+    { value: current - 3, label: `n-3 (${current - 3})` },
+  ];
+}
+
 interface TaxFormProps {
   formData: TaxpayerInput;
   onChange: (data: TaxpayerInput) => void;
@@ -82,7 +93,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
   const [loadingVa, setLoadingVa] = useState(false);
   const [hasExoneration, setHasExoneration] = useState(false);
 
-  // Expose la superficie totale pour la validation du champ imposable
+  const isBati = formData.typeBien === "BATI";
   const superficieTotale =
     typeof formData.superficie === "number" ? formData.superficie : 0;
 
@@ -92,11 +103,9 @@ export const TaxForm: React.FC<TaxFormProps> = ({
     }
   }, [canApplyExoneration, hasExoneration]);
 
-  // Trigger dynamic loading when commune changes:
-  // - réinitialise l'arrondissement pour forcer un choix cohérent
-  // - charge la valeur administrative correspondante
+  // Quand on change de commune (FNB) → charger la VA
   useEffect(() => {
-    if (!formData.commune) return;
+    if (!formData.commune || isBati) return;
 
     let active = true;
     const loadVa = async () => {
@@ -106,7 +115,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
         if (active) {
           onChange({
             ...formData,
-            arrondissement: "", // ← réinitialisation automatique
+            arrondissement: "",
             valeurLocative: va !== null ? va : "",
           });
         }
@@ -125,7 +134,9 @@ export const TaxForm: React.FC<TaxFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.commune]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     let { name, value, type } = e.target;
 
     if (name === "ifuNpi") {
@@ -148,16 +159,29 @@ export const TaxForm: React.FC<TaxFormProps> = ({
 
     if (type === "number") {
       const numValue = value === "" ? "" : parseFloat(value);
-      onChange({
-        ...formData,
-        [name]: numValue,
-      });
+      onChange({ ...formData, [name]: numValue });
     } else {
-      onChange({
-        ...formData,
-        [name]: value,
-      });
+      onChange({ ...formData, [name]: value });
     }
+  };
+
+  /** Quand on bascule le type de bien : réinitialiser les champs spécifiques */
+  const handleTypeBienChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value as "NON_BATI" | "BATI";
+    const currentYear = new Date().getFullYear();
+    onChange({
+      ...formData,
+      typeBien: newType,
+      // Réinitialiser les champs spécifiques à chaque type
+      superficie: "",
+      superficieImposable: "",
+      valeurLocative: "",
+      startYear: newType === "BATI" ? currentYear : 2023,
+      isLoue: false,
+      valeurIrf: "",
+      description: "",
+    });
+    setHasExoneration(false);
   };
 
   return (
@@ -187,6 +211,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+        {/* ── SECTION : Contribuable ─────────────────────────────────────── */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <User className="w-4 h-4 text-blue-600" />
@@ -238,6 +263,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
           </div>
         </div>
 
+        {/* ── SECTION : Localisation ─────────────────────────────────────── */}
         <div className="space-y-4 border-t border-slate-100 pt-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-blue-600" />
@@ -255,13 +281,9 @@ export const TaxForm: React.FC<TaxFormProps> = ({
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 required
               >
-                <option value="" disabled>
-                  Sélectionnez une commune
-                </option>
+                <option value="" disabled>Sélectionnez une commune</option>
                 {COMMUNE_OPTIONS.map((commune) => (
-                  <option key={commune.value} value={commune.value}>
-                    {commune.label}
-                  </option>
+                  <option key={commune.value} value={commune.value}>{commune.label}</option>
                 ))}
               </select>
             </div>
@@ -278,14 +300,10 @@ export const TaxForm: React.FC<TaxFormProps> = ({
                 required
               >
                 <option value="" disabled>
-                  {formData.commune
-                    ? "Sélectionnez un arrondissement"
-                    : "Sélectionnez d'abord une commune"}
+                  {formData.commune ? "Sélectionnez un arrondissement" : "Sélectionnez d'abord une commune"}
                 </option>
                 {(ARRONDISSEMENTS_PAR_COMMUNE[formData.commune] ?? []).map((arr) => (
-                  <option key={arr} value={arr}>
-                    {arr}
-                  </option>
+                  <option key={arr} value={arr}>{arr}</option>
                 ))}
               </select>
             </div>
@@ -306,142 +324,255 @@ export const TaxForm: React.FC<TaxFormProps> = ({
           </div>
         </div>
 
+        {/* ── SECTION : Caractéristiques Imposables & Période ───────────── */}
         <div className="space-y-4 border-t border-slate-100 pt-4">
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-blue-600" />
             Caractéristiques Imposables & Période
           </h3>
+
+          {/* Sélecteur type de bien */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Type de bien <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value="Foncier Non Bati / FNB"
-                readOnly
-                disabled
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-slate-100 text-slate-600 font-medium cursor-not-allowed outline-none"
-              />
-              {/* Input caché pour s'assurer que la valeur "NON_BATI" est bien envoyée si tu relies le state ou un form classique */}
-              <input type="hidden" name="typeBien" value="NON_BATI" />
+              <select
+                name="typeBien"
+                value={formData.typeBien}
+                onChange={handleTypeBienChange}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-medium"
+              >
+                <option value="NON_BATI">Foncier Non Bâti / FNB</option>
+                <option value="BATI">Foncier Bâti / FB</option>
+              </select>
+            </div>
           </div>
-            {/* Superficie totale + switch exonération */}
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Superficie totale (m²) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="superficie"
-                value={formData.superficie}
-                onChange={handleChange}
-                min="1"
-                step="any"
-                placeholder="Ex: 500"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
-                required
-              />
-              {canApplyExoneration && (
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={hasExoneration}
-                  onClick={() => {
-                    const next = !hasExoneration;
-                    setHasExoneration(next);
-                    if (!next) {
-                      onChange({ ...formData, superficieImposable: "" });
-                    }
-                  }}
-                  className={`inline-flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
-                    hasExoneration
-                      ? "bg-amber-50 border-amber-400 text-amber-700"
-                      : "bg-slate-50 border-slate-300 text-slate-500 hover:border-slate-400"
-                  }`}
-                >
-                  <span
-                    className={`inline-block w-7 h-4 rounded-full transition-colors relative ${
-                      hasExoneration ? "bg-amber-400" : "bg-slate-300"
+
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* CHAMPS FNB                                                      */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {!isBati && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Superficie totale + switch exonération */}
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Superficie totale (m²) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="superficie"
+                  value={formData.superficie}
+                  onChange={handleChange}
+                  min="1"
+                  step="any"
+                  placeholder="Ex: 500"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
+                  required
+                />
+                {canApplyExoneration && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={hasExoneration}
+                    onClick={() => {
+                      const next = !hasExoneration;
+                      setHasExoneration(next);
+                      if (!next) onChange({ ...formData, superficieImposable: "" });
+                    }}
+                    className={`inline-flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                      hasExoneration
+                        ? "bg-amber-50 border-amber-400 text-amber-700"
+                        : "bg-slate-50 border-slate-300 text-slate-500 hover:border-slate-400"
                     }`}
                   >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
-                        hasExoneration ? "translate-x-3" : "translate-x-0"
-                      }`}
-                    />
-                  </span>
-                  Exoneration partielle
-                </button>
-              )}
+                    <span className={`inline-block w-7 h-4 rounded-full transition-colors relative ${hasExoneration ? "bg-amber-400" : "bg-slate-300"}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${hasExoneration ? "translate-x-3" : "translate-x-0"}`} />
+                    </span>
+                    Exoneration partielle
+                  </button>
+                )}
 
-              {/* Champ superficie imposable (conditionnel) */}
-              {canApplyExoneration && hasExoneration && (
+                {canApplyExoneration && hasExoneration && (
+                  <div>
+                    <label className="block text-xs font-medium text-amber-700 mb-1">
+                      Superficie imposable (m²) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="superficieImposable"
+                      value={formData.superficieImposable ?? ""}
+                      onChange={handleChange}
+                      min="1"
+                      max={superficieTotale > 0 ? superficieTotale - 1 : undefined}
+                      step="any"
+                      placeholder={`< ${superficieTotale || "superficie totale"} m²`}
+                      className="w-full px-3 py-2 text-sm border border-amber-400 bg-amber-50 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all font-semibold text-amber-900"
+                      required
+                    />
+                    {typeof formData.superficieImposable === "number" &&
+                      superficieTotale > 0 &&
+                      formData.superficieImposable >= superficieTotale && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Doit être inférieure à la superficie totale ({superficieTotale} m²)
+                        </p>
+                      )}
+                  </div>
+                )}
+              </div>
+
+              {/* Valeur Administrative (auto-chargée) */}
+              <div className="relative">
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Valeur Administrative (VA en FCFA) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    name="valeurLocative"
+                    value={formData.valeurLocative}
+                    min="0"
+                    step="any"
+                    placeholder={loadingVa ? "Chargement..." : "Sélectionnez une commune"}
+                    className="w-full px-3 py-2 pr-10 text-sm border border-slate-200 bg-slate-100 text-slate-600 rounded-lg outline-none transition-all font-semibold cursor-not-allowed select-none"
+                    readOnly
+                    required
+                  />
+                  {loadingVa && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Année de début */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Année de début (4 Exercices)
+                </label>
+                <input
+                  type="number"
+                  name="startYear"
+                  value={formData.startYear}
+                  onChange={handleChange}
+                  min="2000"
+                  max="2100"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed outline-none select-none"
+                  readOnly
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* CHAMPS FB                                                       */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {isBati && (
+            <div className="space-y-4">
+              {/* Ligne 1 : Exercice Principal + Valeur Locative (VL) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-amber-700 mb-1">
-                    Superficie imposable (m²) <span className="text-red-500">*</span>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Exercice Principal <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="startYear"
+                    value={formData.startYear}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-medium"
+                    required
+                  >
+                    {getExerciceOptions().map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Valeur Locative / VL (FCFA) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
-                    name="superficieImposable"
-                    value={formData.superficieImposable ?? ""}
+                    name="valeurLocative"
+                    value={formData.valeurLocative}
                     onChange={handleChange}
-                    min="1"
-                    max={superficieTotale > 0 ? superficieTotale - 1 : undefined}
+                    min="0"
                     step="any"
-                    placeholder={`< ${superficieTotale || "superficie totale"} m²`}
-                    className="w-full px-3 py-2 text-sm border border-amber-400 bg-amber-50 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all font-semibold text-amber-900"
+                    placeholder="Ex: 720 000"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
                     required
                   />
-                  {typeof formData.superficieImposable === "number" &&
-                    superficieTotale > 0 &&
-                    formData.superficieImposable >= superficieTotale && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Doit être inférieure à la superficie totale ({superficieTotale} m²)
-                      </p>
-                    )}
+                </div>
+              </div>
+
+              {/* Description du bâti */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Description du bâtiment (pour TFU/FB)
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  value={formData.description ?? ""}
+                  onChange={handleChange}
+                  placeholder="Ex: 1BAT DE 1P X 6 SISE A ALLADA/ALLADA/CADJEHOUN"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              {/* Option En Location */}
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                <input
+                  type="checkbox"
+                  id="isLoue"
+                  name="isLoue"
+                  checked={formData.isLoue ?? false}
+                  onChange={(e) => {
+                    onChange({
+                      ...formData,
+                      isLoue: e.target.checked,
+                      valeurIrf: e.target.checked ? formData.valeurIrf : "",
+                    });
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="isLoue" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-2">
+                  <Home className="w-4 h-4 text-slate-500" />
+                  Logement / En Location
+                  <span className="text-xs font-normal text-slate-400">(déclenche IRF Micro Foncier + P-ORTB)</span>
+                </label>
+              </div>
+
+              {/* Champ conditionnel : Valeur IRF */}
+              {formData.isLoue && (
+                <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 space-y-3">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                    Données Micro Foncier (IRF)
+                  </p>
+                  <div>
+                    <label className="block text-xs font-medium text-blue-800 mb-1">
+                      Valeur IRF — Base Micro Foncier (FCFA) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="valeurIrf"
+                      value={formData.valeurIrf ?? ""}
+                      onChange={handleChange}
+                      min="0"
+                      step="any"
+                      placeholder="Ex: 216 000"
+                      className="w-full px-3 py-2 text-sm border border-blue-300 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold"
+                      required
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      IRF = Valeur IRF × 12% — Exercice : {formData.startYear - 1}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-            <div className="relative">
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Valeur Administrative (VA en FCFA) <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  name="valeurLocative"
-                  value={formData.valeurLocative}
-                  min="0"
-                  step="any"
-                  placeholder={loadingVa ? "Chargement..." : "Sélectionnez une commune"}
-                  className="w-full px-3 py-2 pr-10 text-sm border border-slate-200 bg-slate-100 text-slate-600 rounded-lg outline-none transition-all font-semibold cursor-not-allowed select-none"
-                  readOnly
-                  required
-                />
-                {loadingVa && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  </span>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Année de début (4 Exercices)
-              </label>
-              <input
-                type="number"
-                name="startYear"
-                value={formData.startYear}
-                onChange={handleChange}
-                min="2000"
-                max="2100"
-                className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed outline-none select-none"
-                readOnly
-              />
-            </div>
-          </div>
+          )}
         </div>
       </form>
     </div>

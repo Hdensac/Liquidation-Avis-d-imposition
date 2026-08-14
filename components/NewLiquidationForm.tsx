@@ -21,6 +21,10 @@ const EMPTY_FORM: TaxpayerInput = {
   superficie: "",
   valeurLocative: "",
   startYear: 2023,
+  // Champs FB
+  isLoue: false,
+  valeurIrf: "",
+  description: "",
 };
 
 interface NewLiquidationFormProps {

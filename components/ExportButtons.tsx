@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
-import { generateExcelLiquidation } from "@/utils/excelGenerator";
 import { generatePDFFromElement } from "@/utils/pdfGenerator";
 
 interface ExportButtonsProps {
@@ -17,7 +16,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   previewElementId,
 }) => {
   const [loadingPdf, setLoadingPdf] = useState(false);
-  const [loadingExcel, setLoadingExcel] = useState(false);
 
   const handleExportPDF = async () => {
     try {
@@ -31,18 +29,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
       alert("Une erreur s'est produite lors de la génération du PDF.");
     } finally {
       setLoadingPdf(false);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    try {
-      setLoadingExcel(true);
-      await generateExcelLiquidation(formData, calculations);
-    } catch (error) {
-      console.error("Erreur lors de la génération d'Excel:", error);
-      alert("Une erreur s'est produite lors de la génération du fichier Excel.");
-    } finally {
-      setLoadingExcel(false);
     }
   };
 
