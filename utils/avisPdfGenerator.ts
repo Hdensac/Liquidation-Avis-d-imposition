@@ -34,6 +34,7 @@ export type AvisRecouvrementDetails = {
     start_year: number;
     type_bien?: string | null;
     status: string;
+    description?: string | null;
     created_at: string;
   };
   role: {
