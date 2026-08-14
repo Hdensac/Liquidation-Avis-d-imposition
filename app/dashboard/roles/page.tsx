@@ -5,6 +5,7 @@ import { fetchAllRoles, closeActiveRole, fetchRoleDetails, getRoleCouvertureData
 import type { RoleSummary } from "../../../actions/liquidationActions";
 import { useToast, ToastContainer } from "../../../components/useToast";
 import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText } from "lucide-react";
+import { Briefcase, CheckCircle, Lock, RefreshCw, AlertTriangle, FileText, ChevronDown } from "lucide-react";
 //import { generateRolePdf } from "../../../lib/generateRolePdf"; // Ajuste le chemin selon ton projet
 import { generateRolePdf } from "@/utils/rolePdfGenerator";
 
@@ -102,6 +103,19 @@ export default function RolesPage() {
   const [downloadingCouvertureId, setDownloadingCouvertureId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast, toasts } = useToast();
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   const toastRef = useRef(toast);
   toastRef.current = toast;
@@ -276,42 +290,65 @@ export default function RolesPage() {
                       {formatDate(role.created_at)}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <div className="flex items-center justify-center gap-2" ref={openDropdownId === role.id ? dropdownRef : null}>
                         {role.status === "ACTIF" && (
                           <button
                             onClick={() => setCloseTarget(role)}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition"
+                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition inline-flex items-center gap-1"
+                            title="Clôturer ce rôle actif"
                           >
-                            Cloture
+                            <Lock size={12} />
+                            <span>Clôture</span>
                           </button>
                         )}
-                        {/* Bouton Rapport PDF existant */}
-                        <button
-                          onClick={() => handleDownloadReport(role)}
-                          disabled={downloadingId === role.id}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium transition inline-flex items-center gap-1.5"
-                        >
-                          {downloadingId === role.id ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <FileText size={12} />
-                          )}
-                          Rapport PDF
-                        </button>
 
-                        {/* Nouveau bouton Couverture */}
-                        <button
-                          onClick={() => handleDownloadCouverture(role)}
-                          disabled={downloadingCouvertureId === role.id}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 font-medium transition inline-flex items-center gap-1.5"
-                        >
-                          {downloadingCouvertureId === role.id ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <span>📑</span>
+                        {/* Menu déroulant unifié "Documents" */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenDropdownId(openDropdownId === role.id ? null : role.id)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition inline-flex items-center gap-1.5"
+                            aria-haspopup="true"
+                            aria-expanded={openDropdownId === role.id}
+                          >
+                            <span>Documents</span>
+                            <ChevronDown size={13} className={`transition-transform duration-200 ${openDropdownId === role.id ? "rotate-180" : ""}`} />
+                          </button>
+
+                          {openDropdownId === role.id && (
+                            <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xl py-1 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                              <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Exports PDF</p>
+                              </div>
+                              <div className="p-1">
+                                <button
+                                  onClick={() => { handleDownloadReport(role); setOpenDropdownId(null); }}
+                                  disabled={downloadingId === role.id}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition"
+                                >
+                                  {downloadingId === role.id ? (
+                                    <RefreshCw size={14} className="animate-spin text-indigo-500" />
+                                  ) : (
+                                    <FileText size={14} className="text-indigo-500" />
+                                  )}
+                                  <span>Rapport du Rôle</span>
+                                </button>
+
+                                <button
+                                  onClick={() => { handleDownloadCouverture(role); setOpenDropdownId(null); }}
+                                  disabled={downloadingCouvertureId === role.id}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg transition"
+                                >
+                                  {downloadingCouvertureId === role.id ? (
+                                    <RefreshCw size={14} className="animate-spin text-emerald-500" />
+                                  ) : (
+                                    <span className="text-sm">📑</span>
+                                  )}
+                                  <span>État de Couverture</span>
+                                </button>
+                              </div>
+                            </div>
                           )}
-                          Couverture
-                        </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
