@@ -115,6 +115,10 @@ function normalizeCommune(value?: string) {
 }
 
 function getBaseImposable(details: AvisRecouvrementDetails) {
+  const isBati = details.liquidation.type_bien === "BATI";
+  if (isBati) {
+    return toNumber(details.liquidation.valeur_locative);
+  }
   return toNumber(details.liquidation.superficie) * toNumber(details.liquidation.valeur_locative);
 }
 
@@ -375,8 +379,6 @@ function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
 function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: AvisTableRow[]) {
   const startY = 68;
 
-  // Nature d'Impôt élargi (17 -> 24) pour que "TFU/FNB" tienne sur une seule ligne.
-  // Compensé sur Localisation (36 -> 32) et Description (42 -> 39) pour garder la même largeur totale.
   const widths = [10, 13, 24, 32, 39, 22, 12, 25, 13, 15, 33];
   const headers = [
     ["N°", "Article"],
@@ -423,11 +425,6 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   let y = startY + 16;
   const startRowsY = y;
 
-  // Auto-fit générique : certains noms (ex. arrondissements longs comme "AHOUANNONZOUN") ne
-  // tiennent pas sur une seule ligne à la taille normale (10pt), et jsPDF coupe alors le mot au
-  // milieu sans tiret, ce qui est illisible. On réduit la taille de police (par pas de 0.5,
-  // jusqu'à 7pt min) UNIQUEMENT pour la ligne concernée, pour la forcer à tenir sur une seule
-  // ligne. Utilisé pour Localisation ET Description.
   const CELL_MAX_FONT = 10;
   const CELL_MIN_FONT = 7;
   function fitCellFontSize(text: string, width: number): number {
@@ -443,7 +440,6 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   }
 
   // 1. Traitement personnalisé de la Localisation (Ligne par Ligne, cellule fusionnée verticalement)
-  //    Commune / Arrondissement / Quartier, chacun sur sa propre ligne (même principe que la Description)
   const locCommune = normalizeCommune(details.contribuable.commune);
   const locArrondissement = normalizeCommune(details.contribuable.arrondissement);
   const locQuartier = normalizeCommune(details.contribuable.quartier);
@@ -468,66 +464,14 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   });
   pdf.setFontSize(10);
 
-
-  // 2. Traitement personnalisé de la Description (Ligne par Ligne, cellule fusionnée verticalement)
-  const isBati = details.liquidation.type_bien === "BATI";
-  const sup = toNumber(details.liquidation.superficie, 0);
-  const comm = titleCase(details.contribuable.commune || "");
-  const arrt = titleCase(details.contribuable.arrondissement || "");
-  const quart = titleCase(details.contribuable.quartier || "");
-
-  let rawDescLines: string[] = [];
-  if (isBati) {
-    const descLibre = (details.liquidation.description || "").trim();
-    if (descLibre) {
-      rawDescLines = [
-        descLibre.toUpperCase(),
-        "sise a",
-        comm,
-        arrt ? `/ ${arrt}` : "",
-        quart ? `/ ${quart}` : ""
-      ].filter(Boolean);
-    } else {
-      rawDescLines = [
-        "PROPRIETE DE",
-        comm,
-        arrt ? `/ ${arrt}` : "",
-        quart ? `/ ${quart}` : ""
-      ].filter(Boolean);
-    }
-  } else {
-    rawDescLines = [
-      "PARCELLE DE",
-      `${sup}m² sise a`,
-      comm,
-      arrt ? `/ ${arrt}` : "",
-      quart ? `/ ${quart}` : ""
-    ].filter(Boolean);
-  }
-
-  const finalDescLines: string[] = [];
-  const finalDescFontSizes: number[] = [];
-  rawDescLines.forEach(line => {
-    const fontSize = fitCellFontSize(line, widths[4] - 4);
-    pdf.setFont("times", "bold");
-    pdf.setFontSize(fontSize);
-    const wrappedLine = wrap(pdf, line, widths[4] - 4);
-    wrappedLine.forEach((subLine: string) => {
-      finalDescLines.push(subLine);
-      finalDescFontSizes.push(fontSize);
-    });
-  });
-  pdf.setFontSize(10);
-
-  // 3. Hauteur "naturelle" de chaque ligne, calculée UNIQUEMENT à partir des colonnes
-  //    propres à la ligne (N°, Exercice, Nature, Base, Taux, Droit, Pénalité, Acompte, Reste).
-  //    Localisation et Description sont des cellules fusionnées sur toutes les lignes :
-  //    elles ne doivent pas gonfler la hauteur de chaque ligne individuelle.
+  // 2. Hauteur "naturelle" de chaque ligne, calculée à partir de toutes les colonnes
+  //    sauf la Localisation qui reste fusionnée verticalement.
   const rowHeights = rows.map((row) => {
     const values = [
       String(row.numero_article),
       String(row.exercice),
       sanitizeText(row.nature_impot),
+      sanitizeText(row.description), 
       formatNumber(row.base, true),
       `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
@@ -535,12 +479,11 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       formatNumber(row.acompte_paye, true),
       formatNumber(row.reste_du, true),
     ];
-    const colIdxs = [0, 1, 2, 5, 6, 7, 8, 9, 10];
+    const colIdxs = [0, 1, 2, 4, 5, 6, 7, 8, 9, 10];
 
     const wrapped = values.map((val, i) => {
       const idx = colIdxs[i];
-      // seule "Nature d'Impôt" peut légitimement se découper si le texte est très long
-      if (idx === 2) return wrap(pdf, val, widths[idx] - 2);
+      if (idx === 2 || idx === 4) return wrap(pdf, val, widths[idx] - 2);
       return [String(val)];
     });
 
@@ -549,21 +492,17 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
 
   let totalTableHeight = rowHeights.reduce((acc, h) => acc + h, 0);
 
-  // 4. Si la Localisation ou la Description (cellules fusionnées) ont besoin de plus de place
-  //    que la somme naturelle des lignes, on répartit l'excédent proportionnellement sur toutes les lignes.
+  // 3. Si la Localisation (cellule fusionnée) a besoin de plus de place
   const locNeeded = finalLocLines.length * 4.0 + 6;
-  const descNeeded = finalDescLines.length * 4.0 + 6;
-  const neededMerged = Math.max(locNeeded, descNeeded);
-
-  if (neededMerged > totalTableHeight) {
-    const factor = neededMerged / totalTableHeight;
+  if (locNeeded > totalTableHeight) {
+    const factor = locNeeded / totalTableHeight;
     for (let i = 0; i < rowHeights.length; i++) {
       rowHeights[i] = rowHeights[i] * factor;
     }
-    totalTableHeight = neededMerged;
+    totalTableHeight = locNeeded;
   }
 
-  // 5. Dessin des lignes numériques et textuelles standards
+  // 4. Dessin des lignes standards (Description incluse !)
   rows.forEach((row, rowIndex) => {
     const currentHeight = rowHeights[rowIndex];
 
@@ -572,9 +511,9 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       String(row.exercice),
       sanitizeText(row.nature_impot),
       "",
-      "",
+      sanitizeText(row.description),
       formatNumber(row.base, true),
-      `${Math.round(row.taux * 100)}%`,
+      row.nature_impot === "P-ORTB" ? "Forfait" : `${Math.round(row.taux * 100)}%`,
       formatNumber(row.droit_simple, true),
       formatNumber(row.penalite, true),
       formatNumber(row.acompte_paye, true),
@@ -584,7 +523,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     let currentX = MAIN_X;
 
     values.forEach((val, idx) => {
-      if (idx === 3 || idx === 4) {
+      if (idx === 3) {
         currentX += widths[idx];
         return;
       }
@@ -594,11 +533,17 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       pdf.setFont("times", "bold");
       pdf.setFontSize(10);
 
-      const wrapped = idx >= 5 && idx <= 10 ? [val] : wrap(pdf, val, widths[idx] - 2);
+      let fontSize = 10;
+      if (idx === 4) {
+        fontSize = fitCellFontSize(val, widths[idx] - 2);
+        pdf.setFontSize(fontSize);
+      }
+
+      const wrapped = idx === 2 || idx === 4 ? wrap(pdf, val, widths[idx] - 2) : [val];
 
       const textX = currentX + widths[idx] / 2;
-      const textHeight = wrapped.length * 3.8;
-      const textY = y + (currentHeight - textHeight) / 2 + 3.0;
+      const textHeight = wrapped.length * (fontSize * 0.38);
+      const textY = y + (currentHeight - textHeight) / 2 + (fontSize * 0.3);
 
       pdf.text(wrapped, textX, textY, { align: "center" });
 
@@ -608,11 +553,9 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     y += currentHeight;
   });
 
-  // 6. Dessin des cellules fusionnées (Localisation et Description)
+  // 5. Dessin de la cellule fusionnée de la Localisation
   const locX = MAIN_X + widths[0] + widths[1] + widths[2];
-  const descX = locX + widths[3];
 
-  // Rendu Localisation (chaque ligne peut avoir sa propre taille de police, cf. auto-fit ci-dessus)
   pdf.rect(locX, startRowsY, widths[3], totalTableHeight);
   const locTextHeight = finalLocLines.length * 4.0;
   const locStartY = startRowsY + (totalTableHeight - locTextHeight) / 2 + 3.0;
@@ -620,17 +563,6 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     pdf.setFont("times", "bold");
     pdf.setFontSize(finalLocFontSizes[i] || 10);
     pdf.text(line, locX + widths[3] / 2, locStartY + i * 4.0, { align: "center" });
-  });
-  pdf.setFontSize(10);
-
-  // Rendu Description (chaque ligne peut avoir sa propre taille de police, cf. auto-fit ci-dessus)
-  pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
-  const descTextHeight = finalDescLines.length * 4.0;
-  const descStartY = startRowsY + (totalTableHeight - descTextHeight) / 2 + 3.0;
-  finalDescLines.forEach((line, i) => {
-    pdf.setFont("times", "bold");
-    pdf.setFontSize(finalDescFontSizes[i] || 10);
-    pdf.text(line, descX + widths[4] / 2, descStartY + i * 4.0, { align: "center" });
   });
   pdf.setFontSize(10);
 
