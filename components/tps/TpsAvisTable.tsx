@@ -321,7 +321,7 @@ export default function TpsAvisTable() {
                         </button>
                         {!hasBeenDownloaded && (
                           <span
-                            className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold whitespace-nowrap border border-gray-200 dark:border-gray-700 shadow-sm"
+                            className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-400 font-semibold whitespace-nowrap border border-gray-200 dark:border-gray-700 shadow-sm"
                             title="Jamais téléchargé"
                           >
                             📥 0

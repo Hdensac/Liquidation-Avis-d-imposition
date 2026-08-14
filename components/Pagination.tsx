@@ -53,7 +53,7 @@ export default function Pagination({
         item === null ? (
           <span
             key={`ellipsis-${idx}`}
-            className="inline-flex items-center justify-center w-9 h-9 text-gray-400 dark:text-gray-500"
+            className="inline-flex items-center justify-center w-9 h-9 text-gray-400 dark:text-gray-400"
             aria-hidden="true"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -99,7 +99,7 @@ export default function Pagination({
       </button>
 
       {/* Indicateur texte */}
-      <span className="ml-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+      <span className="ml-3 text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">
         Page {currentPage} / {totalPages} &bull; {totalCount} résultat{totalCount > 1 ? "s" : ""}
       </span>
     </nav>

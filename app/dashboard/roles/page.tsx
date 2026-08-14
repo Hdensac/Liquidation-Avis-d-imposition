@@ -215,7 +215,7 @@ export default function RolesPage() {
             <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
               {nbActifs} {nbActifs > 1 ? "actifs" : "actif"}
             </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+            <span className="text-xs text-gray-400 dark:text-gray-400 font-medium">
               / {roles.length} enregistrés
             </span>
           </div>
