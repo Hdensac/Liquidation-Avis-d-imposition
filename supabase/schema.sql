@@ -124,10 +124,14 @@ DECLARE
   v_liq_id UUID;
   v_ref_liq TEXT;
   v_base NUMERIC;
-  v_count INTEGER;
+  v_current_year INTEGER;
+  v_next_number INTEGER;
   v_superficie_imposable NUMERIC;
   v_type_bien TEXT;
 BEGIN
+  LOCK TABLE public.liquidations IN EXCLUSIVE MODE;
+
+  v_current_year := EXTRACT(YEAR FROM CURRENT_DATE);
   v_superficie_imposable := NULLIF(p_superficie_imposable, 0);
   v_type_bien := CASE WHEN UPPER(COALESCE(p_type_bien, 'NON_BATI')) = 'BATI' THEN 'BATI' ELSE 'NON_BATI' END;
 
@@ -141,7 +145,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- Upsert Contribuable
   INSERT INTO public.contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)
   VALUES (p_nom_prenoms, p_ifu_npi, p_telephone, UPPER(p_commune), UPPER(p_arrondissement), UPPER(p_quartier))
   ON CONFLICT (ifu_npi) DO UPDATE SET
@@ -152,12 +155,16 @@ BEGIN
     quartier = EXCLUDED.quartier
   RETURNING id INTO v_contrib_id;
 
-  -- Calcul référence
-  SELECT COUNT(*) + 1 INTO v_count FROM public.liquidations;
-  v_ref_liq := 'LIQ-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-' || LPAD(v_count::text, 5, '0');
+  SELECT COALESCE(
+    MAX(CAST(substring(reference_liq FROM 'LIQ-' || v_current_year || '-([0-9]+)$') AS INTEGER)),
+    0
+  ) + 1 INTO v_next_number
+  FROM public.liquidations
+  WHERE reference_liq LIKE 'LIQ-' || v_current_year || '-%';
+
+  v_ref_liq := 'LIQ-' || v_current_year || '-' || LPAD(v_next_number::text, 5, '0');
   v_base := COALESCE(v_superficie_imposable, p_superficie) * p_valeur_locative;
 
-  -- Créer la liquidation
   INSERT INTO public.liquidations (
     reference_liq,
     contribuable_id,
