@@ -132,7 +132,9 @@ function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
   const baseImposable = getBaseImposable(details);
   const rows = details.articles || [];
   return rows.map((article, index) => {
-    const base = toNumber(article.base, baseImposable);
+    const base = details.liquidation.type_bien === "BATI" && (article.nature_impot === "TFU/FB" || !article.nature_impot || article.nature_impot.includes("FB")) 
+      ? (baseImposable > 0 ? baseImposable : toNumber(article.base, baseImposable))
+      : toNumber(article.base, baseImposable);
     const taux = toNumber(article.taux, 0);
     const droitSimple = toNumber(article.droit_simple, base * taux);
     const penalite = toNumber(article.penalite, 0);
