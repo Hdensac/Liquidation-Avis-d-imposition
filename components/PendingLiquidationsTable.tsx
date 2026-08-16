@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -717,7 +717,7 @@ export default function PendingLiquidationsTable() {
                         className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
                       />
                       <label htmlFor="editIsLoue" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                        Logement / En Location
+                        Batiment en location
                         <span className="ml-1 text-xs font-normal text-gray-400">(IRF Micro Foncier + P-ORTB)</span>
                       </label>
                     </div>

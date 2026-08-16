@@ -56,8 +56,8 @@ export default function HeaderClient({ user }: HeaderClientProps) {
 
   // Modules disponibles pour le switcher dropdown (facile à étendre)
   const modules = [
-    { value: "new",      label: "TFU / FNB",  baseHref: "/dashboard/new",     color: "indigo" },
-    { value: "tps/new", label: "TPS",         baseHref: "/dashboard/tps/new", color: "emerald" },
+    { value: "new",      label: "TFU (FNB / FB)", baseHref: "/dashboard/new",     color: "indigo" },
+    { value: "tps/new", label: "TPS",                baseHref: "/dashboard/tps/new", color: "emerald" },
   ];
 
   const currentModule = isTpsSection ? "tps/new" : "new";

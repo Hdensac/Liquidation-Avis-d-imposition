@@ -539,7 +539,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
                 />
                 <label htmlFor="isLoue" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-2">
                   <Home className="w-4 h-4 text-slate-500" />
-                  Logement / En Location
+                  Batiment en location
                   <span className="text-xs font-normal text-slate-400">(déclenche IRF Micro Foncier + P-ORTB)</span>
                 </label>
               </div>
