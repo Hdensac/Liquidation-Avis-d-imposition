@@ -384,6 +384,16 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       wrap(pdf, line, widths[4] - 4).forEach((subLine: string) => { finalDescLines.push(subLine); finalDescFontSizes.push(fontSize); });
     });
     pdf.setFontSize(10);
+  } else {
+    // Pour FB, on fusionne la description sur toute la hauteur et on affiche uniquement l'information de la dernière cellule
+    const lastRow = rows[rows.length - 1];
+    const customDesc = lastRow ? sanitizeText(lastRow.description) : "";
+    if (customDesc) {
+      const fontSize = fitCellFontSize(customDesc, widths[4] - 4);
+      pdf.setFont("times", "bold"); pdf.setFontSize(fontSize);
+      wrap(pdf, customDesc, widths[4] - 4).forEach((subLine: string) => { finalDescLines.push(subLine); finalDescFontSizes.push(fontSize); });
+    }
+    pdf.setFontSize(10);
   }
   // Row heights
   const rowHeights = rows.map((row) => {
@@ -454,8 +464,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     pdf.text(line, locX + widths[3] / 2, locStartY + i * 4.0, { align: "center" });
   });
   pdf.setFontSize(10);
-  // Draw merged Description (FNB only)
-  if (mergeDescription) {
+    // Draw merged Description (FNB or FB)
     const descX = locX + widths[3];
     pdf.rect(descX, startRowsY, widths[4], totalTableHeight);
     const descTextH = finalDescLines.length * 4.0;
@@ -465,7 +474,6 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       pdf.text(line, descX + widths[4] / 2, descStartY + i * 4.0, { align: "center" });
     });
     pdf.setFontSize(10);
-  }
   return y;
 }
 

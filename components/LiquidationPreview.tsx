@@ -124,7 +124,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                     {ex.year}
                   </td>
                   <td className="border-r border-b border-black p-2.5 font-bold">{ex.taxNature}</td>
-                  {/* Description : 1 cellule rowSpan pour FNB (4 lignes), cellule individuelle pour FB */}
+                  {/* Description : 1 cellule rowSpan pour FNB (4 lignes), cellule fusionnée pour FB affichant la dernière description */}
                   {!isBati ? (
                     idx === 0 && (
                       <td
@@ -135,9 +135,14 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                       </td>
                     )
                   ) : (
-                    <td className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase whitespace-pre-line">
-                      <span>{ex.description}</span>
-                    </td>
+                    idx === 0 && (
+                      <td
+                        rowSpan={preview.exercises.length}
+                        className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase whitespace-pre-line"
+                      >
+                        <span>{preview.exercises[preview.exercises.length - 1].description}</span>
+                      </td>
+                    )
                   )}
                   <td className="border-r border-b border-black p-2.5 text-right font-mono font-bold text-sm">
                     {ex.baseImposable > 0 ? formatMoney(ex.baseImposable) : (ex.taxNature === "P-ORTB" ? "—" : "")}
