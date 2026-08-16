@@ -368,15 +368,15 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
     wrap(pdf, line, widths[3] - 4).forEach((subLine: string) => { finalLocLines.push(subLine); finalLocFontSizes.push(fontSize); });
   });
   pdf.setFontSize(10);
-  // Description: merged for FNB, per-row for FB
+  // Description: merged for both FNB and FB
   const isBati = details.liquidation.type_bien === "BATI";
-  const mergeDescription = !isBati;
+  const mergeDescription = true;
   const sup = toNumber(details.liquidation.superficie, 0);
   const comm = titleCase(details.contribuable.commune || "");
   const arrt = titleCase(details.contribuable.arrondissement || "");
   const quart = titleCase(details.contribuable.quartier || "");
   const finalDescLines: string[] = []; const finalDescFontSizes: number[] = [];
-  if (mergeDescription) {
+  if (!isBati) {
     const rawDescLinesFnb = ["PARCELLE DE", `${sup}m2 sise a`, comm, arrt ? `/ ${arrt}` : "", quart ? `/ ${quart}` : ""].filter(Boolean);
     rawDescLinesFnb.forEach((line) => {
       const fontSize = fitCellFontSize(line, widths[4] - 4);
