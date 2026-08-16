@@ -431,7 +431,7 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
       { val: "", skip: true },
       { val: mergeDescription ? "" : sanitizeText(row.description), skip: mergeDescription },
       { val: formatNumber(row.base, true), skip: false },
-      { val: row.nature_impot === "P-ORTB" ? "Forfait" : `${Math.round(row.taux * 100)}%`, skip: false },
+      { val: row.nature_impot === "P-ORTB" ? "-" : `${Math.round(row.taux * 100)}%`, skip: false },
       { val: formatNumber(row.droit_simple, true), skip: false },
       { val: formatNumber(row.penalite, true), skip: false },
       { val: formatNumber(row.acompte_paye, true), skip: false },

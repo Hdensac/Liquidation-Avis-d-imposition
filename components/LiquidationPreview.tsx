@@ -148,7 +148,7 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                     {ex.baseImposable > 0 ? formatMoney(ex.baseImposable) : (ex.taxNature === "P-ORTB" ? "—" : "")}
                   </td>
                   <td className="border-r border-b border-black p-2.5 font-bold text-sm">
-                    {ex.taxNature === "P-ORTB" ? "Forfait" : `${(ex.taux * 100).toFixed(0)}%`}
+                    {ex.taxNature === "P-ORTB" ? "-" : `${(ex.taux * 100).toFixed(0)}%`}
                   </td>
                   <td className="border-b border-black p-2.5 text-right font-bold font-mono text-sm">
                     {formatMoney(ex.droitSimple)}
