@@ -36,6 +36,19 @@ export const TpsForm: React.FC<TpsFormProps> = ({
       value = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     }
 
+    if (name === "startYear") {
+      const currentYear = new Date().getFullYear();
+      let numValue = value === "" ? currentYear : parseInt(value, 10);
+      if (numValue > currentYear) {
+        numValue = currentYear;
+      }
+      onChange({
+        ...formData,
+        startYear: numValue,
+      });
+      return;
+    }
+
     if (type === "number") {
       const numValue = value === "" ? 0 : parseFloat(value);
       onChange({
@@ -246,11 +259,11 @@ export const TpsForm: React.FC<TpsFormProps> = ({
               <input
                 type="number"
                 name="startYear"
-                value={formData.startYear ?? 2024}
+                value={formData.startYear ?? new Date().getFullYear()}
                 onChange={handleChange}
                 required
                 min={2000}
-                max={2099}
+                max={new Date().getFullYear()}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
