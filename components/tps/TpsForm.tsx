@@ -254,7 +254,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Année  d'exercice <span className="text-red-500">*</span>
+                Exercice <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -262,7 +262,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({
                 value={formData.startYear ?? new Date().getFullYear()}
                 onChange={handleChange}
                 required
-                min={2000}
+                min={2022}
                 max={new Date().getFullYear()}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
