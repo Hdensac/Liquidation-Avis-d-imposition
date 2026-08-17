@@ -71,9 +71,9 @@ function getExerciceOptions(): { value: number; label: string }[] {
   const current = new Date().getFullYear();
   return [
     { value: current,     label: `Année en cours (${current})` },
-    { value: current - 1, label: `n-1 (${current - 1})` },
-    { value: current - 2, label: `n-2 (${current - 2})` },
-    { value: current - 3, label: `n-3 (${current - 3})` },
+    { value: current - 1, label: ` (${current - 1})` },
+    { value: current - 2, label: ` (${current - 2})` },
+    { value: current - 3, label: ` (${current - 3})` },
   ];
 }
 
@@ -474,7 +474,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Exercice Principal <span className="text-red-500">*</span>
+                    Exercice <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="startYear"
