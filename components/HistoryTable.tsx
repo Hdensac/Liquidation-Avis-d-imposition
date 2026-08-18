@@ -315,7 +315,6 @@ export default function HistoryTable() {
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Téléphone</th>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Référence</th>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Créée le</th>
-              <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider">Statut Rôle</th>
               <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider">Action</th>
             </tr>
           </thead>
@@ -342,19 +341,6 @@ export default function HistoryTable() {
                   <td className="px-4 py-2 font-mono text-xs text-indigo-600 dark:text-indigo-400">{rec.reference_liq}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">
                     {new Date(rec.created_at).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    {roleStatus === "ACTIF" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
-                        ACTIF
-                      </span>
-                    ) : roleStatus === "CLOTURE" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                        <Lock className="w-2.5 h-2.5" /> CLÔTURÉ
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center justify-center gap-2">
@@ -618,17 +604,22 @@ export default function HistoryTable() {
                   </div>
                 </div>
 
-                {/* Année exercice — verrouillée */}
+                {/* Année exercice — modifiable par Inspecteur/Admin */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">
-                      Année / Exercice Principal (Non modifiable)
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Année / Exercice Principal *
                     </label>
                     <input
                       type="number"
-                      disabled
+                      required
+                      min={2000}
+                      max={2100}
                       value={editFormData.startYear}
-                      className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, startYear: Number(e.target.value) || new Date().getFullYear() })
+                      }
+                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
 
