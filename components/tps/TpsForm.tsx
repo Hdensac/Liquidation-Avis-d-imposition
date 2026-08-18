@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
-import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE } from "@/components/TaxForm";
+import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE, getArrondissementsForCommune, findMatchingArrondissement } from "@/components/TaxForm";
 import { User, MapPin, Building, Calendar, RefreshCw, Landmark } from "lucide-react";
 
 interface TpsFormProps {
@@ -200,19 +200,18 @@ export const TpsForm: React.FC<TpsFormProps> = ({
               </label>
               <select
                 name="arrondissement"
-                value={formData.arrondissement}
+                value={findMatchingArrondissement(formData.commune, formData.arrondissement)}
                 onChange={handleChange}
                 required
                 disabled={!formData.commune}
                 className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-50 disabled:text-slate-400"
               >
                 <option value="">Sélectionner</option>
-                {formData.commune &&
-                  ARRONDISSEMENTS_PAR_COMMUNE[formData.commune]?.map((arr) => (
-                    <option key={arr} value={arr}>
-                      {arr}
-                    </option>
-                  ))}
+                {getArrondissementsForCommune(formData.commune).map((arr) => (
+                  <option key={arr} value={arr}>
+                    {arr}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

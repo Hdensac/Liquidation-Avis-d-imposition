@@ -15,6 +15,8 @@ import { TpsInput } from "@/utils/tpsCalculations";
 import { FileText, Loader2, Search, X, Edit, Trash2, AlertTriangle, CheckSquare } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { findMatchingArrondissement } from "@/components/TaxForm";
+
 
 type Contribuable = {
   id: string;
@@ -123,12 +125,14 @@ export default function TpsPendingTable() {
 
   const handleOpenEdit = (liq: LiquidationTps) => {
     setSelectedLiquidation(liq);
+    const comm = liq.contribuable.commune || "";
+    const arr = findMatchingArrondissement(comm, liq.contribuable.arrondissement || "");
     setEditFormData({
       nomRaisonSociale: liq.contribuable.nom_raison_sociale,
       ifuNc: liq.contribuable.ifu_nc,
       telephone: liq.contribuable.telephone || "",
-      commune: liq.contribuable.commune,
-      arrondissement: liq.contribuable.arrondissement,
+      commune: comm,
+      arrondissement: arr,
       quartier: liq.contribuable.quartier,
       localisation: liq.contribuable.localisation || "",
       activite: liq.activite,

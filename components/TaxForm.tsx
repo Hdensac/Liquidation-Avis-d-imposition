@@ -66,6 +66,30 @@ export const ARRONDISSEMENTS_PAR_COMMUNE: Record<string, string[]> = {
   ],
 };
 
+/** Helper pour obtenir la liste des arrondissements d'une commune quelle que soit sa casse/accents */
+export function getArrondissementsForCommune(commune?: string): string[] {
+  if (!commune) return [];
+  const normCommune = commune.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const foundKey = Object.keys(ARRONDISSEMENTS_PAR_COMMUNE).find(
+    (key) => key.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normCommune
+  );
+  return foundKey ? ARRONDISSEMENTS_PAR_COMMUNE[foundKey] : [];
+}
+
+/** Helper pour trouver l'arrondissement correspondant (gestion majuscules/accents enregistrés en BD) */
+export function findMatchingArrondissement(commune?: string, arrondissement?: string): string {
+  if (!arrondissement) return "";
+  const list = getArrondissementsForCommune(commune);
+  if (list.includes(arrondissement)) return arrondissement;
+
+  const normalizeStr = (s: string) =>
+    s.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const normTarget = normalizeStr(arrondissement);
+  const match = list.find((item) => normalizeStr(item) === normTarget);
+  return match ?? arrondissement;
+}
+
 /** Années disponibles pour l'exercice principal FB */
 function getExerciceOptions(): { value: number; label: string }[] {
   const current = new Date().getFullYear();
@@ -293,7 +317,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
               </label>
               <select
                 name="arrondissement"
-                value={formData.arrondissement}
+                value={findMatchingArrondissement(formData.commune, formData.arrondissement)}
                 onChange={handleChange}
                 disabled={!formData.commune}
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
@@ -302,7 +326,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
                 <option value="" disabled>
                   {formData.commune ? "Sélectionnez un arrondissement" : "Sélectionnez d'abord une commune"}
                 </option>
-                {(ARRONDISSEMENTS_PAR_COMMUNE[formData.commune] ?? []).map((arr) => (
+                {getArrondissementsForCommune(formData.commune).map((arr) => (
                   <option key={arr} value={arr}>{arr}</option>
                 ))}
               </select>

@@ -12,7 +12,7 @@ import { FileText, Loader2, Search, X, Edit, Trash2, AlertTriangle } from "lucid
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
 import type { TaxpayerInput } from "@/types/liquidation";
-import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE } from "@/components/TaxForm";
+import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE, getArrondissementsForCommune, findMatchingArrondissement } from "@/components/TaxForm";
 import { createClient } from "@/utils/supabase/client";
 
 type Contribuable = {
@@ -58,12 +58,14 @@ function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
   const contribuable = getContribuable(liq.contribuable);
   const isBati = liq.type_bien === "BATI";
+  const comm = contribuable.commune || "";
+  const arr = findMatchingArrondissement(comm, contribuable.arrondissement || "");
   return {
     fullname: contribuable.nom_prenoms || "",
     ifuNpi: contribuable.ifu_npi || "",
     phone: contribuable.telephone || "",
-    commune: contribuable.commune || "",
-    arrondissement: contribuable.arrondissement || "",
+    commune: comm,
+    arrondissement: arr,
     quartier: contribuable.quartier || "",
     typeBien: isBati ? "BATI" : "NON_BATI",
     superficie: Number(liq.superficie) || 0,
@@ -566,7 +568,7 @@ export default function PendingLiquidationsTable() {
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Commune *</label>
                     <select
                       value={editFormData.commune}
-                      onChange={(e) => setEditFormData({ ...editFormData, commune: e.target.value })}
+                      onChange={(e) => setEditFormData({ ...editFormData, commune: e.target.value, arrondissement: "" })}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     >
                       <option value="">Sélectionner...</option>
@@ -579,13 +581,13 @@ export default function PendingLiquidationsTable() {
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Arrondissement *</label>
                     <select
                       required
-                      value={editFormData.arrondissement}
+                      value={findMatchingArrondissement(editFormData.commune, editFormData.arrondissement)}
                       onChange={(e) => setEditFormData({ ...editFormData, arrondissement: e.target.value })}
                       disabled={!editFormData.commune}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Sélectionner...</option>
-                      {(ARRONDISSEMENTS_PAR_COMMUNE[editFormData.commune] ?? []).map((arr) => (
+                      {getArrondissementsForCommune(editFormData.commune).map((arr) => (
                         <option key={arr} value={arr}>{arr}</option>
                       ))}
                     </select>
