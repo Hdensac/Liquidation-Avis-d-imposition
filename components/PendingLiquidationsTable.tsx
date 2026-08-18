@@ -250,7 +250,6 @@ export default function PendingLiquidationsTable() {
             if (!prev) return null;
             return {
               ...prev,
-              arrondissement: "", // Réinitialisation de l'arrondissement pour cohérence
               valeurLocative: va !== null ? va : "",
             };
           });
