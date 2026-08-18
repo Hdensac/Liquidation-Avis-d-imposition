@@ -6,6 +6,7 @@ import { TaxpayerInput } from "@/types/liquidation";
 import { canApplyExoneration, type UserRole } from "@/types/user";
 import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
 import { logAction } from "@/actions/auditActions";
+import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 
 /** Récupère la valeur administrative d'une commune par appel RPC */
 export async function fetchValeurAdministrative(commune: string): Promise<number | null> {
@@ -128,7 +129,7 @@ async function ensureActiveRole(commune: string) {
   }
 }
 
-async function fetchCurrentUserRole(): Promise<UserRole | null> {
+export async function fetchCurrentUserRole(): Promise<UserRole | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -264,7 +265,10 @@ export async function fetchHistoryLiquidationsPaginated({
   const { data, error, count } = await supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, download_count, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)",
+      `id, reference_liq, status, created_at, download_count, 
+      superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description,
+      contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier),
+      recouvrement:recouvrements (role:roles (id, status))`,
       { count: "exact" }
     )
     .eq("status", "PAYE")
@@ -273,6 +277,216 @@ export async function fetchHistoryLiquidationsPaginated({
 
   if (error) throw error;
   return { data: data ?? [], totalCount: count ?? 0 };
+}
+
+/** Modifie une liquidation PAYE existante (Réservé Inspecteur/Admin, si le rôle est ACTIF) */
+export async function updatePaidLiquidation(
+  liquidationId: string,
+  data: TaxpayerInput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Récupérer l'utilisateur courant et son rôle
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Vous devez être authentifié pour modifier." };
+    }
+
+    const currentRole = await fetchCurrentUserRole();
+    if (currentRole !== "ADMIN" && currentRole !== "INSPECTEUR") {
+      return { success: false, error: "Seuls les inspecteurs et administrateurs peuvent modifier une liquidation validée." };
+    }
+
+    // 2. Vérifier que la liquidation est bien PAYE et rattachée à un rôle ACTIF
+    const { data: currentLiq, error: getError } = await supabase
+      .from("liquidations")
+      .select(`
+        status, reference_liq, contribuable_id, type_bien,
+        recouvrement:recouvrements (
+          id,
+          role:roles (
+            id,
+            status
+          )
+        )
+      `)
+      .eq("id", liquidationId)
+      .single();
+
+    if (getError || !currentLiq) {
+      return { success: false, error: "Liquidation introuvable." };
+    }
+
+    if (currentLiq.status !== "PAYE") {
+      return { success: false, error: "Seules les liquidations payées peuvent être modifiées dans l'historique." };
+    }
+
+    const rec = Array.isArray(currentLiq.recouvrement) ? currentLiq.recouvrement[0] : currentLiq.recouvrement;
+    if (!rec || !rec.role) {
+      return { success: false, error: "Recouvrement ou rôle associé introuvable." };
+    }
+
+    const role = Array.isArray(rec.role) ? rec.role[0] : rec.role;
+    if (role.status !== "ACTIF") {
+      return { success: false, error: "Ce rôle est déjà clôturé. Les modifications sont impossibles." };
+    }
+
+    // 3. Valider l'exonération si applicable
+    const hasExoneration = typeof data.superficieImposable === "number" && data.superficieImposable > 0;
+    if (hasExoneration && !canApplyExoneration(currentRole)) {
+      return { success: false, error: "Exonération réservée aux inspecteurs et administrateurs." };
+    }
+
+    // 4. Vérifier si le nouvel IFU/NPI est déjà utilisé par un autre contribuable
+    const { data: existingContrib } = await supabase
+      .from("contribuables")
+      .select("id, nom_prenoms")
+      .eq("ifu_npi", data.ifuNpi)
+      .neq("id", currentLiq.contribuable_id)
+      .maybeSingle();
+
+    const oldContribId = currentLiq.contribuable_id;
+    let finalContribId = oldContribId;
+
+    if (existingContrib) {
+      const cleanName = (n: string) => n.trim().toUpperCase().replace(/\s+/g, " ");
+      if (cleanName(existingContrib.nom_prenoms) === cleanName(data.fullname)) {
+        finalContribId = existingContrib.id;
+      } else {
+        return { 
+          success: false, 
+          error: `Cet IFU/NPI est déjà associé au contribuable "${existingContrib.nom_prenoms}" dans le système.` 
+        };
+      }
+    }
+
+    // 5. Mettre à jour le contribuable
+    if (finalContribId === oldContribId) {
+      const { error: contribError } = await supabase
+        .from("contribuables")
+        .update({
+          nom_prenoms: data.fullname,
+          ifu_npi: data.ifuNpi,
+          telephone: data.phone === "01" ? null : data.phone,
+          commune: normalizeCommune(data.commune),
+          arrondissement: data.arrondissement,
+          quartier: data.quartier,
+        })
+        .eq("id", oldContribId);
+
+      if (contribError) return { success: false, error: "Erreur lors de la mise à jour du contribuable." };
+    } else {
+      await supabase
+        .from("contribuables")
+        .update({
+          telephone: data.phone === "01" ? null : data.phone,
+          commune: normalizeCommune(data.commune),
+          arrondissement: data.arrondissement,
+          quartier: data.quartier,
+        })
+        .eq("id", finalContribId);
+    }
+
+    // 6. Recalculer les droits
+    const calculations = buildLiquidationCalculations(data);
+    const baseImposable = (Number(data.superficieImposable) || Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0);
+
+    // 7. Mettre à jour la liquidation
+    const { error: liqError } = await supabase
+      .from("liquidations")
+      .update({
+        contribuable_id: finalContribId,
+        superficie: Number(data.superficie) || 0,
+        superficie_imposable: hasExoneration ? data.superficieImposable : null,
+        valeur_locative: Number(data.valeurLocative) || 0,
+        start_year: Number(data.startYear) || 2023,
+        base_imposable: baseImposable,
+        is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
+        valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
+        description: data.typeBien === "BATI" ? (data.description || null) : null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", liquidationId);
+
+    if (liqError) return { success: false, error: "Erreur lors de la mise à jour de la liquidation." };
+
+    // Nettoyer l'ancien contribuable s'il est orphelin
+    if (finalContribId !== oldContribId) {
+      const { count } = await supabase
+        .from("liquidations")
+        .select("id", { count: "exact", head: true })
+        .eq("contribuable_id", oldContribId);
+
+      if (count === 0) {
+        await supabase.from("contribuables").delete().eq("id", oldContribId);
+      }
+    }
+
+    // 8. Mettre à jour les articles_recouvrement existants "en place"
+    const { data: existingArticles, error: getArticlesError } = await supabase
+      .from("articles_recouvrement")
+      .select("id, numero_article")
+      .eq("recouvrement_id", rec.id)
+      .order("numero_article", { ascending: true });
+
+    if (getArticlesError) return { success: false, error: "Impossible de récupérer les articles existants." };
+
+    // Mettre à jour chaque article
+    for (let i = 0; i < calculations.exercises.length; i++) {
+      const ex = calculations.exercises[i];
+      const matchingArticle = existingArticles?.[i];
+
+      const articlePayload = {
+        exercice: ex.year,
+        nature_impot: ex.taxNature,
+        localisation: calculations.adresseDescription,
+        description: ex.description,
+        base: ex.baseImposable,
+        taux: ex.taux,
+        droit_simple: ex.droitSimple,
+        reste_du: ex.droitSimple,
+      };
+
+      if (matchingArticle) {
+        await supabase
+          .from("articles_recouvrement")
+          .update(articlePayload)
+          .eq("id", matchingArticle.id);
+      } else {
+        await supabase
+          .from("articles_recouvrement")
+          .insert({
+            recouvrement_id: rec.id,
+            numero_article: i + 1,
+            ...articlePayload,
+          });
+      }
+    }
+
+    // Si le nouveau calcul génère MOINS d'articles que d'existants
+    if (existingArticles && existingArticles.length > calculations.exercises.length) {
+      const idsToDelete = existingArticles.slice(calculations.exercises.length).map(a => a.id);
+      await supabase
+        .from("articles_recouvrement")
+        .delete()
+        .in("id", idsToDelete);
+    }
+
+    // 9. Logger l'action
+    await logAction("MODIFICATION_FINANCIERE_LIQUIDATION_PAYE", {
+      reference_liq: currentLiq.reference_liq,
+      user_id: user.id,
+      role: currentRole,
+      data_apres: data
+    });
+
+    return { success: true };
+  } catch (e: any) {
+    console.error("updatePaidLiquidation error:", e);
+    return { success: false, error: e?.message || "Une erreur inattendue est survenue." };
+  }
 }
 
 /** Increments the download counter of a liquidation */

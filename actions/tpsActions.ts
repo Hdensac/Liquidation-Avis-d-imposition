@@ -3,7 +3,8 @@
 import { getRange, PAGE_SIZE } from "@/lib/pagination";
 import { createClient } from "@/utils/supabase/server";
 import { logAction } from "@/actions/auditActions";
-import { TpsInput } from "@/utils/tpsCalculations";
+import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
+import { fetchCurrentUserRole } from "@/actions/liquidationActions";
 
 export async function createLiquidationTps(data: TpsInput) {
   const supabase = await createClient();
@@ -255,3 +256,172 @@ export async function cloturerRoleTps(commune: string) {
 
   return data;
 }
+
+/** Modifie une liquidation TPS VALIDE existante (Réservé Inspecteur/Admin, si le rôle est ACTIF) */
+export async function updatePaidTpsLiquidation(
+  liquidationId: string,
+  data: TpsInput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Récupérer l'utilisateur courant et son rôle
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Vous devez être authentifié pour modifier." };
+    }
+
+    const currentRole = await fetchCurrentUserRole();
+    if (currentRole !== "ADMIN" && currentRole !== "INSPECTEUR") {
+      return { success: false, error: "Seuls les inspecteurs et administrateurs peuvent modifier une liquidation validée." };
+    }
+
+    // 2. Vérifier que la liquidation est bien VALIDE et rattachée à un rôle ACTIF
+    const { data: currentLiq, error: getError } = await supabase
+      .from("tps_liquidations")
+      .select(`
+        status, reference_tps, contribuable_id,
+        articles:tps_articles (
+          id,
+          numero_article,
+          role:tps_roles (
+            id,
+            status
+          )
+        )
+      `)
+      .eq("id", liquidationId)
+      .single();
+
+    if (getError || !currentLiq) {
+      return { success: false, error: "Liquidation TPS introuvable." };
+    }
+
+    if (currentLiq.status !== "VALIDE") {
+      return { success: false, error: "Seules les liquidations validées peuvent être modifiées dans l'historique." };
+    }
+
+    const articles = currentLiq.articles || [];
+    if (articles.length === 0) {
+      return { success: false, error: "Aucun article de recouvrement associé à cette liquidation." };
+    }
+
+    // Prendre le premier article pour vérifier le statut du rôle
+    const firstArticle = articles[0];
+    const role = Array.isArray(firstArticle.role) ? firstArticle.role[0] : firstArticle.role;
+    if (!role || role.status !== "ACTIF") {
+      return { success: false, error: "Ce rôle TPS est déjà clôturé. Les modifications sont impossibles." };
+    }
+
+    // 3. Vérifier si le nouvel IFU NC est déjà utilisé par un autre contribuable
+    const { data: existingContrib } = await supabase
+      .from("tps_contribuables")
+      .select("id, nom_raison_sociale")
+      .eq("ifu_nc", data.ifuNc)
+      .neq("id", currentLiq.contribuable_id)
+      .maybeSingle();
+
+    const oldContribId = currentLiq.contribuable_id;
+    let finalContribId = oldContribId;
+
+    if (existingContrib) {
+      const cleanName = (n: string) => n.trim().toUpperCase().replace(/\s+/g, " ");
+      if (cleanName(existingContrib.nom_raison_sociale) === cleanName(data.nomRaisonSociale)) {
+        finalContribId = existingContrib.id;
+      } else {
+        return { 
+          success: false, 
+          error: `Cet IFU NC est déjà associé au contribuable "${existingContrib.nom_raison_sociale}" dans le système.` 
+        };
+      }
+    }
+
+    // 4. Mettre à jour le contribuable TPS
+    if (finalContribId === oldContribId) {
+      const { error: contribError } = await supabase
+        .from("tps_contribuables")
+        .update({
+          nom_raison_sociale: data.nomRaisonSociale,
+          ifu_nc: data.ifuNc,
+          telephone: data.telephone || null,
+          commune: data.commune.toUpperCase(),
+          arrondissement: data.arrondissement.toUpperCase(),
+          quartier: data.quartier.toUpperCase(),
+          localisation: data.localisation || null,
+        })
+        .eq("id", oldContribId);
+
+      if (contribError) return { success: false, error: "Erreur lors de la mise à jour du contribuable TPS." };
+    } else {
+      await supabase
+        .from("tps_contribuables")
+        .update({
+          telephone: data.telephone || null,
+          commune: data.commune.toUpperCase(),
+          arrondissement: data.arrondissement.toUpperCase(),
+          quartier: data.quartier.toUpperCase(),
+          localisation: data.localisation || null,
+        })
+        .eq("id", finalContribId);
+    }
+
+    // 5. Recalculer les droits TPS
+    const calculations = buildTpsCalculations(data);
+
+    // 6. Mettre à jour la liquidation TPS
+    const { error: liqError } = await supabase
+      .from("tps_liquidations")
+      .update({
+        contribuable_id: finalContribId,
+        activite: data.activite,
+        montant_autres_activites: Number(data.montantAutresActivites) || 0,
+        tps_calcule: calculations.tpsCalcule,
+        portb: calculations.portb,
+        impot_du: calculations.impotDu,
+        acomptes_payes: Number(data.acomptesPayes) || 0,
+        reste_du: calculations.resteDu,
+        start_year: calculations.startYear,
+      })
+      .eq("id", liquidationId);
+
+    if (liqError) return { success: false, error: "Erreur lors de la mise à jour de la liquidation TPS." };
+
+    // Nettoyer l'ancien contribuable TPS s'il est orphelin
+    if (finalContribId !== oldContribId) {
+      const { count } = await supabase
+        .from("tps_liquidations")
+        .select("id", { count: "exact", head: true })
+        .eq("contribuable_id", oldContribId);
+
+      if (count === 0) {
+        await supabase.from("tps_contribuables").delete().eq("id", oldContribId);
+      }
+    }
+
+    // 7. Mettre à jour les exercices dans les tps_articles
+    const sortedArticles = [...articles].sort((a: any, b: any) => a.numero_article - b.numero_article);
+    for (let i = 0; i < sortedArticles.length; i++) {
+      const art = sortedArticles[i];
+      await supabase
+        .from("tps_articles")
+        .update({
+          exercice: calculations.startYear + i,
+        })
+        .eq("id", art.id);
+    }
+
+    // 8. Logger l'action
+    await logAction("MODIFICATION_FINANCIERE_LIQUIDATION_TPS_VALIDE", {
+      reference_tps: currentLiq.reference_tps,
+      user_id: user.id,
+      role: currentRole,
+      data_apres: data
+    });
+
+    return { success: true };
+  } catch (e: any) {
+    console.error("updatePaidTpsLiquidation error:", e);
+    return { success: false, error: e?.message || "Une erreur inattendue est survenue." };
+  }
+}
+
