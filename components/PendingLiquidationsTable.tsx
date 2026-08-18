@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -663,12 +663,19 @@ export default function PendingLiquidationsTable() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-750 text-gray-500 mb-1">Année / Exercice Principal (Non modifiable)</label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Année / Exercice Principal *
+                    </label>
                     <input
                       type="number"
-                      disabled
+                      required
+                      min={2000}
+                      max={2100}
                       value={editFormData.startYear}
-                      className="w-full px-3.5 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 cursor-not-allowed focus:outline-none"
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, startYear: Number(e.target.value) || new Date().getFullYear() })
+                      }
+                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                   {editFormData.typeBien === "NON_BATI" && canApplyExo && (
