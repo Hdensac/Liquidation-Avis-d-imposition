@@ -303,6 +303,10 @@ export async function updatePaidLiquidation(
       .from("liquidations")
       .select(`
         status, reference_liq, contribuable_id, type_bien,
+        superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description,
+        contribuable:contribuables (
+          id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier
+        ),
         recouvrement:recouvrements (
           id,
           role:roles (
@@ -331,6 +335,26 @@ export async function updatePaidLiquidation(
     if (role.status !== "ACTIF") {
       return { success: false, error: "Ce rôle est déjà clôturé. Les modifications sont impossibles." };
     }
+
+    // Sauvegarder les données avant modification pour le log d'audit
+    const contrib = currentLiq.contribuable;
+    const contribData = Array.isArray(contrib) ? contrib[0] : contrib;
+    const data_avant: TaxpayerInput = {
+      fullname: contribData?.nom_prenoms || "",
+      ifuNpi: contribData?.ifu_npi || "",
+      phone: contribData?.telephone || "",
+      commune: contribData?.commune || "",
+      arrondissement: contribData?.arrondissement || "",
+      quartier: contribData?.quartier || "",
+      typeBien: currentLiq.type_bien as any,
+      superficie: currentLiq.superficie ?? "",
+      superficieImposable: currentLiq.superficie_imposable ?? undefined,
+      valeurLocative: currentLiq.valeur_locative ?? "",
+      startYear: currentLiq.start_year ?? 2023,
+      isLoue: currentLiq.is_loue ?? undefined,
+      valeurIrf: currentLiq.valeur_irf ?? undefined,
+      description: currentLiq.description ?? undefined,
+    };
 
     // 3. Valider l'exonération si applicable
     const hasExoneration = typeof data.superficieImposable === "number" && data.superficieImposable > 0;
@@ -479,6 +503,7 @@ export async function updatePaidLiquidation(
       reference_liq: currentLiq.reference_liq,
       user_id: user.id,
       role: currentRole,
+      data_avant: data_avant,
       data_apres: data
     });
 

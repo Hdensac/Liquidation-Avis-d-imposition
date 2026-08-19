@@ -281,6 +281,10 @@ export async function updatePaidTpsLiquidation(
       .from("tps_liquidations")
       .select(`
         status, reference_tps, contribuable_id,
+        activite, montant_autres_activites, tps_calcule, portb, impot_du, acomptes_payes, reste_du, start_year,
+        contribuable:tps_contribuables (
+          id, nom_raison_sociale, ifu_nc, telephone, commune, arrondissement, quartier, localisation
+        ),
         articles:tps_articles (
           id,
           numero_article,
@@ -312,6 +316,23 @@ export async function updatePaidTpsLiquidation(
     if (!role || role.status !== "ACTIF") {
       return { success: false, error: "Ce rôle TPS est déjà clôturé. Les modifications sont impossibles." };
     }
+
+    // Sauvegarder les données avant modification pour le log d'audit
+    const contrib = currentLiq.contribuable;
+    const contribData = Array.isArray(contrib) ? contrib[0] : contrib;
+    const data_avant: TpsInput = {
+      nomRaisonSociale: contribData?.nom_raison_sociale || "",
+      ifuNc: contribData?.ifu_nc || "",
+      telephone: contribData?.telephone || "",
+      commune: contribData?.commune || "",
+      arrondissement: contribData?.arrondissement || "",
+      quartier: contribData?.quartier || "",
+      localisation: contribData?.localisation || "",
+      activite: currentLiq.activite || "",
+      montantAutresActivites: currentLiq.montant_autres_activites ?? 0,
+      acomptesPayes: currentLiq.acomptes_payes ?? 0,
+      startYear: currentLiq.start_year ?? 2023,
+    };
 
     // 3. Vérifier si le nouvel IFU NC est déjà utilisé par un autre contribuable
     const { data: existingContrib } = await supabase
@@ -415,6 +436,7 @@ export async function updatePaidTpsLiquidation(
       reference_tps: currentLiq.reference_tps,
       user_id: user.id,
       role: currentRole,
+      data_avant: data_avant,
       data_apres: data
     });
 
