@@ -60,6 +60,8 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
   const [logPage, setLogPage] = useState(1);
   const [userSearch, setUserSearch] = useState("");
   const [logSearch, setLogSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("all");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isLogsPending, startLogsTransition] = useTransition();
@@ -117,6 +119,8 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
           page: logPage,
           pageSize: LOGS_PAGE_SIZE,
           search: logSearch,
+          actionFilter,
+          dateFilter,
         });
 
         if (isCurrent) {
@@ -134,7 +138,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
     return () => {
       isCurrent = false;
     };
-  }, [logPage, logSearch]);
+  }, [logPage, logSearch, actionFilter, dateFilter]);
   // Modifier le rôle d'un utilisateur
   const handleRoleChange = async (userId: string, newRole: UserRole | null) => {
     startTransition(async () => {
@@ -200,16 +204,11 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
         </div>
       )}
 
-      {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <Shield className="text-indigo-600 dark:text-indigo-400 w-7 h-7" />
-            Administration Système
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gérez les autorisations d'accès des utilisateurs et inspectez les actions système.
-          </p>
+      {/* Header Panel (Sleek Navigation Bar) */}
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Shield className="text-indigo-600 dark:text-indigo-400 w-6 h-6" />
+          <span className="font-bold text-slate-850 dark:text-slate-100 text-lg">Console Admin</span>
         </div>
 
         {/* Tab Switcher */}
@@ -441,21 +440,59 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
         ) : activeTab === "logs" ? (
           <div>
             {/* Search and Filters */}
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/20">
-              <div className="relative max-w-sm w-full">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par action, email..."
-                  value={logSearch}
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/20">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-3xl">
+                {/* Recherche libre */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par email..."
+                    value={logSearch}
+                    onChange={(e) => {
+                      setLogSearch(e.target.value);
+                      setLogPage(1);
+                    }}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Filtre par Action */}
+                <select
+                  value={actionFilter}
                   onChange={(e) => {
-                    setLogSearch(e.target.value);
+                    setActionFilter(e.target.value);
                     setLogPage(1);
                   }}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
+                  className="px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  <option value="">Toutes les actions</option>
+                  <option value="CREATION_LIQUIDATION">Création FNB & FB</option>
+                  <option value="VALIDATION_PAIEMENT">Paiement FNB & FB</option>
+                  <option value="MODIFICATION_FINANCIERE_LIQUIDATION_PAYE">Modification FNB & FB</option>
+                  <option value="CREATION_LIQUIDATION_TPS">Création TPS</option>
+                  <option value="VALIDATION_PAIEMENT_TPS">Validation TPS</option>
+                  <option value="MODIFICATION_FINANCIERE_LIQUIDATION_TPS_VALIDE">Modification TPS</option>
+                  <option value="ANNULATION_LIQUIDATION">Annulation Liquidation</option>
+                </select>
+
+                {/* Filtre par Période */}
+                <select
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setLogPage(1);
+                  }}
+                  className="px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  <option value="all">Toutes les dates</option>
+                  <option value="today">Aujourd'hui</option>
+                  <option value="week">7 derniers jours</option>
+                  <option value="month">30 derniers jours</option>
+                </select>
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
                 {isLogsPending ? "Chargement..." : `${logStart}-${logEnd} sur ${logTotal} log(s)`}
               </div>
             </div>

@@ -544,6 +544,13 @@ export async function incrementLiquidationDownloadCount(liquidationId: string) {
  */
 export async function validatePayment(liquidationId: string) {
   const supabase = await createClient();
+
+  const { data: currentLiq } = await supabase
+    .from("liquidations")
+    .select("reference_liq")
+    .eq("id", liquidationId)
+    .single();
+
   const { error, data: result } = await supabase.rpc("valider_paiement_liquidation", {
     p_liquidation_id: liquidationId,
   });
@@ -552,6 +559,7 @@ export async function validatePayment(liquidationId: string) {
   // Log de l'action
   await logAction("VALIDATION_PAIEMENT", {
     liquidation_id: liquidationId,
+    reference_liq: currentLiq?.reference_liq,
     recouvrement_id: result?.recouvrement_id,
     role_id: result?.role_id,
     commune: result?.commune,

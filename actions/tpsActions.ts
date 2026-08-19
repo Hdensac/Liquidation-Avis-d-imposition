@@ -41,18 +41,14 @@ export async function createLiquidationTps(data: TpsInput) {
 export async function updateLiquidationTps(id: string, data: TpsInput) {
   const supabase = await createClient();
 
-  // On vérifie que la liquidation est bien en attente avant de la modifier
-  const { data: currentLiq, error: getErr } = await supabase
+  // On récupère la référence pour le log d'audit
+  const { data: currentLiq } = await supabase
     .from("tps_liquidations")
-    .select("status, contribuable_id")
+    .select("status, contribuable_id, reference_tps")
     .eq("id", id)
     .single();
 
-  if (getErr || !currentLiq) {
-    throw new Error("Liquidation TPS introuvable.");
-  }
-
-  if (currentLiq.status !== "EN_ATTENTE") {
+  if (!currentLiq || currentLiq.status !== "EN_ATTENTE") {
     throw new Error("Seules les liquidations en attente peuvent être modifiées.");
   }
 
@@ -94,6 +90,7 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
 
   await logAction("MODIFICATION_LIQUIDATION_TPS", {
     liquidation_id: id,
+    reference_tps: currentLiq.reference_tps,
     nom_raison_sociale: data.nomRaisonSociale,
     ifu_nc: data.ifuNc,
   });
@@ -123,6 +120,12 @@ export async function fetchPendingLiquidationsTps(params: { page: number }) {
 export async function cancelLiquidationTps(id: string) {
   const supabase = await createClient();
 
+  const { data: currentLiq } = await supabase
+    .from("tps_liquidations")
+    .select("reference_tps")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase
     .from("tps_liquidations")
     .update({ status: "ANNULE" })
@@ -130,12 +133,21 @@ export async function cancelLiquidationTps(id: string) {
 
   if (error) throw error;
 
-  await logAction("ANNULATION_LIQUIDATION_TPS", { liquidation_id: id });
+  await logAction("ANNULATION_LIQUIDATION_TPS", {
+    liquidation_id: id,
+    reference_tps: currentLiq?.reference_tps
+  });
   return { success: true };
 }
 
 export async function validerPaiementTps(id: string) {
   const supabase = await createClient();
+
+  const { data: currentLiq } = await supabase
+    .from("tps_liquidations")
+    .select("reference_tps")
+    .eq("id", id)
+    .single();
 
   const { data, error } = await supabase.rpc("valider_paiement_tps", {
     p_liquidation_id: id,
@@ -148,6 +160,7 @@ export async function validerPaiementTps(id: string) {
 
   await logAction("VALIDATION_PAIEMENT_TPS", {
     liquidation_id: id,
+    reference_tps: currentLiq?.reference_tps,
     role_id: data?.role_id,
     first_article_num: data?.first_article_num,
     last_article_num: data?.last_article_num,

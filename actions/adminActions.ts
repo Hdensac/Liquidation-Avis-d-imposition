@@ -67,6 +67,8 @@ type FetchAuditLogsParams = {
   page?: number;
   pageSize?: number;
   search?: string;
+  actionFilter?: string;
+  dateFilter?: string;
 };
 
 /** Récupère les logs d'audit avec pagination */
@@ -74,6 +76,8 @@ export async function fetchAuditLogs({
   page = 1,
   pageSize = 20,
   search = "",
+  actionFilter = "",
+  dateFilter = "all",
 }: FetchAuditLogsParams = {}) {
   try {
     await ensureAdmin();
@@ -90,6 +94,24 @@ export async function fetchAuditLogs({
 
     if (normalizedSearch) {
       query = query.or(`user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%`);
+    }
+
+    if (actionFilter) {
+      query = query.eq("action", actionFilter);
+    }
+
+    if (dateFilter && dateFilter !== "all") {
+      const now = new Date();
+      if (dateFilter === "today") {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        query = query.gte("created_at", startOfToday);
+      } else if (dateFilter === "week") {
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte("created_at", oneWeekAgo);
+      } else if (dateFilter === "month") {
+        const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte("created_at", oneMonthAgo);
+      }
     }
 
     const { data, error, count } = await query
