@@ -431,15 +431,22 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                         {log.user_email}
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                          log.action === "VALIDATION_PAIEMENT"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400"
-                            : log.action === "CREATION_LIQUIDATION"
-                            ? "bg-sky-100 text-sky-800 dark:bg-sky-500/10 dark:text-sky-400"
-                            : "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400"
-                        }`}>
-                          {log.action}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold ${
+                            log.action === "VALIDATION_PAIEMENT" || log.action === "VALIDATION_PAIEMENT_TPS"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              : log.action === "CREATION_LIQUIDATION" || log.action === "CREATION_LIQUIDATION_TPS"
+                              ? "bg-sky-100 text-sky-800 dark:bg-sky-500/10 dark:text-sky-400"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400"
+                          }`}>
+                            {log.action}
+                          </span>
+                          {(log.details?.reference_liq || log.details?.reference_tps) && (
+                            <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                              {log.details.reference_liq || log.details.reference_tps}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-slate-500 dark:text-slate-400 text-xs">
                         <span className="flex items-center gap-1">
