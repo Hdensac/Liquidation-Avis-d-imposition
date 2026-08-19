@@ -244,3 +244,54 @@ export async function saveRoleSetting(
     return { success: false, error: err.message || "Une erreur inattendue est survenue." };
   }
 }
+
+/** Récupère les statistiques globales pour le dashboard admin */
+export async function fetchAdminStats() {
+  try {
+    await ensureAdmin();
+    const supabase = await createClient();
+
+    // Lancer les requêtes en parallèle pour optimiser les performances
+    const [
+      { count: totalLiqPayeCount },
+      { count: totalLiqAttenteCount },
+      { count: totalTpsValideCount },
+      { count: totalTpsAttenteCount },
+      { count: totalContribCount },
+      { count: totalTpsContribCount },
+      { count: activeRolesCount },
+      { data: liqPayeAmounts },
+      { data: tpsValideAmounts }
+    ] = await Promise.all([
+      supabase.from("liquidations").select("id", { count: "exact", head: true }).eq("status", "PAYE"),
+      supabase.from("liquidations").select("id", { count: "exact", head: true }).eq("status", "EN_ATTENTE"),
+      supabase.from("tps_liquidations").select("id", { count: "exact", head: true }).eq("status", "VALIDE"),
+      supabase.from("tps_liquidations").select("id", { count: "exact", head: true }).eq("status", "EN_ATTENTE"),
+      supabase.from("contribuables").select("id", { count: "exact", head: true }),
+      supabase.from("tps_contribuables").select("id", { count: "exact", head: true }),
+      supabase.from("roles").select("id", { count: "exact", head: true }).eq("status", "ACTIF"),
+      supabase.from("liquidations").select("base_imposable").eq("status", "PAYE"),
+      supabase.from("tps_liquidations").select("impot_du").eq("status", "VALIDE")
+    ]);
+
+    const sumLiqPaye = liqPayeAmounts?.reduce((sum, item) => sum + (Number(item.base_imposable) || 0), 0) || 0;
+    const sumTpsValide = tpsValideAmounts?.reduce((sum, item) => sum + (Number(item.impot_du) || 0), 0) || 0;
+
+    return {
+      success: true,
+      stats: {
+        liquidationsPaye: totalLiqPayeCount || 0,
+        liquidationsAttente: totalLiqAttenteCount || 0,
+        tpsValide: totalTpsValideCount || 0,
+        tpsAttente: totalTpsAttenteCount || 0,
+        contribuables: (totalContribCount || 0) + (totalTpsContribCount || 0),
+        activeRoles: activeRolesCount || 0,
+        montantTotalFNB_FB: sumLiqPaye,
+        montantTotalTPS: sumTpsValide
+      }
+    };
+  } catch (err: any) {
+    console.error("Erreur fetchAdminStats:", err);
+    return { success: false, error: err.message || "Impossible de charger les statistiques." };
+  }
+}

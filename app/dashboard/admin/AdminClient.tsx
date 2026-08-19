@@ -15,9 +15,15 @@ import {
   UserPlus,
   Loader2,
   Settings,
-  Save
+  Save,
+  BarChart3,
+  TrendingUp,
+  Coins,
+  FileText,
+  Activity,
+  CheckCircle2
 } from "lucide-react";
-import { fetchAuditLogs, updateUserRole, inviteNewAgent, fetchRoleSettings, fetchCommunesWithRoles, saveRoleSetting } from "@/actions/adminActions";
+import { fetchAuditLogs, updateUserRole, inviteNewAgent, fetchRoleSettings, fetchCommunesWithRoles, saveRoleSetting, fetchAdminStats } from "@/actions/adminActions";
 import type { UserRole } from "@/types/user";
 import { COMMUNE_OPTIONS } from "@/components/TaxForm";
 
@@ -47,7 +53,7 @@ interface AdminClientProps {
 const LOGS_PAGE_SIZE = 20;
 
 export default function AdminClient({ initialProfiles, initialLogs, initialLogTotal }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "roleSettings">("users");
+  const [activeTab, setActiveTab] = useState<"stats" | "users" | "logs" | "roleSettings">("stats");
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
   const [logs, setLogs] = useState<AuditLog[]>(initialLogs);
   const [logTotal, setLogTotal] = useState(initialLogTotal);
@@ -61,6 +67,34 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFullname, setInviteFullname] = useState("");
   const [isInviting, setIsInviting] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== "stats") return;
+    
+    let isCurrent = true;
+    setIsStatsLoading(true);
+    
+    async function loadStats() {
+      try {
+        const res = await fetchAdminStats();
+        if (isCurrent && res.success) {
+          setStats(res.stats);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isCurrent) setIsStatsLoading(false);
+      }
+    }
+
+    loadStats();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [activeTab]);
 
   // Filtrer les profils
   const filteredProfiles = profiles.filter(p => 
@@ -179,7 +213,18 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800 self-start md:self-auto">
+        <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800 self-start md:self-auto flex-wrap gap-1">
+          <button
+            onClick={() => setActiveTab("stats")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition duration-200 ${
+              activeTab === "stats"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Vue d'ensemble
+          </button>
           <button
             onClick={() => setActiveTab("users")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition duration-200 ${
@@ -218,7 +263,9 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
 
       {/* Main Tab Content */}
       <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl overflow-hidden">
-        {activeTab === "users" ? (
+        {activeTab === "stats" ? (
+          <StatsPanel stats={stats} isLoading={isStatsLoading} />
+        ) : activeTab === "users" ? (
           <div>
             {/* Formulaire d'invitation d'agent */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/10">
@@ -532,10 +579,14 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                 <span className="text-slate-800 dark:text-slate-200">{new Date(selectedLog.created_at).toLocaleString("fr-FR")}</span>
               </div>
               <div>
-                <span className="block text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase mb-1">Données JSON</span>
-                <pre className="bg-slate-900 text-amber-400 font-mono text-xs p-4 rounded-xl overflow-x-auto border border-slate-850 max-h-60">
-                  {JSON.stringify(selectedLog.details, null, 2)}
-                </pre>
+                <span className="block text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase mb-1">Détails des Modifications</span>
+                {selectedLog.details && selectedLog.details.data_avant && selectedLog.details.data_apres ? (
+                  <VisualDiffViewer before={selectedLog.details.data_avant} after={selectedLog.details.data_apres} />
+                ) : (
+                  <pre className="bg-slate-900 text-amber-400 font-mono text-xs p-4 rounded-xl overflow-x-auto border border-slate-850 max-h-60">
+                    {JSON.stringify(selectedLog.details, null, 2)}
+                  </pre>
+                )}
               </div>
             </div>
 
@@ -700,6 +751,249 @@ function RoleSettingsPanel() {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function VisualDiffViewer({ before, after }: { before: any; after: any }) {
+  if (!before || !after || typeof before !== "object" || typeof after !== "object") {
+    return null;
+  }
+
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+
+  const fieldLabels: Record<string, string> = {
+    fullname: "Nom Complet / Raison Sociale",
+    nomRaisonSociale: "Nom Complet / Raison Sociale",
+    ifuNpi: "IFU / NPI",
+    ifuNc: "IFU NC",
+    phone: "Téléphone",
+    telephone: "Téléphone",
+    commune: "Commune",
+    arrondissement: "Arrondissement",
+    quartier: "Quartier",
+    localisation: "Localisation",
+    typeBien: "Type de Bien",
+    superficie: "Superficie (m²)",
+    superficieImposable: "Superficie Imposable (m²)",
+    valeurLocative: "Valeur Locative",
+    startYear: "Année de Départ",
+    isLoue: "Mis en location",
+    valeurIrf: "Valeur IRF / Micro Foncier",
+    description: "Description / Détails",
+    activite: "Activité principale",
+    montantAutresActivites: "Montant Autres Activités",
+    acomptesPayes: "Acomptes Payés"
+  };
+
+  const formatValue = (val: any) => {
+    if (val === undefined || val === null || val === "") return "-";
+    if (typeof val === "boolean") return val ? "Oui" : "Non";
+    return String(val);
+  };
+
+  return (
+    <div className="border border-slate-200 dark:border-slate-700/60 rounded-xl overflow-hidden text-xs">
+      <div className="grid grid-cols-3 bg-slate-100 dark:bg-slate-900/60 font-semibold p-2.5 border-b border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400">
+        <div>Champ</div>
+        <div>Ancienne valeur</div>
+        <div>Nouvelle valeur</div>
+      </div>
+      <div className="divide-y divide-slate-150 dark:divide-slate-700/40 max-h-72 overflow-y-auto">
+        {keys.map((key) => {
+          const valBefore = before[key];
+          const valAfter = after[key];
+          const isChanged = JSON.stringify(valBefore) !== JSON.stringify(valAfter);
+
+          if ((valBefore === undefined || valBefore === null || valBefore === "") && 
+              (valAfter === undefined || valAfter === null || valAfter === "")) {
+            return null;
+          }
+
+          return (
+            <div 
+              key={key} 
+              className={`grid grid-cols-3 p-2.5 items-center transition duration-150 ${
+                isChanged 
+                  ? "bg-amber-500/5 dark:bg-amber-500/10 text-slate-900 dark:text-slate-100" 
+                  : "text-slate-650 dark:text-slate-450"
+              }`}
+            >
+              <div className="font-medium text-slate-800 dark:text-slate-350">
+                {fieldLabels[key] || key}
+              </div>
+              <div className={`font-mono truncate pr-2 ${isChanged ? "text-rose-600 dark:text-rose-400 font-semibold line-through bg-rose-500/10 px-1 py-0.5 rounded" : ""}`}>
+                {formatValue(valBefore)}
+              </div>
+              <div className={`font-mono truncate ${isChanged ? "text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-1 py-0.5 rounded" : ""}`}>
+                {formatValue(valAfter)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StatsPanel({ stats, isLoading }: { stats: any; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <span className="text-sm font-medium animate-pulse">Chargement des statistiques en cours...</span>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-12 text-center text-slate-500 dark:text-slate-400">
+        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-rose-500" />
+        <p>Impossible de charger les statistiques.</p>
+      </div>
+    );
+  }
+
+  const formatFCFA = (val: number) => {
+    return new Intl.NumberFormat("fr-FR").format(val) + " F CFA";
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          Statistiques Fiscales Globales
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Indicateurs de performance et de volume de liquidation d'imposition sur le territoire.
+        </p>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Recettes FNB / FB */}
+        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/30 dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/50 p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Recettes FNB & FB</span>
+            <Coins className="w-5 h-5 text-indigo-500" />
+          </div>
+          <div className="text-xl font-bold text-slate-800 dark:text-slate-100">{formatFCFA(stats.montantTotalFNB_FB)}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-450 mt-2 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Sur {stats.liquidationsPaye} liquidations payées</span>
+          </div>
+        </div>
+
+        {/* Recettes TPS */}
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 dark:from-emerald-950/20 dark:to-slate-900 border border-emerald-100 dark:border-emerald-900/50 p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Recettes TPS</span>
+            <Coins className="w-5 h-5 text-emerald-500" />
+          </div>
+          <div className="text-xl font-bold text-slate-800 dark:text-slate-100">{formatFCFA(stats.montantTotalTPS)}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-450 mt-2 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Sur {stats.tpsValide} avis TPS validés</span>
+          </div>
+        </div>
+
+        {/* Contribuables */}
+        <div className="bg-gradient-to-br from-sky-50 to-sky-100/30 dark:from-sky-950/20 dark:to-slate-900 border border-sky-100 dark:border-sky-900/50 p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 uppercase tracking-wider">Contribuables</span>
+            <Users className="w-5 h-5 text-sky-500" />
+          </div>
+          <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.contribuables}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-450 mt-2">
+            <span>Enregistrés dans le système</span>
+          </div>
+        </div>
+
+        {/* Rôles actifs */}
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100/30 dark:from-amber-950/20 dark:to-slate-900 border border-amber-100 dark:border-amber-900/50 p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Rôles émis actifs</span>
+            <Activity className="w-5 h-5 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.activeRoles}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-450 mt-2">
+            <span>Rôles en cours de recouvrement</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Ratios et répartition */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+        {/* FNB/FB Details */}
+        <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-slate-850 dark:text-slate-200 mb-4 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-indigo-500" />
+            Statut des Liquidations FNB & FB
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs font-medium mb-1">
+                <span className="text-slate-600 dark:text-slate-400">Payées (Recouvrées)</span>
+                <span className="text-slate-800 dark:text-slate-100 font-semibold">{stats.liquidationsPaye}</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                <div 
+                  className="bg-indigo-600 h-2 rounded-full" 
+                  style={{ width: `${(stats.liquidationsPaye + stats.liquidationsAttente) > 0 ? (stats.liquidationsPaye / (stats.liquidationsPaye + stats.liquidationsAttente)) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs font-medium mb-1">
+                <span className="text-slate-600 dark:text-slate-400">En attente de paiement</span>
+                <span className="text-slate-800 dark:text-slate-100 font-semibold">{stats.liquidationsAttente}</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                <div 
+                  className="bg-amber-500 h-2 rounded-full" 
+                  style={{ width: `${(stats.liquidationsPaye + stats.liquidationsAttente) > 0 ? (stats.liquidationsAttente / (stats.liquidationsPaye + stats.liquidationsAttente)) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* TPS Details */}
+        <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-slate-850 dark:text-slate-200 mb-4 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-500" />
+            Statut des Liquidations TPS
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs font-medium mb-1">
+                <span className="text-slate-600 dark:text-slate-400">Validées (Emises)</span>
+                <span className="text-slate-800 dark:text-slate-100 font-semibold">{stats.tpsValide}</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                <div 
+                  className="bg-emerald-600 h-2 rounded-full" 
+                  style={{ width: `${(stats.tpsValide + stats.tpsAttente) > 0 ? (stats.tpsValide / (stats.tpsValide + stats.tpsAttente)) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs font-medium mb-1">
+                <span className="text-slate-600 dark:text-slate-400">En attente de validation</span>
+                <span className="text-slate-800 dark:text-slate-100 font-semibold">{stats.tpsAttente}</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                <div 
+                  className="bg-amber-500 h-2 rounded-full" 
+                  style={{ width: `${(stats.tpsValide + stats.tpsAttente) > 0 ? (stats.tpsAttente / (stats.tpsValide + stats.tpsAttente)) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
