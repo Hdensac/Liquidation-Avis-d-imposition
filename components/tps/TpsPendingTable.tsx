@@ -80,7 +80,7 @@ export default function TpsPendingTable() {
       setLoading(true);
       try {
         const { data, totalCount: total } = await fetchPendingLiquidationsTps({ page });
-        setLiquidations((data ?? []) as LiquidationTps[]);
+        setLiquidations((data ?? []) as unknown as LiquidationTps[]);
         setTotalCount(total);
       } catch (e) {
         console.error(e);

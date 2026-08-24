@@ -248,7 +248,7 @@ export async function fetchPendingLiquidationsPaginated({
   const { data, error, count } = await query;
   if (error) throw error;
 
-  return { data: data ?? [], totalCount: count ?? 0 };
+  return { data: (data ?? []) as any[], totalCount: count ?? 0 };
 }
 
 /** Paginated + sorted (created_at DESC) paid liquidations (Historique) */

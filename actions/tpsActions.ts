@@ -129,7 +129,7 @@ export async function fetchPendingLiquidationsTps(params: { page: number }) {
   if (error) throw error;
 
   return {
-    data: data || [],
+    data: (data || []) as any[],
     totalCount: count || 0,
   };
 }
@@ -202,7 +202,7 @@ export async function fetchAvisValidesTps(params: { page: number }) {
   if (error) throw error;
 
   return {
-    data: data || [],
+    data: (data || []) as any[],
     totalCount: count || 0,
   };
 }

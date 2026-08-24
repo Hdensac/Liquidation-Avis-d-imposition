@@ -139,7 +139,7 @@ export default function TpsAvisTable() {
       setLoading(true);
       try {
         const { data, totalCount: total } = await fetchAvisValidesTps({ page });
-        setAvisList((data ?? []) as LiquidationTps[]);
+        setAvisList((data ?? []) as unknown as LiquidationTps[]);
         setTotalCount(total);
       } catch (e) {
         console.error(e);

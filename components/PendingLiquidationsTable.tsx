@@ -151,7 +151,7 @@ export default function PendingLiquidationsTable() {
       setLoading(true);
       try {
         const { data, totalCount: total } = await fetchPendingLiquidationsPaginated({ page, search });
-        setLiquidations((data ?? []) as Liquidation[]);
+        setLiquidations((data ?? []) as unknown as Liquidation[]);
         setTotalCount(total);
       } catch (e) {
         console.error(e);
