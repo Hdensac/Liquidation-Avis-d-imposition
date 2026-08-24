@@ -54,7 +54,9 @@ function buildFnbCalculations(formData: TaxpayerInput): LiquidationCalculations 
     exercises.push({
       year,
       taxNature: taxRule.natureImpot,
-      description: adresseDescription,
+      description: exonerationMention
+        ? `${adresseDescription}\n${exonerationMention.trim()}`
+        : adresseDescription,
       baseImposable,
       taux: taxRule.taux,
       droitSimple,
