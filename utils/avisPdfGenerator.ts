@@ -1,5 +1,5 @@
-﻿import jsPDF from "jspdf";
-import { formatDescriptionBien } from "@/utils/descriptionBien";
+import jsPDF from "jspdf";
+import { formatDescriptionBien, formatExonerationMention } from "@/utils/descriptionBien";
 
 export type AvisRecouvrementArticle = {
   id: string;
@@ -377,13 +377,26 @@ function drawArticlesTable(pdf: jsPDF, details: AvisRecouvrementDetails, rows: A
   const quart = titleCase(details.contribuable.quartier || "");
   const finalDescLines: string[] = []; const finalDescFontSizes: number[] = [];
   if (!isBati) {
-    const rawDescLinesFnb = ["PARCELLE DE", `${sup}m2 sise a`, comm, arrt ? `/ ${arrt}` : "", quart ? `/ ${quart}` : ""].filter(Boolean);
+    const supImposable = toNumber(details.liquidation.superficie_imposable ?? null, 0);
+    const exonerationMention = formatExonerationMention({
+      superficie: sup,
+      superficieImposable: supImposable > 0 ? supImposable : null,
+    });
+    const rawDescLinesFnb = [
+      "PARCELLE DE",
+      `${sup}m2 sise a`,
+      comm,
+      arrt ? `/ ${arrt}` : "",
+      quart ? `/ ${quart}` : "",
+      exonerationMention ? exonerationMention.trim() : "",
+    ].filter(Boolean);
     rawDescLinesFnb.forEach((line) => {
       const fontSize = fitCellFontSize(line, widths[4] - 4);
       pdf.setFont("times", "bold"); pdf.setFontSize(fontSize);
       wrap(pdf, line, widths[4] - 4).forEach((subLine: string) => { finalDescLines.push(subLine); finalDescFontSizes.push(fontSize); });
     });
     pdf.setFontSize(10);
+
   } else {
     // Pour FB, on fusionne la description sur toute la hauteur et on affiche uniquement l'information de la dernière cellule
     const lastRow = rows[rows.length - 1];
