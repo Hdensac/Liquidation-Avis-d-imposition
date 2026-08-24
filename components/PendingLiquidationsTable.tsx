@@ -92,16 +92,25 @@ export default function PendingLiquidationsTable() {
   const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [pdfTarget, setPdfTarget] = useState<Liquidation | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const { toast, toasts } = useToast();
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Nouveaux états pour le CRUD
   const [selectedLiquidation, setSelectedLiquidation] = useState<Liquidation | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [cancelConfirmRef, setCancelConfirmRef] = useState("");
   const [editFormData, setEditFormData] = useState<TaxpayerInput | null>(null);
   const [loadingVa, setLoadingVa] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -138,10 +147,10 @@ export default function PendingLiquidationsTable() {
   const canApplyExo = userRole === "ADMIN" || userRole === "INSPECTEUR";
 
   const loadData = useCallback(
-    async (page: number) => {
+    async (page: number, search?: string) => {
       setLoading(true);
       try {
-        const { data, totalCount: total } = await fetchPendingLiquidationsPaginated({ page });
+        const { data, totalCount: total } = await fetchPendingLiquidationsPaginated({ page, search });
         setLiquidations((data ?? []) as Liquidation[]);
         setTotalCount(total);
       } catch (e) {
@@ -155,8 +164,8 @@ export default function PendingLiquidationsTable() {
   );
 
   useEffect(() => {
-    loadData(currentPage);
-  }, [currentPage, loadData]);
+    loadData(currentPage, debouncedSearch);
+  }, [currentPage, debouncedSearch, loadData]);
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -175,16 +184,8 @@ export default function PendingLiquidationsTable() {
   };
 
   const filteredLiquidations = useMemo(() => {
-    if (!searchQuery.trim()) return liquidations;
-    const q = searchQuery.toLowerCase().trim();
-    return liquidations.filter((liq) => {
-      const c = getContribuable(liq.contribuable);
-      const nom = (c.nom_prenoms || "").toLowerCase();
-      const ifu = (c.ifu_npi || "").toLowerCase();
-      const ref = (liq.reference_liq || "").toLowerCase();
-      return nom.includes(q) || ifu.includes(q) || ref.includes(q);
-    });
-  }, [liquidations, searchQuery]);
+    return liquidations;
+  }, [liquidations]);
 
   const pdfFormData = useMemo(() => (pdfTarget ? liquidationToFormData(pdfTarget) : null), [pdfTarget]);
   const pdfCalculations = useMemo(
@@ -273,21 +274,29 @@ export default function PendingLiquidationsTable() {
 
     setIsSaving(true);
     setEditError(null);
-    const result = await updateLiquidation(selectedLiquidation.id, editFormData);
-    setIsSaving(false);
-    if (!result.success) {
-      setEditError(result.error || "Erreur lors de la modification de la liquidation.");
-      return;
+    try {
+      const result = await updateLiquidation(selectedLiquidation.id, editFormData);
+      setIsSaving(false);
+      if (!result.success) {
+        setEditError(result.error || "Erreur lors de la modification de la liquidation.");
+        return;
+      }
+      toast.success("Liquidation modifiee avec succes.");
+      setIsEditOpen(false);
+      loadData(currentPage, debouncedSearch);
+    } catch (err: any) {
+      setIsSaving(false);
+      const msg = err?.message || "Une erreur réseau est survenue. Veuillez réessayer.";
+      setEditError(msg);
+      console.error(err);
     }
-    toast.success("Liquidation modifiee avec succes.");
-    setIsEditOpen(false);
-    loadData(currentPage);
   };
 
   // Ouvrir la modale d'annulation
   const handleOpenCancel = (liq: Liquidation) => {
     setSelectedLiquidation(liq);
     setCancelReason("");
+    setCancelConfirmRef("");
     setIsCancelOpen(true);
   };
 
@@ -296,15 +305,22 @@ export default function PendingLiquidationsTable() {
     if (!selectedLiquidation || !cancelReason.trim()) return;
 
     setIsSaving(true);
-    const result = await cancelLiquidation(selectedLiquidation.id, cancelReason);
-    setIsSaving(false);
-    if (!result.success) {
-      toast.error(result.error || "Erreur lors de l'annulation de la liquidation.");
-      return;
+    try {
+      const result = await cancelLiquidation(selectedLiquidation.id, cancelReason);
+      setIsSaving(false);
+      if (!result.success) {
+        toast.error(result.error || "Erreur lors de l'annulation de la liquidation.");
+        return;
+      }
+      toast.success("Liquidation annulee avec succes.");
+      setIsCancelOpen(false);
+      loadData(currentPage, debouncedSearch);
+    } catch (err: any) {
+      setIsSaving(false);
+      const msg = err?.message || "Une erreur réseau est survenue. Veuillez réessayer.";
+      toast.error(msg);
+      console.error(err);
     }
-    toast.success("Liquidation annulee avec succes.");
-    setIsCancelOpen(false);
-    loadData(currentPage);
   };
 
   const handleDownloadPdf = (liquidation: Liquidation) => {
@@ -783,7 +799,7 @@ export default function PendingLiquidationsTable() {
         </div>
       )}
 
-      {/* MODALE D'ANNULATION */}
+      {/* MODALE D'ANNULATION — Double confirmation par saisie de référence */}
       {isCancelOpen && selectedLiquidation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md">
@@ -796,19 +812,19 @@ export default function PendingLiquidationsTable() {
                   Annuler la liquidation
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Référence : {selectedLiquidation.reference_liq}
+                  Référence : <strong className="font-mono text-gray-800 dark:text-gray-200">{selectedLiquidation.reference_liq}</strong>
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleCancelSubmit} className="p-6 space-y-4">
               <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl text-xs text-red-700 dark:text-red-400">
-                Cette action est définitive. La liquidation passera au statut <strong>ANNULÉ</strong> et ne pourra plus être validée pour paiement.
+                ⚠️ Cette action est <strong>définitive et irréversible</strong>. La liquidation passera au statut <strong>ANNULÉ</strong> et ne pourra plus être validée pour paiement.
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Motif de l'annulation *
+                  Motif de l'annulation <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   required
@@ -820,21 +836,38 @@ export default function PendingLiquidationsTable() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Confirmez en saisissant la référence <span className="font-mono text-red-600 dark:text-red-400">{selectedLiquidation.reference_liq}</span> <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={cancelConfirmRef}
+                  onChange={(e) => setCancelConfirmRef(e.target.value)}
+                  placeholder={selectedLiquidation.reference_liq}
+                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-400"
+                />
+                {cancelConfirmRef && cancelConfirmRef !== selectedLiquidation.reference_liq && (
+                  <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">La référence saisie ne correspond pas.</p>
+                )}
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsCancelOpen(false)}
+                  onClick={() => { setIsCancelOpen(false); setCancelConfirmRef(""); }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg transition"
                 >
                   Fermer
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving || !cancelReason.trim()}
-                  className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-medium py-2 px-4 rounded-lg transition"
+                  disabled={isSaving || !cancelReason.trim() || cancelConfirmRef !== selectedLiquidation.reference_liq}
+                  className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium py-2 px-4 rounded-lg transition"
                 >
                   {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Confirmer l'annulation
+                  Confirmer l'annulation définitive
                 </button>
               </div>
             </form>

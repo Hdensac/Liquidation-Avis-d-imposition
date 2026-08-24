@@ -6,6 +6,7 @@ import { logAction } from "@/actions/auditActions";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
 import { fetchCurrentUserRole } from "@/actions/liquidationActions";
 import { tpsInputSchema } from "@/lib/schemas";
+import { revalidateTag } from "next/cache";
 
 export async function createLiquidationTps(data: TpsInput) {
   const validation = tpsInputSchema.safeParse(data);
@@ -42,6 +43,7 @@ export async function createLiquidationTps(data: TpsInput) {
     commune: data.commune,
   });
 
+  revalidateTag("admin-stats");
   return result;
 }
 
@@ -109,6 +111,7 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
     commune: data.commune,
   });
 
+  revalidateTag("admin-stats");
   return { success: true };
 }
 
@@ -151,6 +154,7 @@ export async function cancelLiquidationTps(id: string) {
     liquidation_id: id,
     reference_tps: currentLiq?.reference_tps
   });
+  revalidateTag("admin-stats");
   return { success: true };
 }
 
@@ -180,6 +184,7 @@ export async function validerPaiementTps(id: string) {
     last_article_num: data?.last_article_num,
   });
 
+  revalidateTag("admin-stats");
   return data;
 }
 
@@ -281,6 +286,7 @@ export async function cloturerRoleTps(commune: string) {
     nouveau_numero_role: data?.nouveau_numero_role,
   });
 
+  revalidateTag("admin-stats");
   return data;
 }
 
@@ -467,6 +473,7 @@ export async function updatePaidTpsLiquidation(
       data_apres: data
     });
 
+    revalidateTag("admin-stats");
     return { success: true };
   } catch (e: any) {
     console.error("updatePaidTpsLiquidation error:", e);

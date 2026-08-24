@@ -8,6 +8,7 @@ import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
 import { logAction } from "@/actions/auditActions";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 import { taxpayerInputSchema } from "@/lib/schemas";
+import { revalidateTag } from "next/cache";
 
 /** Récupère la valeur administrative d'une commune par appel RPC */
 export async function fetchValeurAdministrative(commune: string): Promise<number | null> {
@@ -192,6 +193,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     commune: validatedData.commune,
   });
 
+  revalidateTag("admin-stats");
   return result;
 }
 
@@ -224,19 +226,25 @@ export async function fetchPendingLiquidationsPaginated({
   const supabase = await createClient();
   const [from, to] = getRange(page, PAGE_SIZE);
 
+  let selectStr =
+    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)";
+
   let query = supabase
     .from("liquidations")
-    .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)",
-      { count: "exact" }
-    )
-    .eq("status", "EN_ATTENTE")
+    .select(selectStr, { count: "exact" })
+    .eq("status", "EN_ATTENTE");
+
+  if (search && search.trim()) {
+    const q = `%${search.trim()}%`;
+    query = query.or(
+      `reference_liq.ilike.${q},contribuable.nom_prenoms.ilike.${q},contribuable.ifu_npi.ilike.${q}`
+    );
+  }
+
+  query = query
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  // Filtre texte côté client car Supabase ne supporte pas ilike sur FK joins
-  // On récupère la page puis on pré-filtre en limitant à la page.
-  // Pour une vraie recherche paginée sur join, utilisez une vue ou RPC.
   const { data, error, count } = await query;
   if (error) throw error;
 
@@ -505,6 +513,7 @@ export async function updatePaidLiquidation(
       data_apres: data
     });
 
+    revalidateTag("admin-stats");
     return { success: true };
   } catch (e: any) {
     console.error("updatePaidLiquidation error:", e);
@@ -564,6 +573,7 @@ export async function validatePayment(liquidationId: string) {
     annee: result?.annee,
   });
 
+  revalidateTag("admin-stats");
   return result;
 }
 
@@ -581,6 +591,7 @@ export async function closeActiveRole(commune: string) {
     nouveau_numero_role: result?.nouveau_numero_role,
   });
 
+  revalidateTag("admin-stats");
   return result;
 }
 
@@ -1075,6 +1086,7 @@ export async function updateLiquidation(
       },
     });
 
+    revalidateTag("admin-stats");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "Une erreur inattendue est survenue." };
@@ -1128,6 +1140,7 @@ export async function cancelLiquidation(
       reason,
     });
 
+    revalidateTag("admin-stats");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "Une erreur inattendue est survenue." };

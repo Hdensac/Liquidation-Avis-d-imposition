@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 
-export async function logAction(action: string, details: any = {}) {
+export async function logAction(action: string, details: Record<string, unknown> = {}) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

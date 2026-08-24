@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import type { UserRole } from "@/types/user";
 
 
@@ -215,7 +215,7 @@ export async function fetchCommunesWithRoles(annee: number): Promise<string[]> {
 
     if (error) throw error;
     // Extraire les communes uniques
-    const communes = Array.from(new Set((data ?? []).map((r: any) => r.commune)));
+    const communes = Array.from(new Set((data ?? []).map((r: { commune: string }) => r.commune)));
     return communes;
   } catch (err: any) {
     console.error("Erreur fetchCommunesWithRoles:", err);
@@ -267,11 +267,9 @@ export async function saveRoleSetting(
   }
 }
 
-/** Récupère les statistiques globales pour le dashboard admin */
-export async function fetchAdminStats() {
-  try {
-    await ensureAdmin();
-    const supabase = await createClient();
+const getCachedAdminStats = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
 
     // Lancer les requêtes en parallèle pour optimiser les performances
     const [
@@ -300,17 +298,31 @@ export async function fetchAdminStats() {
     const sumTpsValide = tpsValideAmounts?.reduce((sum, item) => sum + (Number(item.impot_du) || 0), 0) || 0;
 
     return {
+      liquidationsPaye: totalLiqPayeCount || 0,
+      liquidationsAttente: totalLiqAttenteCount || 0,
+      tpsValide: totalTpsValideCount || 0,
+      tpsAttente: totalTpsAttenteCount || 0,
+      contribuables: (totalContribCount || 0) + (totalTpsContribCount || 0),
+      activeRoles: activeRolesCount || 0,
+      montantTotalFNB_FB: sumLiqPaye,
+      montantTotalTPS: sumTpsValide
+    };
+  },
+  ["admin-stats"],
+  {
+    revalidate: 300, // Cache de 5 minutes
+    tags: ["admin-stats"]
+  }
+);
+
+/** Récupère les statistiques globales pour le dashboard admin */
+export async function fetchAdminStats() {
+  try {
+    await ensureAdmin();
+    const stats = await getCachedAdminStats();
+    return {
       success: true,
-      stats: {
-        liquidationsPaye: totalLiqPayeCount || 0,
-        liquidationsAttente: totalLiqAttenteCount || 0,
-        tpsValide: totalTpsValideCount || 0,
-        tpsAttente: totalTpsAttenteCount || 0,
-        contribuables: (totalContribCount || 0) + (totalTpsContribCount || 0),
-        activeRoles: activeRolesCount || 0,
-        montantTotalFNB_FB: sumLiqPaye,
-        montantTotalTPS: sumTpsValide
-      }
+      stats
     };
   } catch (err: any) {
     console.error("Erreur fetchAdminStats:", err);
