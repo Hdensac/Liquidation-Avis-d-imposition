@@ -7,6 +7,7 @@ import { canApplyExoneration, type UserRole } from "@/types/user";
 import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
 import { logAction } from "@/actions/auditActions";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
+import { taxpayerInputSchema } from "@/lib/schemas";
 
 /** Récupère la valeur administrative d'une commune par appel RPC */
 export async function fetchValeurAdministrative(commune: string): Promise<number | null> {
@@ -149,57 +150,46 @@ export async function fetchCurrentUserRole(): Promise<UserRole | null> {
 
 /** Create a new liquidation in status EN_ATTENTE */
 export async function createLiquidation(data: TaxpayerInput) {
+  const validation = taxpayerInputSchema.safeParse(data);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+    throw new Error(`Données de liquidation invalides: ${errorMsg}`);
+  }
+
+  const validatedData = validation.data;
   const supabase = await createClient();
   const currentRole = await fetchCurrentUserRole();
   const hasExoneration =
-    typeof data.superficieImposable === "number" && data.superficieImposable > 0;
+    typeof validatedData.superficieImposable === "number" && validatedData.superficieImposable > 0;
 
   if (hasExoneration && !canApplyExoneration(currentRole)) {
     throw new Error("Exoneration reservee aux inspecteurs et administrateurs.");
   }
 
-  const superficieImposable = hasExoneration ? data.superficieImposable : null;
-
-  console.log("[createLiquidation] payload avant RPC", {
-    fullname: data.fullname,
-    ifuNpi: data.ifuNpi,
-    commune: data.commune,
-    arrondissement: data.arrondissement,
-    superficie: data.superficie,
-    superficieImposable,
-    valeurLocative: data.valeurLocative,
-    startYear: data.startYear,
-    typeBien: data.typeBien,
-    base_imposable: (Number(superficieImposable) || Number(data.superficie) || 0) * (Number(data.valeurLocative) || 0),
-  });
-
+  const superficieImposable = hasExoneration ? validatedData.superficieImposable : null;
 
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
-    p_nom_prenoms: data.fullname,
-    p_ifu_npi: data.ifuNpi,
-    p_telephone: data.phone === "01" ? null : data.phone,
-    p_commune: normalizeCommune(data.commune),
-    p_arrondissement: data.arrondissement,
-    p_quartier: data.quartier,
-    p_superficie: Number(data.superficie) || 0,
-    p_valeur_locative: Number(data.valeurLocative) || 0,
-    p_start_year: Number(data.startYear) || 2023,
-    p_type_bien: data.typeBien || "NON_BATI",
-    // NULL si pas d'exonération → comportement identique à l'ancien code
+    p_nom_prenoms: validatedData.fullname,
+    p_ifu_npi: validatedData.ifuNpi,
+    p_telephone: validatedData.phone === "01" || !validatedData.phone ? null : validatedData.phone,
+    p_commune: normalizeCommune(validatedData.commune),
+    p_arrondissement: validatedData.arrondissement,
+    p_quartier: validatedData.quartier,
+    p_superficie: Number(validatedData.superficie) || 0,
+    p_valeur_locative: Number(validatedData.valeurLocative) || 0,
+    p_start_year: Number(validatedData.startYear) || 2023,
+    p_type_bien: validatedData.typeBien || "NON_BATI",
     p_superficie_imposable: superficieImposable,
-    // Champs Foncier Bâti (FB)
-    p_is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
-    p_valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
-    p_description: data.typeBien === "BATI" ? (data.description || null) : null,
+    p_is_loue: validatedData.typeBien === "BATI" ? (validatedData.isLoue ?? false) : false,
+    p_valeur_irf: validatedData.typeBien === "BATI" && validatedData.isLoue ? (Number(validatedData.valeurIrf) || null) : null,
+    p_description: validatedData.typeBien === "BATI" ? (validatedData.description || null) : null,
   });
   if (error) throw error;
 
-  // Log de l'action
+  // Log de l'action sans inclure d'informations nominatives sensibles ou en les limitant à la référence et commune
   await logAction("CREATION_LIQUIDATION", {
     reference_liq: result?.reference_liq,
-    contribuable: data.fullname,
-    ifu: data.ifuNpi,
-    commune: data.commune,
+    commune: validatedData.commune,
   });
 
   return result;
@@ -284,6 +274,14 @@ export async function updatePaidLiquidation(
   liquidationId: string,
   data: TaxpayerInput
 ): Promise<{ success: boolean; error?: string }> {
+  const validation = taxpayerInputSchema.safeParse(data);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+    return { success: false, error: `Données de modification invalides: ${errorMsg}` };
+  }
+  const validatedData = validation.data as TaxpayerInput;
+  data = validatedData;
+
   try {
     const supabase = await createClient();
 

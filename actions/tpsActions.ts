@@ -5,8 +5,17 @@ import { createClient } from "@/utils/supabase/server";
 import { logAction } from "@/actions/auditActions";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
 import { fetchCurrentUserRole } from "@/actions/liquidationActions";
+import { tpsInputSchema } from "@/lib/schemas";
 
 export async function createLiquidationTps(data: TpsInput) {
+  const validation = tpsInputSchema.safeParse(data);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+    throw new Error(`Données de liquidation TPS invalides: ${errorMsg}`);
+  }
+  const validatedData = validation.data as TpsInput;
+  data = validatedData;
+
   const supabase = await createClient();
 
   const { error, data: result } = await supabase.rpc("creer_liquidation_tps", {
@@ -30,8 +39,6 @@ export async function createLiquidationTps(data: TpsInput) {
 
   await logAction("CREATION_LIQUIDATION_TPS", {
     reference_tps: result?.reference_tps,
-    nom_raison_sociale: data.nomRaisonSociale,
-    ifu_nc: data.ifuNc,
     commune: data.commune,
   });
 
@@ -39,6 +46,14 @@ export async function createLiquidationTps(data: TpsInput) {
 }
 
 export async function updateLiquidationTps(id: string, data: TpsInput) {
+  const validation = tpsInputSchema.safeParse(data);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+    throw new Error(`Données de modification TPS invalides: ${errorMsg}`);
+  }
+  const validatedData = validation.data as TpsInput;
+  data = validatedData;
+
   const supabase = await createClient();
 
   // On récupère la référence pour le log d'audit
@@ -91,8 +106,7 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
   await logAction("MODIFICATION_LIQUIDATION_TPS", {
     liquidation_id: id,
     reference_tps: currentLiq.reference_tps,
-    nom_raison_sociale: data.nomRaisonSociale,
-    ifu_nc: data.ifuNc,
+    commune: data.commune,
   });
 
   return { success: true };
