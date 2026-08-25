@@ -223,8 +223,12 @@ export default function TpsAvisTable() {
     return r?.numero_role ?? "1";
   }, [pdfTarget]);
 
-  const pdfDateStr = new Date().toLocaleDateString("fr-FR");
-
+  const pdfDateStr = useMemo(() => {
+    if (!pdfTarget?.validated_at) return new Date().toLocaleDateString("fr-FR");
+    return new Date(pdfTarget.validated_at).toLocaleDateString("fr-FR", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+  }, [pdfTarget]);
 
   useEffect(() => {
     if (!pdfTarget || !pdfFormData) return;
@@ -240,28 +244,6 @@ export default function TpsAvisTable() {
       setPdfTarget(null);
     }
   }, [pdfTarget, pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, toast]);
-
-// Removed redundant duplicate code block
-
-  const pdfArticlesStr = useMemo(() => {
-    if (!pdfTarget?.articles?.length) return "A Générer";
-    return pdfTarget.articles.map((a) => a.numero_article).sort((a, b) => a - b).join(", ");
-  }, [pdfTarget]);
-
-  const pdfRoleNum = useMemo(() => {
-    if (!pdfTarget?.articles?.length) return "1";
-    const r = Array.isArray(pdfTarget.articles[0].role)
-      ? pdfTarget.articles[0].role[0]
-      : pdfTarget.articles[0].role;
-    return r?.numero_role ?? "1";
-  }, [pdfTarget]);
-
-  const pdfDateStr = useMemo(() => {
-    if (!pdfTarget?.validated_at) return "";
-    return new Date(pdfTarget.validated_at).toLocaleDateString("fr-FR", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric",
-    });
-  }, [pdfTarget]);
 
   // ─── Ouvrir la modale d'édition ──────────────────────────────────────────
   const handleOpenEdit = (liq: LiquidationTps) => {
