@@ -7,7 +7,7 @@ import type { RoleSummary } from "@/actions/liquidationActions";
 import { useToast, ToastContainer } from "./useToast";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 import { LiquidationPreview } from "@/components/LiquidationPreview";
-import { generatePDFFromElement } from "@/utils/pdfGenerator";
+import { generateLiquidationPdf } from "@/utils/liquidationPdfGenerator";
 import { FileText, Loader2, Search, X, Edit, Trash2, AlertTriangle } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
@@ -195,22 +195,18 @@ export default function PendingLiquidationsTable() {
   const hiddenDocumentId = pdfTarget ? `liquidation-document-${pdfTarget.id}` : "";
 
   useEffect(() => {
-    if (!pdfTarget || !pdfFormData || !pdfCalculations) return;
+    if (!pdfTarget || !pdfFormData) return;
     const filename = `Liquidation_${pdfTarget.reference_liq}.pdf`;
-    const timer = window.setTimeout(async () => {
-      try {
-        await generatePDFFromElement(hiddenDocumentId, filename);
-      } catch (error) {
-        console.error("Erreur lors de la regeneration du PDF:", error);
-        toast.error("Impossible de generer le PDF de cette liquidation.");
-      } finally {
-        setPdfLoadingId(null);
-        setPdfTarget(null);
-      }
-    }, 80);
-
-    return () => window.clearTimeout(timer);
-  }, [hiddenDocumentId, pdfCalculations, pdfFormData, pdfTarget, toast]);
+    try {
+      generateLiquidationPdf(pdfFormData, filename);
+    } catch (error) {
+      console.error("Erreur lors de la generation du PDF:", error);
+      toast.error("Impossible de generer le PDF de cette liquidation.");
+    } finally {
+      setPdfLoadingId(null);
+      setPdfTarget(null);
+    }
+  }, [pdfFormData, pdfTarget, toast]);
 
   const handleValidate = async (id: string) => {
     try {

@@ -6,7 +6,7 @@ import { fetchAvisValidesTps, incrementTpsDownloadCount, updatePaidTpsLiquidatio
 import type { TpsInput } from "@/utils/tpsCalculations";
 import { useToast, ToastContainer } from "@/components/useToast";
 import { TpsPreview } from "./TpsPreview";
-import { generatePDFFromElement } from "@/utils/pdfGenerator";
+import { generateTpsPdf } from "@/utils/tpsPdfGenerator";
 import { Loader2, Search, X, Download, Edit, Lock, AlertTriangle } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
@@ -206,22 +206,19 @@ export default function TpsAvisTable() {
   const hiddenDocumentId = pdfTarget ? `tps-document-${pdfTarget.id}` : "";
 
   useEffect(() => {
-    if (!pdfTarget) return;
+    if (!pdfTarget || !pdfFormData) return;
     const filename = `Avis_TPS_${pdfTarget.reference_tps}.pdf`;
-    const timer = window.setTimeout(async () => {
-      try {
-        await generatePDFFromElement(hiddenDocumentId, filename);
-        toast.success("Avis de mise en recouvrement téléchargé avec succès.");
-      } catch (error) {
-        console.error("Erreur génération PDF:", error);
-        toast.error("Impossible de générer le PDF de cet avis.");
-      } finally {
-        setPdfLoadingId(null);
-        setPdfTarget(null);
-      }
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [pdfTarget, hiddenDocumentId, toast]);
+    try {
+      generateTpsPdf(pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, filename);
+      toast.success("Avis de mise en recouvrement téléchargé avec succès.");
+    } catch (error) {
+      console.error("Erreur génération PDF:", error);
+      toast.error("Impossible de générer le PDF de cet avis.");
+    } finally {
+      setPdfLoadingId(null);
+      setPdfTarget(null);
+    }
+  }, [pdfTarget, pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, toast]);
 
   const pdfFormData = useMemo(() => {
     if (!pdfTarget) return null;

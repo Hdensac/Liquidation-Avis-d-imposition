@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { TaxpayerInput, LiquidationCalculations } from "@/types/liquidation";
-import { generatePDFFromElement } from "@/utils/pdfGenerator";
+import { generateLiquidationPdf } from "@/utils/liquidationPdfGenerator";
 
 interface ExportButtonsProps {
   formData: TaxpayerInput;
@@ -12,8 +12,8 @@ interface ExportButtonsProps {
 
 export const ExportButtons: React.FC<ExportButtonsProps> = ({
   formData,
-  calculations,
-  previewElementId,
+  calculations: _calculations,
+  previewElementId: _previewElementId,
 }) => {
   const [loadingPdf, setLoadingPdf] = useState(false);
 
@@ -23,10 +23,11 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
       const filename = `Liquidation_TFU_${
         formData.fullname ? formData.fullname.replace(/\s+/g, "_") : "Contribuable"
       }_${formData.startYear}.pdf`;
-      await generatePDFFromElement(previewElementId, filename);
+      // Rendu vectoriel pur jsPDF - deterministique, sans html2canvas
+      generateLiquidationPdf(formData, filename);
     } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      alert("Une erreur s'est produite lors de la génération du PDF.");
+      console.error("Erreur lors de la generation du PDF:", error);
+      alert("Une erreur s est produite lors de la generation du PDF.");
     } finally {
       setLoadingPdf(false);
     }
@@ -36,6 +37,9 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     window.print();
   };
 
-  // Retourne null pour masquer le composant proprement vis-à-vis de TypeScript
+  // Retourne null - boutons deja integres ailleurs dans le formulaire
+  void handleExportPDF;
+  void handlePrint;
+  void loadingPdf;
   return null;
 };
