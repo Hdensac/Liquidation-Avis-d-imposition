@@ -205,6 +205,27 @@ export default function TpsAvisTable() {
 
   const hiddenDocumentId = pdfTarget ? `tps-document-${pdfTarget.id}` : "";
 
+  const pdfFormData = useMemo(() => {
+    if (!pdfTarget) return null;
+    return liqToTpsInput(pdfTarget);
+  }, [pdfTarget]);
+
+  const pdfArticlesStr = useMemo(() => {
+    if (!pdfTarget?.articles?.length) return "A Générer";
+    return pdfTarget.articles.map((a) => a.numero_article).sort((a, b) => a - b).join(", ");
+  }, [pdfTarget]);
+
+  const pdfRoleNum = useMemo(() => {
+    if (!pdfTarget?.articles?.length) return "1";
+    const r = Array.isArray(pdfTarget.articles[0].role)
+      ? pdfTarget.articles[0].role[0]
+      : pdfTarget.articles[0].role;
+    return r?.numero_role ?? "1";
+  }, [pdfTarget]);
+
+  const pdfDateStr = new Date().toLocaleDateString("fr-FR");
+
+
   useEffect(() => {
     if (!pdfTarget || !pdfFormData) return;
     const filename = `Avis_TPS_${pdfTarget.reference_tps}.pdf`;
@@ -220,10 +241,7 @@ export default function TpsAvisTable() {
     }
   }, [pdfTarget, pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, toast]);
 
-  const pdfFormData = useMemo(() => {
-    if (!pdfTarget) return null;
-    return liqToTpsInput(pdfTarget);
-  }, [pdfTarget]);
+// Removed redundant duplicate code block
 
   const pdfArticlesStr = useMemo(() => {
     if (!pdfTarget?.articles?.length) return "A Générer";
