@@ -440,6 +440,9 @@ export default function TpsAvisTable() {
                     <td className="px-6 py-4 font-semibold text-slate-900">
                       {liq.contribuable?.nom_raison_sociale}
                     </td>
+                    <td className="px-6 py-4 font-medium text-slate-700">
+                      {artNumbers}
+                    </td>
                     <td className="px-6 py-4 text-right font-mono font-semibold">
                       {liq.impot_du.toLocaleString()}
                     </td>
