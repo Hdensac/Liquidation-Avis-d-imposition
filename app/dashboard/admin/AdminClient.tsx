@@ -21,9 +21,11 @@ import {
   Coins,
   FileText,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from "lucide-react";
-import { fetchAuditLogs, updateUserRole, inviteNewAgent, fetchRoleSettings, fetchCommunesWithRoles, saveRoleSetting, fetchAdminStats } from "@/actions/adminActions";
+import { fetchAuditLogs, fetchAllAuditLogsForExport, updateUserRole, inviteNewAgent, fetchRoleSettings, fetchCommunesWithRoles, saveRoleSetting, fetchAdminStats } from "@/actions/adminActions";
+import { generateAuditPdf, generateAuditTxt } from "@/utils/auditExportUtils";
 import type { UserRole } from "@/types/user";
 import { COMMUNE_OPTIONS } from "@/components/TaxForm";
 
@@ -71,6 +73,60 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
   const [isInviting, setIsInviting] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingTxt, setIsExportingTxt] = useState(false);
+
+  const handleExportLogsPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const res = await fetchAllAuditLogsForExport({
+        search: logSearch,
+        actionFilter,
+        dateFilter,
+      });
+      if (res.success && res.logs && res.logs.length > 0) {
+        generateAuditPdf(res.logs, {
+          search: logSearch,
+          action: actionFilter,
+          date: dateFilter,
+        });
+        setNotification({ type: "success", message: `${res.logs.length} journal(x) d'audit exporté(s) en PDF.` });
+      } else {
+        setNotification({ type: "error", message: res.error || "Aucun journal à exporter." });
+      }
+    } catch (err) {
+      setNotification({ type: "error", message: "Erreur lors de la génération du PDF d'audit." });
+    } finally {
+      setIsExportingPdf(false);
+      setTimeout(() => setNotification(null), 3500);
+    }
+  };
+
+  const handleExportLogsTxt = async () => {
+    setIsExportingTxt(true);
+    try {
+      const res = await fetchAllAuditLogsForExport({
+        search: logSearch,
+        actionFilter,
+        dateFilter,
+      });
+      if (res.success && res.logs && res.logs.length > 0) {
+        generateAuditTxt(res.logs, {
+          search: logSearch,
+          action: actionFilter,
+          date: dateFilter,
+        });
+        setNotification({ type: "success", message: `${res.logs.length} journal(x) d'audit exporté(s) en TXT.` });
+      } else {
+        setNotification({ type: "error", message: res.error || "Aucun journal à exporter." });
+      }
+    } catch (err) {
+      setNotification({ type: "error", message: "Erreur lors de la génération du fichier TXT d'audit." });
+    } finally {
+      setIsExportingTxt(false);
+      setTimeout(() => setNotification(null), 3500);
+    }
+  };
 
   useEffect(() => {
     if (activeTab !== "stats") return;
@@ -492,8 +548,34 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                 </select>
               </div>
               
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
-                {isLogsPending ? "Chargement..." : `${logStart}-${logEnd} sur ${logTotal} log(s)`}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
+                  {isLogsPending ? "Chargement..." : `${logStart}-${logEnd} sur ${logTotal} log(s)`}
+                </div>
+
+                {/* Boutons d'exportation PDF & TXT */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportLogsPdf}
+                    disabled={isExportingPdf || logTotal === 0}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Exporter le journal d'audit filtré au format PDF institutionnel"
+                  >
+                    {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                    <span>PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportLogsTxt}
+                    disabled={isExportingTxt || logTotal === 0}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Exporter le journal d'audit filtré au format TXT (Système / SIEM)"
+                  >
+                    {isExportingTxt ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>TXT</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -633,7 +715,27 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => generateAuditPdf([selectedLog])}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm transition"
+                  title="Exporter ce log en PDF"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => generateAuditTxt([selectedLog])}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition"
+                  title="Exporter ce log en TXT"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  TXT
+                </button>
+              </div>
               <button
                 onClick={() => setSelectedLog(null)}
                 className="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm py-2 px-5 rounded-xl transition duration-150"

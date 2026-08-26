@@ -129,6 +129,53 @@ export async function fetchAuditLogs({
   }
 }
 
+/** Récupère tous les logs d'audit correspondant aux filtres actuels pour l'export */
+export async function fetchAllAuditLogsForExport({
+  search = "",
+  actionFilter = "",
+  dateFilter = "all",
+}: { search?: string; actionFilter?: string; dateFilter?: string } = {}) {
+  try {
+    await ensureAdmin();
+    const supabase = await createClient();
+    const normalizedSearch = search.trim().replace(/[%,()]/g, " ").trim();
+
+    let query = supabase
+      .from("audit_logs")
+      .select("id, user_id, user_email, action, details, created_at");
+
+    if (normalizedSearch) {
+      query = query.or(`user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%`);
+    }
+
+    if (actionFilter) {
+      query = query.eq("action", actionFilter);
+    }
+
+    if (dateFilter && dateFilter !== "all") {
+      const now = new Date();
+      if (dateFilter === "today") {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        query = query.gte("created_at", startOfToday);
+      } else if (dateFilter === "week") {
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte("created_at", oneWeekAgo);
+      } else if (dateFilter === "month") {
+        const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte("created_at", oneMonthAgo);
+      }
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(5000);
+
+    if (error) throw error;
+    return { success: true, logs: data || [] };
+  } catch (err: any) {
+    console.error("Erreur fetchAllAuditLogsForExport:", err);
+    return { success: false, error: err.message || "Erreur lors de la récupération des logs pour l'export.", logs: [] };
+  }
+}
+
 import { headers } from "next/headers";
 
 /** Invite un nouvel agent par e-mail */
