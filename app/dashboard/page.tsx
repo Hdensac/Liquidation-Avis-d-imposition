@@ -8,8 +8,6 @@ import {
   Briefcase,
   Landmark,
   ShieldCheck,
-  ArrowRight,
-  FileText,
   UserCheck,
   Activity,
   ChevronRight
@@ -40,14 +38,10 @@ export default async function DashboardPortalPage() {
   // Fetch quick metrics for TFU and TPS
   const [
     { count: tfuPendingCount },
-    { count: tfuTotalCount },
-    { count: tpsPendingCount },
-    { count: tpsValideCount }
+    { count: tpsPendingCount }
   ] = await Promise.all([
     supabase.from("liquidations").select("*", { count: "exact", head: true }).eq("statut", "EN_ATTENTE"),
-    supabase.from("liquidations").select("*", { count: "exact", head: true }),
     supabase.from("tps_liquidations").select("*", { count: "exact", head: true }).eq("status", "EN_ATTENTE"),
-    supabase.from("tps_liquidations").select("*", { count: "exact", head: true }).eq("status", "VALIDE"),
   ]);
 
   const currentDateStr = new Date().toLocaleDateString("fr-FR", {
@@ -67,8 +61,8 @@ export default async function DashboardPortalPage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              
-              <span></span>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>CIPE-ALLADA</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Portail Central de Liquidation
@@ -89,182 +83,166 @@ export default async function DashboardPortalPage() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* LEFT COLUMN: STATS */}
         <div className="xl:col-span-1 grid grid-cols-2 xl:grid-cols-1 gap-4">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TFU en attente</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tfuPendingCount || 0}</div>
-              </div>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
+              <Clock className="w-5 h-5" />
             </div>
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 rounded-xl">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TPS en attente</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tpsPendingCount || 0}</div>
-              </div>
+            <div>
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TFU en attente</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tfuPendingCount || 0}</div>
             </div>
-            <Link href="/dashboard/tfu/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
-               <FilePlus className="w-4 h-4" />
-               <span>Module TFU</span>
-            </Link>
-            <Link href="/dashboard/tps/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition">
-               <FilePlus className="w-4 h-4" />
-               <span>Module TPS</span>
-            </Link>
+          </div>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 rounded-xl">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TPS en attente</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tpsPendingCount || 0}</div>
+            </div>
+          </div>
+          <Link href="/dashboard/tfu/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+            <FilePlus className="w-4 h-4" />
+            <span>Module TFU</span>
+          </Link>
+          <Link href="/dashboard/tps/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition">
+            <FilePlus className="w-4 h-4" />
+            <span>Module TPS</span>
+          </Link>
         </div>
 
         {/* RIGHT COLUMN: MODULE DETAILS */}
         <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-
-        {/* MODULE TFU */}
-        <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="px-3 py-1 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                MODULE FONCIER
-              </span>
-              <span className="text-xs font-mono font-semibold text-slate-400">FNB / FB</span>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-md">
-                <Landmark className="w-7 h-7" />
+          {/* MODULE TFU */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  MODULE FONCIER
+                </span>
+                <span className="text-xs font-mono font-semibold text-slate-400">FNB / FB</span>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                  Taxe Foncière Unique (TFU)
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Évaluation foncière, liquidation des parcelles non bâties (FNB) et bâties (FB), gestion des exonérations et rôles de recouvrement.
-                </p>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-md">
+                  <Landmark className="w-7 h-7" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    Taxe Foncière Unique (TFU)
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Évaluation foncière, liquidation des parcelles non bâties (FNB) et bâties (FB), gestion des exonérations et rôles de recouvrement.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2.5 pt-2">
-              <Link
-                href="/dashboard/tfu/new"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <FilePlus className="w-4 h-4 text-indigo-600" />
-                <span>Nouvelle fiche</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              <div className="grid grid-cols-2 gap-2.5 pt-2">
+                <Link
+                  href="/dashboard/tfu/new"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <FilePlus className="w-4 h-4 text-indigo-600" />
+                  <span>Nouvelle fiche</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tfu/pending"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <Clock className="w-4 h-4 text-indigo-600" />
-                <span>En attente ({tfuPendingCount || 0})</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tfu/pending"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <Clock className="w-4 h-4 text-indigo-600" />
+                  <span>En attente ({tfuPendingCount || 0})</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tfu/history"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <History className="w-4 h-4 text-indigo-600" />
-                <span>Historique</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tfu/history"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <History className="w-4 h-4 text-indigo-600" />
+                  <span>Historique</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tfu/roles"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <Briefcase className="w-4 h-4 text-indigo-600" />
-                <span>Rôles TFU</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tfu/roles"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <Briefcase className="w-4 h-4 text-indigo-600" />
+                  <span>Rôles TFU</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* <Link
-            href="/dashboard/tfu/new"
-            className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-200 dark:shadow-none transition"
-          >
-            <span>Ouvrir le Module TFU</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link> */}
-        </div>
-
-        {/* MODULE TPS */}
-        <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                MODULE PROFESSIONNEL
-              </span>
-              <span className="text-xs font-mono font-semibold text-slate-400">TPS</span>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-md">
-                <Briefcase className="w-7 h-7" />
+          {/* MODULE TPS */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  MODULE PROFESSIONNEL
+                </span>
+                <span className="text-xs font-mono font-semibold text-slate-400">TPS</span>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                  Taxe Professionnelle Synthétique (TPS)
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Déclaration des contribuables synthétiques, calcul du barème ou pourcentage, émission des avis d'imposition et rôles TPS.
-                </p>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-md">
+                  <Briefcase className="w-7 h-7" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    Taxe Professionnelle Synthétique (TPS)
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Déclaration des contribuables synthétiques, calcul du barème ou pourcentage, émission des avis d'imposition et rôles TPS.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2.5 pt-2">
-              <Link
-                href="/dashboard/tps/new"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <FilePlus className="w-4 h-4 text-emerald-600" />
-                <span>Nouvelle fiche TPS</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              <div className="grid grid-cols-2 gap-2.5 pt-2">
+                <Link
+                  href="/dashboard/tps/new"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <FilePlus className="w-4 h-4 text-emerald-600" />
+                  <span>Nouvelle fiche TPS</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tps/pending"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <Clock className="w-4 h-4 text-emerald-600" />
-                <span>En attente ({tpsPendingCount || 0})</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tps/pending"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                  <span>En attente ({tpsPendingCount || 0})</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tps/avis"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <Landmark className="w-4 h-4 text-emerald-600" />
-                <span>Avis validés</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tps/avis"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <Landmark className="w-4 h-4 text-emerald-600" />
+                  <span>Avis validés</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
 
-              <Link
-                href="/dashboard/tps/roles"
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
-              >
-                <Briefcase className="w-4 h-4 text-emerald-600" />
-                <span>Rôles TPS</span>
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+                <Link
+                  href="/dashboard/tps/roles"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
+                >
+                  <Briefcase className="w-4 h-4 text-emerald-600" />
+                  <span>Rôles TPS</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* <Link
-            href="/dashboard/tps/new"
-            className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-200 dark:shadow-none transition"
-          >
-            <span>Ouvrir le Module TPS</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link> */}
         </div>
-
       </div>
 
       {/* ADMIN CARD IF USER IS ADMIN */}
