@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { FilePlus, Clock, History, Briefcase, Settings, Landmark } from "lucide-react";
+import React, { useState } from "react";
+import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import UserNav from "@/components/UserNav";
 
@@ -17,6 +17,7 @@ interface HeaderClientProps {
 export default function HeaderClient({ user }: HeaderClientProps) {
   const pathname = usePathname() || "/dashboard/new";
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Determine if we are in TPS or TFU context
   const isTpsSection = pathname.includes("/dashboard/tps");
@@ -51,6 +52,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   const currentItems = isTpsSection ? tpsItems : tfuItems;
 
   function onNavigate(key: string) {
+    setIsMobileMenuOpen(false);
     router.push(`/dashboard/${key}`);
   }
 
@@ -63,6 +65,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   const currentModule = isTpsSection ? "tps/new" : "new";
 
   function handleModuleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setIsMobileMenuOpen(false);
     const selectedModule = modules.find((m) => m.value === e.target.value);
     if (selectedModule) router.push(selectedModule.baseHref);
   }
@@ -70,7 +73,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   return (
     <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-6">
+        <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
 
           {/* BRAND */}
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -116,7 +119,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
             </div>
           </div>
 
-          {/* NAV ITEMS */}
+          {/* NAV ITEMS DESKTOP */}
           <nav className="hidden sm:flex items-center gap-1 flex-1" aria-label="Primary">
             {currentItems.map(({ key, label, icon: Icon }) => (
               <button
@@ -139,14 +142,51 @@ export default function HeaderClient({ user }: HeaderClientProps) {
             ))}
           </nav>
 
-          {/* USER NAV */}
-          {user && (
-            <div className="flex-shrink-0">
-              <UserNav name={user.name} email={user.email} avatarUrl={user.avatarUrl} />
-            </div>
-          )}
+          {/* RIGHT ACTIONS: USER NAV & MOBILE MENU BUTTON */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {user && <UserNav name={user.name} email={user.email} avatarUrl={user.avatarUrl} />}
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+              className="sm:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition focus:outline-none"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+
         </div>
       </div>
+
+      {/* MOBILE NAV DRAWER */}
+      {isMobileMenuOpen && (
+        <nav className="sm:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 pt-2 pb-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
+          <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1">
+            Menu {isTpsSection ? "TPS" : "TFU"}
+          </div>
+          {currentItems.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => onNavigate(key)}
+              aria-pressed={activeKey === key}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
+                isTpsSection
+                  ? activeKey === key
+                    ? "bg-emerald-600 text-white shadow"
+                    : "text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-800"
+                  : activeKey === key
+                  ? "bg-indigo-600 text-white shadow"
+                  : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
+              }`}
+            >
+              {Icon && <Icon size={18} />}
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

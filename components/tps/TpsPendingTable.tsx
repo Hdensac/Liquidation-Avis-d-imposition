@@ -283,7 +283,74 @@ export default function TpsPendingTable() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+      {/* VUE MOBILE (Cartes) */}
+      <div className="md:hidden space-y-3">
+        {filteredLiquidations.map((liq) => {
+          const activeRole = activeRolesTps.find(
+            (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+          );
+          const isBlocked = activeRole && activeRole.dernier_article + 2 > 100;
+
+          return (
+            <div
+              key={liq.id}
+              className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-sm text-slate-900">{liq.contribuable?.nom_raison_sociale}</h3>
+                  <div className="text-xs text-slate-500 font-mono mt-0.5">IFU/NC: {liq.contribuable?.ifu_nc}</div>
+                </div>
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {liq.reference_tps}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-1 border-t border-slate-100">
+                <div><span className="font-medium text-slate-700">Impôt dû:</span> {liq.impot_du.toLocaleString()} FCFA</div>
+                <div><span className="font-medium text-slate-700">Date:</span> {liq.created_at ? new Date(liq.created_at).toLocaleDateString("fr-FR") : "—"}</div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleOpenValidate(liq)}
+                  disabled={isBlocked}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold py-1.5 px-3 rounded-lg transition ${
+                    isBlocked
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  Valider
+                </button>
+                <button
+                  onClick={() => handleOpenEdit(liq)}
+                  className="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  Modifier
+                </button>
+                <button
+                  onClick={() => handleOpenCancel(liq)}
+                  className="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Annuler
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {filteredLiquidations.length === 0 && (
+          <div className="p-8 text-center text-sm text-slate-500 bg-white rounded-xl border border-slate-200">
+            {searchQuery ? "Aucune fiche ne correspond à votre recherche." : "Aucune fiche TPS en attente."}
+          </div>
+        )}
+      </div>
+
+      {/* VUE DESKTOP (Tableau) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">

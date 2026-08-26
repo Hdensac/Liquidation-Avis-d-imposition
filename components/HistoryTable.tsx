@@ -305,8 +305,82 @@ export default function HistoryTable() {
         </div>
       </div>
 
-      {/* Tableau */}
-      <div className="overflow-x-auto">
+      {/* VUE MOBILE (Cartes) */}
+      <div className="md:hidden space-y-3">
+        {filteredRecords.map((rec) => {
+          const c = getContribuable(rec.contribuable);
+          const isActionLoading = actionLoadingId === rec.id;
+          const hasBeenDownloaded = !!(rec.download_count && rec.download_count > 0);
+          const roleStatus = getRoleStatus(rec);
+          const isRoleActif = roleStatus === "ACTIF";
+
+          return (
+            <div
+              key={rec.id}
+              className={`p-4 rounded-xl border bg-white dark:bg-gray-800 shadow-sm space-y-3 ${
+                hasBeenDownloaded
+                  ? "border-l-4 border-l-emerald-500 border-gray-200 dark:border-gray-700"
+                  : "border-gray-200 dark:border-gray-700"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">{c.nom_prenoms}</h3>
+                  <div className="text-xs text-gray-500 font-mono mt-0.5">IFU/NPI: {c.ifu_npi}</div>
+                </div>
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  {rec.reference_liq}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700/60">
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Tél:</span> {c.telephone || "-"}</div>
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Date:</span> {new Date(rec.created_at).toLocaleDateString("fr-FR")}</div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleDownloadAvis(rec.id, rec.reference_liq)}
+                    disabled={isActionLoading}
+                    className="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition"
+                  >
+                    {isActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    Avis PDF
+                  </button>
+                  {hasBeenDownloaded ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-200/50">
+                      📥 {rec.download_count}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-semibold border border-gray-200 dark:border-gray-700">
+                      📥 0
+                    </span>
+                  )}
+                </div>
+
+                {canEdit && isRoleActif && (
+                  <button
+                    onClick={() => handleOpenEdit(rec)}
+                    className="inline-flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-medium py-1.5 px-3 rounded-lg transition"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    Modifier
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {filteredRecords.length === 0 && (
+          <div className="p-8 text-center text-sm text-gray-500 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            {searchQuery ? "Aucun enregistrement ne correspond à votre recherche." : "Aucun historique disponible."}
+          </div>
+        )}
+      </div>
+
+      {/* VUE DESKTOP (Tableau) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow">
           <thead className="bg-gray-200 dark:bg-gray-700">
             <tr>

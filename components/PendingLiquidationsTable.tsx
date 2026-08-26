@@ -397,7 +397,80 @@ export default function PendingLiquidationsTable() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* VUE MOBILE (Cartes) */}
+      <div className="md:hidden space-y-3">
+        {filteredLiquidations.map((liq) => {
+          const c = getContribuable(liq.contribuable);
+          const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+          const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+
+          return (
+            <div
+              key={liq.id}
+              className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">{c.nom_prenoms}</h3>
+                  <div className="text-xs text-gray-500 font-mono mt-0.5">IFU/NPI: {c.ifu_npi}</div>
+                </div>
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  {liq.reference_liq}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700/60">
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Tél:</span> {c.telephone || "-"}</div>
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Date:</span> {new Date(liq.created_at).toLocaleDateString("fr-FR")}</div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <button
+                  onClick={() => handleValidate(liq.id)}
+                  disabled={isBlocked}
+                  className={`font-medium py-1.5 px-3 rounded-lg text-xs transition ${
+                    isBlocked
+                      ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed opacity-60"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  Valider
+                </button>
+                <button
+                  onClick={() => handleOpenEdit(liq)}
+                  className="inline-flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs transition"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  Modifier
+                </button>
+                <button
+                  onClick={() => handleOpenCancel(liq)}
+                  className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Annuler
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(liq)}
+                  disabled={pdfLoadingId === liq.id}
+                  className="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-medium py-1.5 px-3 rounded-lg text-xs transition"
+                >
+                  {pdfLoadingId === liq.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                  PDF
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {filteredLiquidations.length === 0 && (
+          <div className="p-8 text-center text-sm text-gray-500 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            {searchQuery ? "Aucune liquidation ne correspond à votre recherche." : "Aucune liquidation en attente."}
+          </div>
+        )}
+      </div>
+
+      {/* VUE DESKTOP (Tableau) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow">
           <thead className="bg-gray-200 dark:bg-gray-700">
             <tr>

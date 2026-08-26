@@ -69,7 +69,61 @@ export default function TpsRolesTable() {
     <div className="space-y-4">
       <ToastContainer toasts={toasts} />
 
-      <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+      {/* VUE MOBILE (Cartes) */}
+      <div className="md:hidden space-y-3">
+        {roles.map((role) => (
+          <div key={role.id} className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-sm text-slate-900">{role.commune}</h3>
+                <div className="text-xs text-slate-500 font-mono mt-0.5">Année {role.annee}</div>
+              </div>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                Rôle #{role.numero_role}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+              <div>
+                {role.status === "ACTIF" ? (
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Actif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-slate-200">
+                    <Lock className="w-3 h-3" />
+                    Clôturé
+                  </span>
+                )}
+              </div>
+              <div>Créé le {new Date(role.created_at).toLocaleDateString("fr-FR")}</div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              {role.status === "ACTIF" ? (
+                <button
+                  onClick={() => setConfirmCommune(role.commune)}
+                  className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow-sm transition"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Clôturer le rôle
+                </button>
+              ) : (
+                <span className="text-xs text-slate-400 italic">Rôle fermé</span>
+              )}
+            </div>
+          </div>
+        ))}
+        {roles.length === 0 && (
+          <div className="p-8 text-center text-sm text-slate-500 bg-white rounded-xl border border-slate-200">
+            Aucun rôle TPS. Les rôles sont créés automatiquement lors de la première validation d'un avis.
+          </div>
+        )}
+      </div>
+
+      {/* VUE DESKTOP (Tableau) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-emerald-600" />
           <h2 className="text-base font-bold text-slate-800">Rôles d'imposition TPS</h2>
