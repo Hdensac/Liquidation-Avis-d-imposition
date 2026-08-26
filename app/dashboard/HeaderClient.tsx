@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X } from "lucide-react";
+import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X, Home } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import UserNav from "@/components/UserNav";
 
 interface HeaderClientProps {
@@ -15,19 +16,21 @@ interface HeaderClientProps {
 }
 
 export default function HeaderClient({ user }: HeaderClientProps) {
-  const pathname = usePathname() || "/dashboard/new";
+  const pathname = usePathname() || "/dashboard";
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Determine if we are in TPS or TFU context
+  // Determine section context
   const isTpsSection = pathname.includes("/dashboard/tps");
+  const isTfuSection = pathname.includes("/dashboard/tfu") || (!isTpsSection && pathname !== "/dashboard" && !pathname.startsWith("/dashboard/admin"));
+  const isHomePortal = pathname === "/dashboard";
 
   // TFU nav items
   const tfuItems = [
-    { key: "new",     label: "Nouvelle fiche",  icon: FilePlus  },
-    { key: "pending", label: "En attente",       icon: Clock     },
-    { key: "history", label: "Historique",       icon: History   },
-    { key: "roles",   label: "Rôles",            icon: Briefcase },
+    { key: "tfu/new",     label: "Nouvelle fiche",  icon: FilePlus  },
+    { key: "tfu/pending", label: "En attente",       icon: Clock     },
+    { key: "tfu/history", label: "Historique",       icon: History   },
+    { key: "tfu/roles",   label: "Rôles TFU",        icon: Briefcase },
   ];
 
   if (user?.role === "ADMIN") {
@@ -42,12 +45,25 @@ export default function HeaderClient({ user }: HeaderClientProps) {
     { key: "tps/roles",   label: "Rôles TPS",           icon: Briefcase },
   ];
 
-  // Active key detection (from current URL)
-  const parts = pathname.split("/").filter(Boolean);
-  const last = parts[parts.length - 1] || "new";
-  const activeKey = isTpsSection
-    ? `tps/${last}`
-    : (["new", "pending", "history", "roles", "admin"].includes(last) ? last : "new");
+  if (user?.role === "ADMIN" && !tfuItems.some((i) => i.key === "admin")) {
+    tpsItems.push({ key: "admin", label: "Administration", icon: Settings });
+  }
+
+  // Active key detection
+  let activeKey = "";
+  if (isTpsSection) {
+    if (pathname.includes("/tps/pending")) activeKey = "tps/pending";
+    else if (pathname.includes("/tps/avis")) activeKey = "tps/avis";
+    else if (pathname.includes("/tps/roles")) activeKey = "tps/roles";
+    else activeKey = "tps/new";
+  } else if (isTfuSection || pathname.includes("/dashboard/new") || pathname.includes("/dashboard/pending") || pathname.includes("/dashboard/history") || pathname.includes("/dashboard/roles")) {
+    if (pathname.includes("/pending")) activeKey = "tfu/pending";
+    else if (pathname.includes("/history")) activeKey = "tfu/history";
+    else if (pathname.includes("/roles")) activeKey = "tfu/roles";
+    else activeKey = "tfu/new";
+  } else if (pathname.startsWith("/dashboard/admin")) {
+    activeKey = "admin";
+  }
 
   const currentItems = isTpsSection ? tpsItems : tfuItems;
 
@@ -56,13 +72,14 @@ export default function HeaderClient({ user }: HeaderClientProps) {
     router.push(`/dashboard/${key}`);
   }
 
-  // Modules disponibles pour le switcher dropdown (facile à étendre)
+  // Modules disponibles pour le switcher dropdown
   const modules = [
-    { value: "new",      label: "TFU (FNB / FB)", baseHref: "/dashboard/new",     color: "indigo" },
-    { value: "tps/new", label: "TPS",                baseHref: "/dashboard/tps/new", color: "emerald" },
+    { value: "portal",   label: "🏠 Portail Accueil", baseHref: "/dashboard" },
+    { value: "tfu/new",  label: "📋 TFU (FNB / FB)",  baseHref: "/dashboard/tfu/new" },
+    { value: "tps/new",  label: "🏢 TPS (Synthétique)", baseHref: "/dashboard/tps/new" },
   ];
 
-  const currentModule = isTpsSection ? "tps/new" : "new";
+  const currentModule = isHomePortal ? "portal" : isTpsSection ? "tps/new" : "tfu/new";
 
   function handleModuleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setIsMobileMenuOpen(false);
@@ -75,18 +92,20 @@ export default function HeaderClient({ user }: HeaderClientProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
 
-          {/* BRAND */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow">
+          {/* BRAND LINK TO PORTAL */}
+          <Link href="/dashboard" className="flex items-center gap-3 flex-shrink-0 group">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow group-hover:scale-105 transition-transform">
               CA
             </div>
             <div>
-              <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">CIPE-ALLADA</div>
-              <div className="text-[10px] text-gray-400 mt-0.5"></div>
+              <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                CIPE-ALLADA
+              </div>
+              <div className="text-[10px] font-semibold text-gray-400 mt-0.5">Régie Fiscale</div>
             </div>
-          </div>
+          </Link>
 
-          {/* MODULE SWITCHER: Dropdown vertical – extensible */}
+          {/* MODULE SWITCHER Dropdown */}
           <div className="flex-shrink-0">
             <div className="relative">
               <select
@@ -97,7 +116,9 @@ export default function HeaderClient({ user }: HeaderClientProps) {
                   appearance-none cursor-pointer text-xs font-bold pl-3 pr-8 py-2 rounded-lg
                   border-2 shadow-sm transition-all duration-150 focus:outline-none focus:ring-2
                   ${
-                    isTpsSection
+                    isHomePortal
+                      ? "bg-slate-800 text-white border-slate-700 focus:ring-slate-400"
+                      : isTpsSection
                       ? "bg-emerald-600 text-white border-emerald-700 focus:ring-emerald-300"
                       : "bg-indigo-600 text-white border-indigo-700 focus:ring-indigo-300"
                   }
@@ -110,7 +131,6 @@ export default function HeaderClient({ user }: HeaderClientProps) {
                   </option>
                 ))}
               </select>
-              {/* Chevron icon */}
               <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
                   <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
@@ -121,7 +141,20 @@ export default function HeaderClient({ user }: HeaderClientProps) {
 
           {/* NAV ITEMS DESKTOP */}
           <nav className="hidden sm:flex items-center gap-1 flex-1" aria-label="Primary">
-            {currentItems.map(({ key, label, icon: Icon }) => (
+            <button
+              onClick={() => { setIsMobileMenuOpen(false); router.push("/dashboard"); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                isHomePortal
+                  ? "bg-slate-800 text-white shadow"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800"
+              }`}
+              title="Page d'accueil du portail"
+            >
+              <Home size={15} />
+              <span>Accueil</span>
+            </button>
+
+            {!isHomePortal && currentItems.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => onNavigate(key)}
@@ -142,11 +175,10 @@ export default function HeaderClient({ user }: HeaderClientProps) {
             ))}
           </nav>
 
-          {/* RIGHT ACTIONS: USER NAV & MOBILE MENU BUTTON */}
+          {/* RIGHT ACTIONS */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {user && <UserNav name={user.name} email={user.email} avatarUrl={user.avatarUrl} />}
 
-            {/* Mobile Hamburger Toggle Button */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((v) => !v)}
@@ -163,28 +195,42 @@ export default function HeaderClient({ user }: HeaderClientProps) {
       {/* MOBILE NAV DRAWER */}
       {isMobileMenuOpen && (
         <nav className="sm:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 pt-2 pb-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
-          <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1">
-            Menu {isTpsSection ? "TPS" : "TFU"}
-          </div>
-          {currentItems.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => onNavigate(key)}
-              aria-pressed={activeKey === key}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
-                isTpsSection
-                  ? activeKey === key
-                    ? "bg-emerald-600 text-white shadow"
-                    : "text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-800"
-                  : activeKey === key
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
-              }`}
-            >
-              {Icon && <Icon size={18} />}
-              <span>{label}</span>
-            </button>
-          ))}
+          <button
+            onClick={() => { setIsMobileMenuOpen(false); router.push("/dashboard"); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
+              isHomePortal ? "bg-slate-800 text-white shadow" : "text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
+            }`}
+          >
+            <Home size={18} />
+            <span>Portail Accueil</span>
+          </button>
+
+          {!isHomePortal && (
+            <>
+              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 pt-2">
+                Menu {isTpsSection ? "TPS" : "TFU"}
+              </div>
+              {currentItems.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => onNavigate(key)}
+                  aria-pressed={activeKey === key}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    isTpsSection
+                      ? activeKey === key
+                        ? "bg-emerald-600 text-white shadow"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-800"
+                      : activeKey === key
+                      ? "bg-indigo-600 text-white shadow"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {Icon && <Icon size={18} />}
+                  <span>{label}</span>
+                </button>
+              ))}
+            </>
+          )}
         </nav>
       )}
     </header>

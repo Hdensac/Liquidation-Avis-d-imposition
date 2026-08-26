@@ -1,6 +1,6 @@
 import TfuRolesTable from "@/components/TfuRolesTable";
 
-export default function LegacyRolesPage() {
+export default function TfuRolesPage() {
   return (
     <section>
       <TfuRolesTable />
