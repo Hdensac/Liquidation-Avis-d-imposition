@@ -13,7 +13,7 @@ export default async function AdminPage() {
 
     return <AdminClient initialProfiles={profiles} initialLogs={logsResult.logs} initialLogTotal={logsResult.total} />;
   } catch (err) {
-    console.error("Erreur d'accès à l'administration:", err);
+    console.error("Erreur d'accès à l'administration :", err);
     redirect("/dashboard");
   }
 }
