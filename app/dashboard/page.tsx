@@ -130,7 +130,7 @@ export default async function DashboardPortalPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    Taxe Foncière Unique (TFU)
+                    Taxe   Foncière   Unique (TFU)
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Évaluation foncière, liquidation des parcelles non bâties (FNB) et bâties (FB), gestion des exonérations et rôles de recouvrement.
