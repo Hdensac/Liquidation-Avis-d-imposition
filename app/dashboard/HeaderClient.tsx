@@ -74,12 +74,11 @@ export default function HeaderClient({ user }: HeaderClientProps) {
 
   // Modules disponibles pour le switcher dropdown
   const modules = [
-    { value: "portal",   label: "🏠 Portail Accueil", baseHref: "/dashboard" },
     { value: "tfu/new",  label: "📋 TFU (FNB / FB)",  baseHref: "/dashboard/tfu/new" },
     { value: "tps/new",  label: "🏢 TPS (Synthétique)", baseHref: "/dashboard/tps/new" },
   ];
 
-  const currentModule = isHomePortal ? "portal" : isTpsSection ? "tps/new" : "tfu/new";
+  const currentModule = isTpsSection ? "tps/new" : "tfu/new";
 
   function handleModuleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setIsMobileMenuOpen(false);
@@ -101,7 +100,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
               <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 CIPE-ALLADA
               </div>
-              <div className="text-[10px] font-semibold text-gray-400 mt-0.5">Régie Fiscale</div>
+              <div className="text-[10px] font-semibold text-gray-400 mt-0.5"></div>
             </div>
           </Link>
 
@@ -141,20 +140,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
 
           {/* NAV ITEMS DESKTOP */}
           <nav className="hidden sm:flex items-center gap-1 flex-1" aria-label="Primary">
-            <button
-              onClick={() => { setIsMobileMenuOpen(false); router.push("/dashboard"); }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                isHomePortal
-                  ? "bg-slate-800 text-white shadow"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800"
-              }`}
-              title="Page d'accueil du portail"
-            >
-              <Home size={15} />
-              <span>Accueil</span>
-            </button>
-
-            {!isHomePortal && currentItems.map(({ key, label, icon: Icon }) => (
+            {currentItems.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => onNavigate(key)}
@@ -195,42 +181,28 @@ export default function HeaderClient({ user }: HeaderClientProps) {
       {/* MOBILE NAV DRAWER */}
       {isMobileMenuOpen && (
         <nav className="sm:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 pt-2 pb-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
-          <button
-            onClick={() => { setIsMobileMenuOpen(false); router.push("/dashboard"); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
-              isHomePortal ? "bg-slate-800 text-white shadow" : "text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
-            }`}
-          >
-            <Home size={18} />
-            <span>Portail Accueil</span>
-          </button>
-
-          {!isHomePortal && (
-            <>
-              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 pt-2">
-                Menu {isTpsSection ? "TPS" : "TFU"}
-              </div>
-              {currentItems.map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => onNavigate(key)}
-                  aria-pressed={activeKey === key}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
-                    isTpsSection
-                      ? activeKey === key
-                        ? "bg-emerald-600 text-white shadow"
-                        : "text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-800"
-                      : activeKey === key
-                      ? "bg-indigo-600 text-white shadow"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {Icon && <Icon size={18} />}
-                  <span>{label}</span>
-                </button>
-              ))}
-            </>
-          )}
+          <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 pt-2">
+            Menu {isTpsSection ? "TPS" : "TFU"}
+          </div>
+          {currentItems.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => onNavigate(key)}
+              aria-pressed={activeKey === key}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
+                isTpsSection
+                  ? activeKey === key
+                    ? "bg-emerald-600 text-white shadow"
+                    : "text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-800"
+                  : activeKey === key
+                  ? "bg-indigo-600 text-white shadow"
+                  : "text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-800"
+              }`}
+            >
+              {Icon && <Icon size={18} />}
+              <span>{label}</span>
+            </button>
+          ))}
         </nav>
       )}
     </header>
