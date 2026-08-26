@@ -24,8 +24,16 @@ export default async function DashboardPortalPage() {
   } = await supabase.auth.getUser();
 
   const { data: profile } = user
-    ? await supabase.from("profiles").select("role, email").eq("id", user.id).single()
+    ? await supabase.from("profiles").select("role, email, fullname").eq("id", user.id).single()
     : { data: null };
+
+  const agentName =
+    profile?.fullname ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.fullname ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Agent fiscal";
 
   const isAdmin = profile?.role === "ADMIN";
 
@@ -70,14 +78,9 @@ export default async function DashboardPortalPage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2 bg-slate-800/60 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 text-xs">
+          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-1.5 bg-slate-800/60 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 text-xs">
             <div className="text-slate-400 capitalize">{currentDateStr}</div>
-            <div className="font-semibold text-slate-200">{user?.email || "Agent fiscal"}</div>
-            {profile?.role && (
-              <span className="mt-1 inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-600 text-white uppercase tracking-wider">
-                Rôle : {profile.role}
-              </span>
-            )}
+            <div className="font-bold text-slate-100 text-sm">{agentName}</div>
           </div>
         </div>
       </div>
