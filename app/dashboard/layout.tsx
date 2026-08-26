@@ -2,6 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import HeaderClient from "./HeaderClient";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Administration fiscale – Tableau de bord ",
 };

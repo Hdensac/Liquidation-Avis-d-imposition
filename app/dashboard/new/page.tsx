@@ -2,6 +2,8 @@ import NewLiquidationForm from "@/components/NewLiquidationForm";
 import { createClient } from "@/utils/supabase/server";
 import { canApplyExoneration, type UserRole } from "@/types/user";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewPage() {
   const supabase = await createClient();
   const {
