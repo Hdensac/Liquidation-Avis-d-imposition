@@ -45,7 +45,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
     { key: "tps/roles",   label: "Rôles TPS",           icon: Briefcase },
   ];
 
-  if (user?.role === "ADMIN" && !tfuItems.some((i) => i.key === "admin")) {
+  if (user?.role === "ADMIN") {
     tpsItems.push({ key: "admin", label: "Administration", icon: Settings });
   }
 
