@@ -85,51 +85,44 @@ export default async function DashboardPortalPage() {
         </div>
       </div>
 
-      {/* QUICK STATS METRICS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TFU en attente</div>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tfuPendingCount || 0}</div>
-          </div>
+      {/* QUICK STATS & MODULES */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* LEFT COLUMN: STATS */}
+        <div className="xl:col-span-1 grid grid-cols-2 xl:grid-cols-1 gap-4">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TFU en attente</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tfuPendingCount || 0}</div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 rounded-xl">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TPS en attente</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tpsPendingCount || 0}</div>
+              </div>
+            </div>
+            {/* BUTTONS INSTEAD OF EXTRA STATS */}
+            <div className="hidden xl:flex flex-col gap-4">
+              <Link href="/dashboard/tfu/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                 <FilePlus className="w-4 h-4" />
+                 <span>Module TFU</span>
+              </Link>
+              <Link href="/dashboard/tps/new" className="flex items-center justify-center gap-2 py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition">
+                 <FilePlus className="w-4 h-4" />
+                 <span>Module TPS</span>
+              </Link>
+            </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Total TFU émis</div>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tfuTotalCount || 0}</div>
-          </div>
-        </div>
+        {/* RIGHT COLUMN: MODULE DETAILS */}
+        <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center gap-3">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 rounded-xl">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">TPS en attente</div>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tpsPendingCount || 0}</div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center gap-3">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 rounded-xl">
-            <Landmark className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Avis TPS validés</div>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{tpsValideCount || 0}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* MODULE CARDS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* MODULE TFU */}
         <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col justify-between space-y-6">
@@ -194,13 +187,13 @@ export default async function DashboardPortalPage() {
             </div>
           </div>
 
-          <Link
+          {/* <Link
             href="/dashboard/tfu/new"
             className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-200 dark:shadow-none transition"
           >
             <span>Ouvrir le Module TFU</span>
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </Link> */}
         </div>
 
         {/* MODULE TPS */}
@@ -266,13 +259,13 @@ export default async function DashboardPortalPage() {
             </div>
           </div>
 
-          <Link
+          {/* <Link
             href="/dashboard/tps/new"
             className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-200 dark:shadow-none transition"
           >
             <span>Ouvrir le Module TPS</span>
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </Link> */}
         </div>
 
       </div>
