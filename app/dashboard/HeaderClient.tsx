@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X, Home } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import React, { useState, Suspense } from "react";
+import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UserNav from "@/components/UserNav";
 
@@ -15,15 +15,18 @@ interface HeaderClientProps {
   };
 }
 
-export default function HeaderClient({ user }: HeaderClientProps) {
+function HeaderContent({ user }: HeaderClientProps) {
   const pathname = usePathname() || "/dashboard";
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const fromParam = searchParams.get("from");
+
   // Determine section context
-  const isTpsSection = pathname.includes("/dashboard/tps");
-  const isTfuSection = pathname.includes("/dashboard/tfu") || (!isTpsSection && pathname !== "/dashboard" && !pathname.startsWith("/dashboard/admin"));
   const isHomePortal = pathname === "/dashboard";
+  const isAdminSection = pathname.startsWith("/dashboard/admin");
+  const isTpsSection = pathname.includes("/dashboard/tps") || (isAdminSection && fromParam === "tps");
 
   // TFU nav items
   const tfuItems = [
@@ -34,7 +37,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   ];
 
   if (user?.role === "ADMIN") {
-    tfuItems.push({ key: "admin", label: "Administration", icon: Settings });
+    tfuItems.push({ key: "admin?from=tfu", label: "Administration", icon: Settings });
   }
 
   // TPS nav items
@@ -46,23 +49,23 @@ export default function HeaderClient({ user }: HeaderClientProps) {
   ];
 
   if (user?.role === "ADMIN") {
-    tpsItems.push({ key: "admin", label: "Administration", icon: Settings });
+    tpsItems.push({ key: "admin?from=tps", label: "Administration", icon: Settings });
   }
 
   // Active key detection
   let activeKey = "";
-  if (isTpsSection) {
+  if (isAdminSection) {
+    activeKey = isTpsSection ? "admin?from=tps" : "admin?from=tfu";
+  } else if (isTpsSection) {
     if (pathname.includes("/tps/pending")) activeKey = "tps/pending";
     else if (pathname.includes("/tps/avis")) activeKey = "tps/avis";
     else if (pathname.includes("/tps/roles")) activeKey = "tps/roles";
     else activeKey = "tps/new";
-  } else if (isTfuSection || pathname.includes("/dashboard/new") || pathname.includes("/dashboard/pending") || pathname.includes("/dashboard/history") || pathname.includes("/dashboard/roles")) {
+  } else {
     if (pathname.includes("/pending")) activeKey = "tfu/pending";
     else if (pathname.includes("/history")) activeKey = "tfu/history";
     else if (pathname.includes("/roles")) activeKey = "tfu/roles";
     else activeKey = "tfu/new";
-  } else if (pathname.startsWith("/dashboard/admin")) {
-    activeKey = "admin";
   }
 
   const currentItems = isTpsSection ? tpsItems : tfuItems;
@@ -100,7 +103,6 @@ export default function HeaderClient({ user }: HeaderClientProps) {
               <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 CIPE-ALLADA
               </div>
-              <div className="text-[10px] font-semibold text-gray-400 mt-0.5"></div>
             </div>
           </Link>
 
@@ -117,9 +119,7 @@ export default function HeaderClient({ user }: HeaderClientProps) {
                       appearance-none cursor-pointer text-xs font-bold pl-3 pr-8 py-2 rounded-lg
                       border-2 shadow-sm transition-all duration-150 focus:outline-none focus:ring-2
                       ${
-                        isHomePortal
-                          ? "bg-slate-800 text-white border-slate-700 focus:ring-slate-400"
-                          : isTpsSection
+                        isTpsSection
                           ? "bg-emerald-600 text-white border-emerald-700 focus:ring-emerald-300"
                           : "bg-indigo-600 text-white border-indigo-700 focus:ring-indigo-300"
                       }
@@ -210,5 +210,15 @@ export default function HeaderClient({ user }: HeaderClientProps) {
         </nav>
       )}
     </header>
+  );
+}
+
+export default function HeaderClient(props: HeaderClientProps) {
+  return (
+    <Suspense fallback={
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 sticky top-0 z-40" />
+    }>
+      <HeaderContent {...props} />
+    </Suspense>
   );
 }
