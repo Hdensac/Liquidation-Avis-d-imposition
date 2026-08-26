@@ -1,12 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function createAdminClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY n'est pas définie dans les variables d'environnement.");
-  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-supabase.url";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-role-key";
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    url,
+    serviceKey,
     {
       auth: {
         autoRefreshToken: false,

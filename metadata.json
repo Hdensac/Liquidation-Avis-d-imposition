@@ -1,0 +1,6 @@
+{
+  "name": "Liquidation & Avis d'Imposition (TFU)",
+  "description": "Application d'automatisation de la création de fiche de liquidation d'impôt foncier TFU/FNB avec export PDF et Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
