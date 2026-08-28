@@ -270,7 +270,7 @@ export async function fetchHistoryLiquidationsPaginated({
       { count: "exact" }
     )
     .eq("status", "PAYE")
-    .order("created_at", { ascending: false })
+    .order("validated_at", { ascending: false })
     .range(from, to);
 
   if (error) throw error;
