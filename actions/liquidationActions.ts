@@ -263,7 +263,7 @@ export async function fetchHistoryLiquidationsPaginated({
   const { data, error, count } = await supabase
     .from("liquidations")
     .select(
-      `id, reference_liq, status, created_at, download_count, 
+      `id, reference_liq, status, created_at, validated_at, download_count, 
       superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description,
       contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier),
       recouvrement:recouvrements (role:roles (id, status))`,
