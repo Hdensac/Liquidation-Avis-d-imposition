@@ -73,15 +73,13 @@ function getRequiredArticlesCount(liq: Liquidation): number {
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
   const contribuable = getContribuable(liq);
   const isBati = liq.type_bien === "BATI";
-  const comm = contribuable.commune || "";
-  const arr = findMatchingArrondissement(comm, contribuable.arrondissement || "");
   return {
     fullname: contribuable.nom_prenoms || "",
     ifuNpi: contribuable.ifu_npi || "",
     phone: contribuable.telephone || "",
-    commune: comm,
-    arrondissement: arr,
-    quartier: contribuable.quartier || "",
+    commune: liq.commune || contribuable.commune || "",
+    arrondissement: findMatchingArrondissement(liq.commune || contribuable.commune || "", liq.arrondissement || contribuable.arrondissement || ""),
+    quartier: liq.quartier || contribuable.quartier || "",
     typeBien: isBati ? "BATI" : "NON_BATI",
     superficie: Number(liq.superficie) || 0,
     superficieImposable:
