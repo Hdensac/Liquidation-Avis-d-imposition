@@ -55,6 +55,10 @@ type LiquidationTps = {
   acomptes_payes: number;
   reste_du: number;
   start_year: number;
+  commune: string;
+  arrondissement: string;
+  quartier: string;
+  localisation: string;
   contribuable: Contribuable;
   articles?: Article[];
   download_count?: number;
@@ -73,10 +77,10 @@ function liqToTpsInput(liq: LiquidationTps): TpsInput {
     nomRaisonSociale: liq.contribuable?.nom_raison_sociale || "",
     ifuNc: liq.contribuable?.ifu_nc || "",
     telephone: liq.contribuable?.telephone || "",
-    commune: liq.contribuable?.commune || "",
-    arrondissement: liq.contribuable?.arrondissement || "",
-    quartier: liq.contribuable?.quartier || "",
-    localisation: liq.contribuable?.localisation || "",
+    commune: liq.commune || "",
+    arrondissement: liq.arrondissement || "",
+    quartier: liq.quartier || "",
+    localisation: liq.localisation || "",
     activite: liq.activite || "",
     montantAutresActivites: liq.montant_autres_activites || 0,
     acomptesPayes: liq.acomptes_payes || 0,

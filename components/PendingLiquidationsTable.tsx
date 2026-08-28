@@ -439,7 +439,7 @@ export default function PendingLiquidationsTable() {
       <div className="md:hidden space-y-3">
         {filteredLiquidations.map((liq) => {
           const c = getContribuable(liq);
-          const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+          const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === (liq.commune || "").toLowerCase());
           const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
           return (
@@ -523,7 +523,7 @@ export default function PendingLiquidationsTable() {
           <tbody>
             {filteredLiquidations.map((liq) => {
               const c = getContribuable(liq);
-              const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+              const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === (liq.commune || "").toLowerCase());
               const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
               return (

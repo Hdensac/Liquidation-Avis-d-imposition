@@ -42,6 +42,10 @@ type LiquidationTps = {
   acomptes_payes: number;
   reste_du: number;
   start_year: number;
+  commune: string;
+  arrondissement: string;
+  quartier: string;
+  localisation: string;
   contribuable: Contribuable;
 };
 
@@ -125,16 +129,16 @@ export default function TpsPendingTable() {
 
   const handleOpenEdit = (liq: LiquidationTps) => {
     setSelectedLiquidation(liq);
-    const comm = liq.contribuable.commune || "";
-    const arr = findMatchingArrondissement(comm, liq.contribuable.arrondissement || "");
+    const comm = liq.commune || "";
+    const arr = findMatchingArrondissement(comm, liq.arrondissement || "");
     setEditFormData({
       nomRaisonSociale: liq.contribuable.nom_raison_sociale,
       ifuNc: liq.contribuable.ifu_nc,
       telephone: liq.contribuable.telephone || "",
       commune: comm,
       arrondissement: arr,
-      quartier: liq.contribuable.quartier,
-      localisation: liq.contribuable.localisation || "",
+      quartier: liq.quartier || "",
+      localisation: liq.localisation || "",
       activite: liq.activite,
       montantAutresActivites: Number(liq.montant_autres_activites),
       acomptesPayes: Number(liq.acomptes_payes),
@@ -286,7 +290,7 @@ export default function TpsPendingTable() {
       <div className="md:hidden space-y-3">
         {filteredLiquidations.map((liq) => {
           const activeRole = activeRolesTps.find(
-            (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+            (r) => r.commune.toUpperCase() === (liq.commune || "").toUpperCase()
           );
           const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
@@ -365,7 +369,7 @@ export default function TpsPendingTable() {
             <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
               {filteredLiquidations.map((liq) => {
                 const activeRole = activeRolesTps.find(
-                  (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+                  (r) => r.commune.toUpperCase() === (liq.commune || "").toUpperCase()
                 );
                 const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
@@ -454,7 +458,7 @@ export default function TpsPendingTable() {
       {/* MODAL: VALIDATION DE LA LIQUIDATION */}
       {isValidateOpen && selectedLiquidation && (() => {
         const activeRole = activeRolesTps.find(
-          (r) => r.commune.toUpperCase() === (selectedLiquidation.contribuable?.commune || "").toUpperCase()
+          (r) => r.commune.toUpperCase() === (selectedLiquidation.commune || "").toUpperCase()
         );
         const willSplit = activeRole && (activeRole.dernier_article + 2 > 100) && (activeRole.dernier_article < 100);
 
@@ -471,7 +475,7 @@ export default function TpsPendingTable() {
                   {selectedLiquidation.contribuable?.nom_raison_sociale}
                 </strong>{" "}
                 ? Cette action générera un numéro d'article dans le rôle communal actif de{" "}
-                <strong>{selectedLiquidation.contribuable?.commune}</strong>.
+                <strong>{selectedLiquidation.commune}</strong>.
               </p>
 
               {willSplit && (

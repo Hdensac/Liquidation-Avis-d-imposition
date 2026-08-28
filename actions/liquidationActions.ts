@@ -48,38 +48,33 @@ function getCurrentYear() {
   return new Date().getFullYear();
 }
 
-function extractCommune(row: LiquidationCommuneRow | null | undefined) {
-  const contribuable = row?.contribuable;
-  if (!contribuable) return null;
-  if (Array.isArray(contribuable)) {
-    return contribuable[0]?.commune?.trim() || null;
-  }
-  return contribuable.commune?.trim() || null;
+function extractCommune(row: any | null | undefined) {
+  return row?.commune?.trim() || null;
 }
 
 async function fetchLiquidationCommune(liquidationId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
-    .select("contribuable:contribuables (commune)")
+    .select("commune")
     .eq("id", liquidationId)
     .maybeSingle();
 
   if (error) throw error;
-  return extractCommune(data as LiquidationCommuneRow | null);
+  return extractCommune(data);
 }
 
 async function fetchLatestLiquidationCommune() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
-    .select("contribuable:contribuables (commune)")
+    .select("commune")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return extractCommune(data as LiquidationCommuneRow | null);
+  return extractCommune(data);
 }
 
 async function findActiveRole(commune?: string) {
@@ -203,7 +198,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -227,7 +222,7 @@ export async function fetchPendingLiquidationsPaginated({
   const [from, to] = getRange(page, PAGE_SIZE);
 
   let selectStr =
-    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)";
+    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone)";
 
   let query = supabase
     .from("liquidations")
@@ -265,7 +260,7 @@ export async function fetchHistoryLiquidationsPaginated({
     .select(
       `id, reference_liq, status, created_at, validated_at, download_count, 
       superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier,
-      contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier),
+      contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone),
       recouvrement:recouvrements (role:roles (id, status))`,
       { count: "exact" }
     )
@@ -746,7 +741,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
 
   const { data: contribuable, error: contribuableError } = await supabase
     .from("contribuables")
-    .select("id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier")
+    .select("id, nom_prenoms, ifu_npi, telephone")
     .eq("id", recouvrement.contribuable_id)
     .maybeSingle();
 
@@ -796,9 +791,9 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
       nom_prenoms: contribuable.nom_prenoms,
       ifu_npi: contribuable.ifu_npi,
       telephone: contribuable.telephone || "",
-      commune: contribuable.commune || "",
-      arrondissement: contribuable.arrondissement || "",
-      quartier: contribuable.quartier || "",
+      commune: liquidation.commune || "",
+      arrondissement: liquidation.arrondissement || "",
+      quartier: liquidation.quartier || "",
     },
     articles: (articles ?? []).map((article) => ({
       id: article.id,

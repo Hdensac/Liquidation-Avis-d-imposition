@@ -366,8 +366,9 @@ export async function updatePaidTpsLiquidation(
       .select(`
         status, reference_tps, contribuable_id,
         activite, montant_autres_activites, tps_calcule, portb, impot_du, acomptes_payes, reste_du, start_year,
+        commune, arrondissement, quartier, localisation,
         contribuable:tps_contribuables (
-          id, nom_raison_sociale, ifu_nc, telephone, commune, arrondissement, quartier, localisation
+          id, nom_raison_sociale, ifu_nc, telephone
         ),
         articles:tps_articles (
           id,
@@ -398,7 +399,7 @@ export async function updatePaidTpsLiquidation(
     const firstArticle = articles[0];
     const role = Array.isArray(firstArticle.role) ? firstArticle.role[0] : firstArticle.role;
     if (!role || role.status !== "ACTIF") {
-      return { success: false, error: "Ce rôle TPS est déjà clôturé. Les modifications sont impossibles." };
+      return { success: false, error: "Ce rôle TPS é déjà clôturé. Les modifications sont impossibles." };
     }
 
     // Sauvegarder les données avant modification pour le log d'audit
@@ -408,10 +409,10 @@ export async function updatePaidTpsLiquidation(
       nomRaisonSociale: contribData?.nom_raison_sociale || "",
       ifuNc: contribData?.ifu_nc || "",
       telephone: contribData?.telephone || "",
-      commune: contribData?.commune || "",
-      arrondissement: contribData?.arrondissement || "",
-      quartier: contribData?.quartier || "",
-      localisation: contribData?.localisation || "",
+      commune: currentLiq.commune || "",
+      arrondissement: currentLiq.arrondissement || "",
+      quartier: currentLiq.quartier || "",
+      localisation: currentLiq.localisation || "",
       activite: currentLiq.activite || "",
       montantAutresActivites: currentLiq.montant_autres_activites ?? 0,
       acomptesPayes: currentLiq.acomptes_payes ?? 0,
