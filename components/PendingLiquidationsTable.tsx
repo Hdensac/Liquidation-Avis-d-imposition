@@ -55,6 +55,14 @@ function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
   return c;
 }
 
+function getRequiredArticlesCount(liq: Liquidation): number {
+  const typeBien = liq.type_bien || "NON_BATI";
+  if (typeBien === "BATI") {
+    return liq.is_loue ? 3 : 1;
+  }
+  return 4;
+}
+
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
   const contribuable = getContribuable(liq.contribuable);
   const isBati = liq.type_bien === "BATI";
@@ -209,6 +217,26 @@ export default function PendingLiquidationsTable() {
   }, [pdfFormData, pdfTarget, toast]);
 
   const handleValidate = async (id: string) => {
+    const liq = liquidations.find((l) => l.id === id);
+    if (liq) {
+      const c = getContribuable(liq.contribuable);
+      const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+      if (activeRole) {
+        const required = getRequiredArticlesCount(liq);
+        if (activeRole.dernier_article + required > 100 && activeRole.dernier_article < 100) {
+          const placesCurrent = 100 - activeRole.dernier_article;
+          const placesNext = required - placesCurrent;
+          const confirmMsg = `⚠️ Attention : Cette validation va répartir les ${required} articles de l'avis :\n` +
+                            `- ${placesCurrent} article(s) seront insérés dans le rôle actuel #${activeRole.numero_role} (qui sera alors clôturé à 100).\n` +
+                            `- ${placesNext} article(s) restants seront insérés dans le rôle suivant #${activeRole.numero_role + 1}.\n\n` +
+                            `Voulez-vous continuer ?`;
+          if (!window.confirm(confirmMsg)) {
+            return;
+          }
+        }
+      }
+    }
+
     try {
       await validatePayment(id);
       toast.success("Paiement valide, avis de recouvrement genere.");
@@ -342,30 +370,29 @@ export default function PendingLiquidationsTable() {
       {activeRoles
         .filter((r) => r.dernier_article >= 93)
         .map((r) => {
-          const willExceed = r.dernier_article + 4 > 100;
+          const isBlocked = r.dernier_article >= 100;
           return (
             <div
               key={r.id}
               className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-                willExceed
+                isBlocked
                   ? "bg-red-50 border-red-300 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-300"
                   : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300"
               }`}
             >
               <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                {willExceed ? (
+                {isBlocked ? (
                   <>
                     <span className="font-bold">Rôle #{r.numero_role} – {r.commune} bloqué :</span>{" "}
-                    Le numéro d&apos;article actuel est de <strong>{r.dernier_article}/100</strong>.
-                    Une validation TFU crée 4 articles, ce qui dépasserait 100. Vous devez{" "}
-                    <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider.
+                    Le numéro d&apos;article actuel a atteint sa limite de <strong>100/100</strong>.
+                    Vous devez <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider.
                   </>
                 ) : (
                   <>
                     <span className="font-bold">Rôle #{r.numero_role} – {r.commune} :</span>{" "}
                     Il reste seulement <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
-                    Pensez à clôturer ce rôle bientôt.
+                    Les articles dépassant 100 seront automatiquement transférés vers un nouveau rôle.
                   </>
                 )}
               </div>
@@ -402,7 +429,7 @@ export default function PendingLiquidationsTable() {
         {filteredLiquidations.map((liq) => {
           const c = getContribuable(liq.contribuable);
           const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
-          const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+          const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
           return (
             <div
@@ -486,7 +513,7 @@ export default function PendingLiquidationsTable() {
             {filteredLiquidations.map((liq) => {
               const c = getContribuable(liq.contribuable);
               const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
-              const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+              const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
               return (
                 <tr
@@ -510,7 +537,7 @@ export default function PendingLiquidationsTable() {
                         }`}
                         title={
                           isBlocked
-                            ? `Le numéro d'article dépasserait 100 (${activeRole.dernier_article} actuels, +4 requis)`
+                            ? "Le rôle actuel est complet (100 articles). Veuillez le clôturer avant de valider."
                             : "Valider la liquidation"
                         }
                       >

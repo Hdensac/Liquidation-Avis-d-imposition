@@ -706,16 +706,18 @@ export async function getActiveRole(commune?: string) {
 
 export async function fetchAvisRecouvrementDetails(liquidationId: string): Promise<AvisRecouvrementDetails> {
   const supabase = await createClient();
-  const { data: recouvrement, error: recouvrementError } = await supabase
+  const { data: recouvrementList, error: recouvrementError } = await supabase
     .from("recouvrements")
     .select("id, liquidation_id, role_id, contribuable_id, date_paiement")
-    .eq("liquidation_id", liquidationId)
-    .maybeSingle();
+    .eq("liquidation_id", liquidationId);
 
   if (recouvrementError) throw recouvrementError;
-  if (!recouvrement) {
+  if (!recouvrementList || recouvrementList.length === 0) {
     throw new Error("Avis de recouvrement introuvable pour cette liquidation.");
   }
+
+  const recouvrement = recouvrementList[0];
+  const recouvrementIds = recouvrementList.map((r) => r.id);
 
   const { data: liquidation, error: liquidationError } = await supabase
     .from("liquidations")
@@ -755,7 +757,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
     .select(
       "id, numero_article, exercice, nature_impot, localisation, description, base, taux, droit_simple, penalite, acompte_paye, reste_du"
     )
-    .eq("recouvrement_id", recouvrement.id)
+    .in("recouvrement_id", recouvrementIds)
     .order("numero_article", { ascending: true });
 
   if (articlesError) throw articlesError;
