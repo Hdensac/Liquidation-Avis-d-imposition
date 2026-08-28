@@ -97,6 +97,13 @@ export default function PendingLiquidationsTable() {
 
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
+  const [confirmSplit, setConfirmSplit] = useState<{
+    liqId: string;
+    required: number;
+    placesCurrent: number;
+    placesNext: number;
+    roleNum: number;
+  } | null>(null);
   const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,15 +231,14 @@ export default function PendingLiquidationsTable() {
       if (activeRole) {
         const required = getRequiredArticlesCount(liq);
         if (activeRole.dernier_article + required > 100 && activeRole.dernier_article < 100) {
-          const placesCurrent = 100 - activeRole.dernier_article;
-          const placesNext = required - placesCurrent;
-          const confirmMsg = `⚠️ Attention : Cette validation va répartir les ${required} articles de l'avis :\n` +
-                            `- ${placesCurrent} article(s) seront insérés dans le rôle actuel #${activeRole.numero_role} (qui sera alors clôturé à 100).\n` +
-                            `- ${placesNext} article(s) restants seront insérés dans le rôle suivant #${activeRole.numero_role + 1}.\n\n` +
-                            `Voulez-vous continuer ?`;
-          if (!window.confirm(confirmMsg)) {
-            return;
-          }
+          setConfirmSplit({
+            liqId: id,
+            required,
+            placesCurrent: 100 - activeRole.dernier_article,
+            placesNext: required - (100 - activeRole.dernier_article),
+            roleNum: activeRole.numero_role
+          });
+          return;
         }
       }
     }
@@ -970,6 +976,54 @@ export default function PendingLiquidationsTable() {
           </div>
         </div>
       )}
+      {/* MODAL: CONFIRMATION SPLIT ARTICLES */}
+      {confirmSplit && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-amber-700 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Répartition des articles
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Cette validation va répartir les <strong>{confirmSplit.required}</strong> articles de l'avis :
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>{confirmSplit.placesCurrent} article(s) dans le rôle actuel <strong>#{confirmSplit.roleNum}</strong> (clôturé à 100).</li>
+                <li>{confirmSplit.placesNext} article(s) dans le rôle suivant <strong>#{confirmSplit.roleNum + 1}</strong>.</li>
+              </ul>
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmSplit(null)}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  validatePayment(confirmSplit.liqId).then(() => {
+                    toast.success("Paiement valide, avis de recouvrement généré.");
+                    fetchAllRoles()
+                      .then((roles) => setActiveRoles(roles.filter((r) => r.status === "ACTIF")))
+                      .catch(console.error);
+                    loadData(currentPage);
+                    setConfirmSplit(null);
+                  }).catch(e => {
+                    console.error(e);
+                    toast.error("Erreur lors de la validation.");
+                    setConfirmSplit(null);
+                  });
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+              >
+                Confirmer la validation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
