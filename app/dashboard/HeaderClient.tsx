@@ -91,16 +91,16 @@ function HeaderContent({ user }: HeaderClientProps) {
 
   return (
     <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-6">
 
           {/* BRAND LINK TO PORTAL */}
-          <Link href="/dashboard" className="flex items-center gap-3 flex-shrink-0 group">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow group-hover:scale-105 transition-transform">
+          <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3 flex-shrink-0 group">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow group-hover:scale-105 transition-transform flex-shrink-0">
               CA
             </div>
             <div>
-              <div className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <div className="hidden min-[380px]:block text-xs sm:text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 CIPE-ALLADA
               </div>
             </div>
@@ -109,14 +109,14 @@ function HeaderContent({ user }: HeaderClientProps) {
           {!isHomePortal && (
             <>
               {/* MODULE SWITCHER Dropdown */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink min-w-0">
                 <div className="relative">
                   <select
                     id="module-switcher"
                     value={currentModule}
                     onChange={handleModuleChange}
                     className={`
-                      appearance-none cursor-pointer text-xs font-bold pl-3 pr-8 py-2 rounded-lg
+                      appearance-none cursor-pointer text-[11px] sm:text-xs font-bold pl-2.5 pr-6 sm:pr-8 py-1.5 rounded-lg truncate max-w-[130px] min-[400px]:max-w-[170px] sm:max-w-none
                       border-2 shadow-sm transition-all duration-150 focus:outline-none focus:ring-2
                       ${
                         isTpsSection
@@ -132,8 +132,8 @@ function HeaderContent({ user }: HeaderClientProps) {
                       </option>
                     ))}
                   </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3 sm:w-3.5 sm:h-3.5">
                       <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
                     </svg>
                   </span>

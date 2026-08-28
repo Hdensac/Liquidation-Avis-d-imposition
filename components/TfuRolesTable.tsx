@@ -232,20 +232,90 @@ export default function TfuRolesTable() {
         </div>
       </div>
 
-      {/* ROLES TABLE */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-visible">
-        {pageLoading ? (
-          <div className="py-16 text-center text-gray-500 dark:text-gray-400">
-            <RefreshCw size={28} className="animate-spin mx-auto mb-3 text-indigo-400" />
-            Chargement des rôles...
+      {/* ROLES LIST / TABLE */}
+      {pageLoading ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow py-16 text-center text-gray-500 dark:text-gray-400">
+          <RefreshCw size={28} className="animate-spin mx-auto mb-3 text-indigo-400" />
+          Chargement des rôles...
+        </div>
+      ) : roles.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow py-16 text-center text-gray-500 dark:text-gray-400">
+          Aucun rôle disponible pour le moment.
+        </div>
+      ) : (
+        <>
+          {/* VUE MOBILE (Cartes) */}
+          <div className="block md:hidden space-y-3">
+            {roles.map((role) => (
+              <div
+                key={role.id}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base text-indigo-600 dark:text-indigo-400">
+                      Rôle #{role.numero_role}
+                    </span>
+                    <span className="text-xs text-gray-500 font-medium">({role.annee})</span>
+                  </div>
+                  <StatusBadge status={role.status} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <div>
+                    <span className="text-gray-400 font-medium">Commune :</span> {role.commune}
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium">Avis émis :</span> {role.nb_recouvrements}
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium">Dernier art :</span> {role.dernier_article > 0 ? `#${role.dernier_article}` : "-"}
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium">Créé le :</span> {formatDate(role.created_at)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <div>
+                    <span className="text-xs text-gray-400 font-medium block">Total droits</span>
+                    <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
+                      {formatCurrency(role.total_droits)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {role.status === "ACTIF" && (
+                      <button
+                        onClick={() => setCloseTarget(role)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-semibold transition flex items-center gap-1"
+                      >
+                        <Lock size={12} />
+                        <span>Clôturer</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDownloadReport(role)}
+                      disabled={downloadingId === role.id}
+                      className="text-xs px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 font-semibold transition flex items-center gap-1"
+                    >
+                      {downloadingId === role.id ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : (
+                        <FileText size={12} />
+                      )}
+                      <span>Rapport</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ) : roles.length === 0 ? (
-          <div className="py-16 text-center text-gray-500 dark:text-gray-400">
-            Aucun rôle disponible pour le moment.
-          </div>
-        ) : (
-          <div className="overflow-visible">
-            <table className="w-full text-sm">
+
+          {/* VUE DESKTOP (Tableau) */}
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto min-w-0">
+            <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <th className="px-5 py-3">N° Rôle</th>
@@ -351,8 +421,8 @@ export default function TfuRolesTable() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {closeTarget && (
         <ConfirmCloseModal

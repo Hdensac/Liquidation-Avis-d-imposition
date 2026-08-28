@@ -34,9 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 overflow-x-hidden">
       <HeaderClient user={userData} />
-      <main className="max-w-6xl mx-auto px-4 py-12">{children}</main>
+      <main className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-10 min-w-0">{children}</main>
     </div>
   );
 }
