@@ -56,9 +56,9 @@ function getContribuable(liq: Liquidation | (Contribuable[] | Contribuable)): Co
     nom_prenoms: c.nom_prenoms || "-",
     ifu_npi: c.ifu_npi || "-",
     telephone: c.telephone || "-",
-    commune: (isLiqObj ? (liq as Liquidation).commune : null) || c.commune || "",
-    arrondissement: (isLiqObj ? (liq as Liquidation).arrondissement : null) || c.arrondissement || "",
-    quartier: (isLiqObj ? (liq as Liquidation).quartier : null) || c.quartier || "",
+    commune: (isLiqObj && (liq as Liquidation).commune) ? (liq as Liquidation).commune! : (c.commune || ""),
+    arrondissement: (isLiqObj && (liq as Liquidation).arrondissement) ? (liq as Liquidation).arrondissement! : (c.arrondissement || ""),
+    quartier: (isLiqObj && (liq as Liquidation).quartier) ? (liq as Liquidation).quartier! : (c.quartier || ""),
   };
 }
 
