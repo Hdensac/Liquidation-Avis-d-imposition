@@ -203,7 +203,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -227,7 +227,7 @@ export async function fetchPendingLiquidationsPaginated({
   const [from, to] = getRange(page, PAGE_SIZE);
 
   let selectStr =
-    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)";
+    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)";
 
   let query = supabase
     .from("liquidations")
@@ -264,7 +264,7 @@ export async function fetchHistoryLiquidationsPaginated({
     .from("liquidations")
     .select(
       `id, reference_liq, status, created_at, validated_at, download_count, 
-      superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description,
+      superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier,
       contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier),
       recouvrement:recouvrements (role:roles (id, status))`,
       { count: "exact" }
@@ -309,7 +309,7 @@ export async function updatePaidLiquidation(
       .from("liquidations")
       .select(`
         status, reference_liq, contribuable_id, type_bien,
-        superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description,
+        superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description, commune, arrondissement, quartier,
         contribuable:contribuables (
           id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier
         ),
@@ -481,6 +481,9 @@ export async function updatePaidLiquidation(
         is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
         valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
         description: data.typeBien === "BATI" ? (data.description || null) : null,
+        commune: normalizeCommune(data.commune),
+        arrondissement: data.arrondissement,
+        quartier: data.quartier,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       })
@@ -721,7 +724,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
 
   const { data: liquidation, error: liquidationError } = await supabase
     .from("liquidations")
-    .select("id, reference_liq, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, status, created_at")
+    .select("id, reference_liq, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, status, created_at")
     .eq("id", liquidationId)
     .maybeSingle();
 
@@ -1139,6 +1142,9 @@ export async function updateLiquidation(
         is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
         valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
         description: data.typeBien === "BATI" ? (data.description || null) : null,
+        commune: normalizeCommune(data.commune),
+        arrondissement: data.arrondissement,
+        quartier: data.quartier,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       })
