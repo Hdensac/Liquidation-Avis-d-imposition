@@ -38,21 +38,28 @@ type Liquidation = {
   is_loue?: boolean | null;
   valeur_irf?: number | null;
   description?: string | null;
+  commune?: string | null;
+  arrondissement?: string | null;
+  quartier?: string | null;
   contribuable: Contribuable[] | Contribuable;
 };
 
-function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
-  if (Array.isArray(c)) {
-    return c[0] ?? {
-      nom_prenoms: "-",
-      ifu_npi: "-",
-      telephone: "-",
-      commune: "",
-      arrondissement: "",
-      quartier: "",
-    };
+function getContribuable(liq: Liquidation | (Contribuable[] | Contribuable)): Contribuable {
+  if (!liq) {
+    return { nom_prenoms: "-", ifu_npi: "-", telephone: "-", commune: "", arrondissement: "", quartier: "" };
   }
-  return c;
+  const isLiqObj = typeof liq === "object" && "contribuable" in liq;
+  const rawContrib = isLiqObj ? (liq as Liquidation).contribuable : (liq as Contribuable[] | Contribuable);
+  const c = Array.isArray(rawContrib) ? (rawContrib[0] ?? {}) : (rawContrib ?? {});
+
+  return {
+    nom_prenoms: c.nom_prenoms || "-",
+    ifu_npi: c.ifu_npi || "-",
+    telephone: c.telephone || "-",
+    commune: (isLiqObj ? (liq as Liquidation).commune : null) || c.commune || "",
+    arrondissement: (isLiqObj ? (liq as Liquidation).arrondissement : null) || c.arrondissement || "",
+    quartier: (isLiqObj ? (liq as Liquidation).quartier : null) || c.quartier || "",
+  };
 }
 
 function getRequiredArticlesCount(liq: Liquidation): number {
@@ -64,7 +71,7 @@ function getRequiredArticlesCount(liq: Liquidation): number {
 }
 
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
-  const contribuable = getContribuable(liq.contribuable);
+  const contribuable = getContribuable(liq);
   const isBati = liq.type_bien === "BATI";
   const comm = contribuable.commune || "";
   const arr = findMatchingArrondissement(comm, contribuable.arrondissement || "");
@@ -226,7 +233,7 @@ export default function PendingLiquidationsTable() {
   const handleValidate = async (id: string) => {
     const liq = liquidations.find((l) => l.id === id);
     if (liq) {
-      const c = getContribuable(liq.contribuable);
+      const c = getContribuable(liq);
       const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
       if (activeRole) {
         const required = getRequiredArticlesCount(liq);
@@ -433,7 +440,7 @@ export default function PendingLiquidationsTable() {
       {/* VUE MOBILE (Cartes) */}
       <div className="md:hidden space-y-3">
         {filteredLiquidations.map((liq) => {
-          const c = getContribuable(liq.contribuable);
+          const c = getContribuable(liq);
           const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
           const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
@@ -517,7 +524,7 @@ export default function PendingLiquidationsTable() {
           </thead>
           <tbody>
             {filteredLiquidations.map((liq) => {
-              const c = getContribuable(liq.contribuable);
+              const c = getContribuable(liq);
               const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
               const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
