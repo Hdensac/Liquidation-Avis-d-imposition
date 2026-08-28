@@ -391,6 +391,52 @@ export async function updatePaidLiquidation(
       }
     }
 
+    // Si le contribuable actuel est partagé par plusieurs liquidations et que sa localisation a changé,
+    // créer/associer un profil distinct pour ne pas impacter les autres liquidations du même contribuable
+    const { count: liqCount } = await supabase
+      .from("liquidations")
+      .select("id", { count: "exact", head: true })
+      .eq("contribuable_id", oldContribId);
+
+    const normNewCommune = normalizeCommune(data.commune);
+    const locationChanged = 
+      contribData && (
+        normalizeCommune(contribData.commune || "") !== normNewCommune ||
+        (contribData.arrondissement || "") !== (data.arrondissement || "") ||
+        (contribData.quartier || "") !== (data.quartier || "")
+      );
+
+    if (finalContribId === oldContribId && liqCount && liqCount > 1 && locationChanged) {
+      const { data: contribSameCommune } = await supabase
+        .from("contribuables")
+        .select("id")
+        .eq("ifu_npi", data.ifuNpi)
+        .eq("commune", normNewCommune)
+        .maybeSingle();
+
+      if (contribSameCommune) {
+        finalContribId = contribSameCommune.id;
+      } else {
+        const { data: newC, error: newCErr } = await supabase
+          .from("contribuables")
+          .insert({
+            nom_prenoms: data.fullname,
+            ifu_npi: data.ifuNpi,
+            telephone: data.phone === "01" ? null : data.phone,
+            commune: normNewCommune,
+            arrondissement: data.arrondissement,
+            quartier: data.quartier,
+          })
+          .select("id")
+          .single();
+
+        if (newCErr || !newC) {
+          return { success: false, error: "Erreur lors de la création du profil contribuable pour la nouvelle commune." };
+        }
+        finalContribId = newC.id;
+      }
+    }
+
     // 5. Mettre à jour le contribuable
     if (finalContribId === oldContribId) {
       const { error: contribError } = await supabase
@@ -958,7 +1004,7 @@ export async function updateLiquidation(
     // 2. Vérifier que la liquidation est bien en attente
     const { data: currentLiq, error: getError } = await supabase
       .from("liquidations")
-      .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien")
+      .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien, contribuable:contribuables(id, nom_prenoms, ifu_npi, commune, arrondissement, quartier)")
       .eq("id", liquidationId)
       .single();
 
@@ -998,6 +1044,53 @@ export async function updateLiquidation(
           success: false, 
           error: `Cet IFU/NPI est déjà associé au contribuable "${existingContrib.nom_prenoms}" dans le système.` 
         };
+      }
+    }
+
+    // Si le contribuable actuel est partagé par plusieurs liquidations et que sa localisation a changé,
+    // créer/associer un profil distinct pour ne pas impacter les autres liquidations du même contribuable
+    const { count: liqCount } = await supabase
+      .from("liquidations")
+      .select("id", { count: "exact", head: true })
+      .eq("contribuable_id", oldContribId);
+
+    const contribData = Array.isArray(currentLiq.contribuable) ? currentLiq.contribuable[0] : currentLiq.contribuable;
+    const normNewCommune = normalizeCommune(data.commune);
+    const locationChanged = 
+      contribData && (
+        normalizeCommune(contribData.commune || "") !== normNewCommune ||
+        (contribData.arrondissement || "") !== (data.arrondissement || "") ||
+        (contribData.quartier || "") !== (data.quartier || "")
+      );
+
+    if (finalContribId === oldContribId && liqCount && liqCount > 1 && locationChanged) {
+      const { data: contribSameCommune } = await supabase
+        .from("contribuables")
+        .select("id")
+        .eq("ifu_npi", data.ifuNpi)
+        .eq("commune", normNewCommune)
+        .maybeSingle();
+
+      if (contribSameCommune) {
+        finalContribId = contribSameCommune.id;
+      } else {
+        const { data: newC, error: newCErr } = await supabase
+          .from("contribuables")
+          .insert({
+            nom_prenoms: data.fullname,
+            ifu_npi: data.ifuNpi,
+            telephone: data.phone === "01" ? null : data.phone,
+            commune: normNewCommune,
+            arrondissement: data.arrondissement,
+            quartier: data.quartier,
+          })
+          .select("id")
+          .single();
+
+        if (newCErr || !newC) {
+          return { success: false, error: "Erreur lors de la création du profil contribuable pour la nouvelle commune." };
+        }
+        finalContribId = newC.id;
       }
     }
 

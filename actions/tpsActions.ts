@@ -58,10 +58,10 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
 
   const supabase = await createClient();
 
-  // On récupère la référence pour le log d'audit
+  // On récupère la référence pour le log d'audit et les infos actuelles du contribuable
   const { data: currentLiq } = await supabase
     .from("tps_liquidations")
-    .select("status, contribuable_id, reference_tps")
+    .select("status, contribuable_id, reference_tps, contribuable:tps_contribuables(*)")
     .eq("id", id)
     .single();
 
@@ -74,18 +74,68 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
   const impotDu = tpsCalcule + 4000;
   const resteDu = impotDu - Number(data.acomptesPayes);
 
+  // Vérifier si ce contribuable TPS est partagé par plusieurs liquidations
+  const oldContribId = currentLiq.contribuable_id;
+  let finalContribId = oldContribId;
+
+  const { count: tpsLiqCount } = await supabase
+    .from("tps_liquidations")
+    .select("id", { count: "exact", head: true })
+    .eq("contribuable_id", oldContribId);
+
+  const contribData = Array.isArray(currentLiq.contribuable) ? currentLiq.contribuable[0] : currentLiq.contribuable;
+  const normCommune = data.commune.toUpperCase();
+  const locationChanged =
+    contribData && (
+      (contribData.commune || "").toUpperCase() !== normCommune ||
+      (contribData.arrondissement || "").toUpperCase() !== data.arrondissement.toUpperCase() ||
+      (contribData.quartier || "").toUpperCase() !== data.quartier.toUpperCase()
+    );
+
+  if (tpsLiqCount && tpsLiqCount > 1 && locationChanged) {
+    const { data: sameLocationContrib } = await supabase
+      .from("tps_contribuables")
+      .select("id")
+      .eq("ifu_nc", data.ifuNc)
+      .eq("commune", normCommune)
+      .maybeSingle();
+
+    if (sameLocationContrib) {
+      finalContribId = sameLocationContrib.id;
+    } else {
+      const { data: newContrib, error: newContribErr } = await supabase
+        .from("tps_contribuables")
+        .insert({
+          nom_raison_sociale: data.nomRaisonSociale,
+          ifu_nc: data.ifuNc,
+          telephone: data.telephone || null,
+          commune: normCommune,
+          arrondissement: data.arrondissement.toUpperCase(),
+          quartier: data.quartier.toUpperCase(),
+          localisation: data.localisation || null,
+        })
+        .select("id")
+        .single();
+
+      if (newContribErr || !newContrib) {
+        throw new Error("Erreur lors de la création du profil contribuable TPS pour la nouvelle commune.");
+      }
+      finalContribId = newContrib.id;
+    }
+  }
+
   // Mettre à jour le contribuable
   const { error: contribErr } = await supabase
     .from("tps_contribuables")
     .update({
       nom_raison_sociale: data.nomRaisonSociale,
       telephone: data.telephone || null,
-      commune: data.commune.toUpperCase(),
+      commune: normCommune,
       arrondissement: data.arrondissement.toUpperCase(),
       quartier: data.quartier.toUpperCase(),
       localisation: data.localisation || null,
     })
-    .eq("id", currentLiq.contribuable_id);
+    .eq("id", finalContribId);
 
   if (contribErr) throw contribErr;
 
@@ -93,6 +143,7 @@ export async function updateLiquidationTps(id: string, data: TpsInput) {
   const { error: liqErr } = await supabase
     .from("tps_liquidations")
     .update({
+      contribuable_id: finalContribId,
       activite: data.activite,
       montant_autres_activites: Number(data.montantAutresActivites) || 0,
       tps_calcule: tpsCalcule,
