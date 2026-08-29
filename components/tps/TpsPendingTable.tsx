@@ -42,6 +42,10 @@ type LiquidationTps = {
   acomptes_payes: number;
   reste_du: number;
   start_year: number;
+  commune: string;
+  arrondissement: string;
+  quartier: string;
+  localisation: string;
   contribuable: Contribuable;
 };
 
@@ -125,16 +129,16 @@ export default function TpsPendingTable() {
 
   const handleOpenEdit = (liq: LiquidationTps) => {
     setSelectedLiquidation(liq);
-    const comm = liq.contribuable.commune || "";
-    const arr = findMatchingArrondissement(comm, liq.contribuable.arrondissement || "");
+    const comm = liq.commune || "";
+    const arr = findMatchingArrondissement(comm, liq.arrondissement || "");
     setEditFormData({
       nomRaisonSociale: liq.contribuable.nom_raison_sociale,
       ifuNc: liq.contribuable.ifu_nc,
       telephone: liq.contribuable.telephone || "",
       commune: comm,
       arrondissement: arr,
-      quartier: liq.contribuable.quartier,
-      localisation: liq.contribuable.localisation || "",
+      quartier: liq.quartier || "",
+      localisation: liq.localisation || "",
       activite: liq.activite,
       montantAutresActivites: Number(liq.montant_autres_activites),
       acomptesPayes: Number(liq.acomptes_payes),
@@ -228,30 +232,29 @@ export default function TpsPendingTable() {
       {activeRolesTps
         .filter((r) => r.dernier_article >= 95)
         .map((r) => {
-          const willExceed = r.dernier_article + 2 > 100;
+          const isBlocked = r.dernier_article >= 100;
           return (
             <div
               key={r.id}
               className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-                willExceed
+                isBlocked
                   ? "bg-red-50 border-red-300 text-red-800"
                   : "bg-amber-50 border-amber-300 text-amber-800"
               }`}
             >
               <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                {willExceed ? (
+                {isBlocked ? (
                   <>
                     <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} bloqué :</span>{" "}
-                    Le numéro d&apos;article actuel est de <strong>{r.dernier_article}/100</strong>.
-                    Une validation TPS crée 2 articles, ce qui dépasserait 100. Vous devez{" "}
-                    <strong>clôturer ce rôle TPS</strong> et en créer un nouveau avant de pouvoir valider.
+                    Le numéro d&apos;article actuel a atteint sa limite de <strong>100/100</strong>.
+                    Vous devez <strong>clôturer ce rôle TPS</strong> et en créer un nouveau avant de pouvoir valider.
                   </>
                 ) : (
                   <>
                     <span className="font-bold">Rôle TPS #{r.numero_role} – {r.commune} :</span>{" "}
                     Il reste seulement <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
-                    Pensez à clôturer ce rôle bientôt.
+                    Les articles dépassant 100 seront automatiquement transférés vers un nouveau rôle.
                   </>
                 )}
               </div>
@@ -287,9 +290,9 @@ export default function TpsPendingTable() {
       <div className="md:hidden space-y-3">
         {filteredLiquidations.map((liq) => {
           const activeRole = activeRolesTps.find(
-            (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+            (r) => r.commune.toUpperCase() === (liq.commune || "").toUpperCase()
           );
-          const isBlocked = activeRole && activeRole.dernier_article + 2 > 100;
+          const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
           return (
             <div
@@ -366,9 +369,9 @@ export default function TpsPendingTable() {
             <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
               {filteredLiquidations.map((liq) => {
                 const activeRole = activeRolesTps.find(
-                  (r) => r.commune.toUpperCase() === (liq.contribuable?.commune || "").toUpperCase()
+                  (r) => r.commune.toUpperCase() === (liq.commune || "").toUpperCase()
                 );
-                const isBlocked = activeRole && activeRole.dernier_article + 2 > 100;
+                const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
                 return (
                   <tr key={liq.id} className="hover:bg-slate-50/80 transition-colors">
@@ -403,7 +406,7 @@ export default function TpsPendingTable() {
                           }`}
                           title={
                             isBlocked
-                              ? `Le numéro d'article dépasserait 100 (${activeRole.dernier_article} actuels, +2 requis)`
+                              ? "Le rôle TPS actuel est complet (100 articles). Veuillez le clôturer avant de valider."
                               : "Valider la fiche"
                           }
                         >
@@ -453,41 +456,62 @@ export default function TpsPendingTable() {
       </div>
 
       {/* MODAL: VALIDATION DE LA LIQUIDATION */}
-      {isValidateOpen && selectedLiquidation && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-emerald-600" />
-              Confirmer la validation
-            </h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Voulez-vous valider définitivement la fiche TPS de{" "}
-              <strong className="text-slate-900 break-words inline-block max-w-full">
-                {selectedLiquidation.contribuable?.nom_raison_sociale}
-              </strong>{" "}
-              ? Cette action générera un numéro d'article dans le rôle communal actif de{" "}
-              <strong>{selectedLiquidation.contribuable?.commune}</strong>.
-            </p>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsValidateOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleValidateConfirm}
-                disabled={isSaving}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
-              >
-                {isSaving ? "Validation..." : "Confirmer"}
-              </button>
+      {isValidateOpen && selectedLiquidation && (() => {
+        const activeRole = activeRolesTps.find(
+          (r) => r.commune.toUpperCase() === (selectedLiquidation.commune || "").toUpperCase()
+        );
+        const willSplit = activeRole && (activeRole.dernier_article + 2 > 100) && (activeRole.dernier_article < 100);
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <CheckSquare className="w-5 h-5 text-emerald-600" />
+                Confirmer la validation
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Voulez-vous valider définitivement la fiche TPS de{" "}
+                <strong className="text-slate-900 break-words inline-block max-w-full">
+                  {selectedLiquidation.contribuable?.nom_raison_sociale}
+                </strong>{" "}
+                ? Cette action générera un numéro d'article dans le rôle communal actif de{" "}
+                <strong>{selectedLiquidation.commune}</strong>.
+              </p>
+
+              {willSplit && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Attention :</strong> Cette validation va répartir les 2 articles de l'avis :
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5 font-medium">
+                      <li>1 article dans le rôle actuel #{activeRole.numero_role} (qui sera clôturé à 100).</li>
+                      <li>1 article dans le rôle suivant #{activeRole.numero_role + 1}.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsValidateOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleValidateConfirm}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+                >
+                  {isSaving ? "Validation..." : "Confirmer"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL: ANNULATION */}
       {isCancelOpen && selectedLiquidation && (

@@ -48,38 +48,33 @@ function getCurrentYear() {
   return new Date().getFullYear();
 }
 
-function extractCommune(row: LiquidationCommuneRow | null | undefined) {
-  const contribuable = row?.contribuable;
-  if (!contribuable) return null;
-  if (Array.isArray(contribuable)) {
-    return contribuable[0]?.commune?.trim() || null;
-  }
-  return contribuable.commune?.trim() || null;
+function extractCommune(row: any | null | undefined) {
+  return row?.commune?.trim() || null;
 }
 
 async function fetchLiquidationCommune(liquidationId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
-    .select("contribuable:contribuables (commune)")
+    .select("commune")
     .eq("id", liquidationId)
     .maybeSingle();
 
   if (error) throw error;
-  return extractCommune(data as LiquidationCommuneRow | null);
+  return extractCommune(data);
 }
 
 async function fetchLatestLiquidationCommune() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("liquidations")
-    .select("contribuable:contribuables (commune)")
+    .select("commune")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return extractCommune(data as LiquidationCommuneRow | null);
+  return extractCommune(data);
 }
 
 async function findActiveRole(commune?: string) {
@@ -203,7 +198,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -227,7 +222,7 @@ export async function fetchPendingLiquidationsPaginated({
   const [from, to] = getRange(page, PAGE_SIZE);
 
   let selectStr =
-    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier)";
+    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone)";
 
   let query = supabase
     .from("liquidations")
@@ -263,14 +258,14 @@ export async function fetchHistoryLiquidationsPaginated({
   const { data, error, count } = await supabase
     .from("liquidations")
     .select(
-      `id, reference_liq, status, created_at, download_count, 
-      superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description,
-      contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier),
+      `id, reference_liq, status, created_at, validated_at, download_count, 
+      superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier,
+      contribuable:contribuables (id, nom_prenoms, ifu_npi, telephone),
       recouvrement:recouvrements (role:roles (id, status))`,
       { count: "exact" }
     )
     .eq("status", "PAYE")
-    .order("created_at", { ascending: false })
+    .order("validated_at", { ascending: false })
     .range(from, to);
 
   if (error) throw error;
@@ -309,7 +304,7 @@ export async function updatePaidLiquidation(
       .from("liquidations")
       .select(`
         status, reference_liq, contribuable_id, type_bien,
-        superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description,
+        superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description, commune, arrondissement, quartier,
         contribuable:contribuables (
           id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier
         ),
@@ -391,7 +386,7 @@ export async function updatePaidLiquidation(
       }
     }
 
-    // 5. Mettre à jour le contribuable
+    // 5. Mettre à jour le contribuable (identité uniquement)
     if (finalContribId === oldContribId) {
       const { error: contribError } = await supabase
         .from("contribuables")
@@ -399,9 +394,6 @@ export async function updatePaidLiquidation(
           nom_prenoms: data.fullname,
           ifu_npi: data.ifuNpi,
           telephone: data.phone === "01" ? null : data.phone,
-          commune: normalizeCommune(data.commune),
-          arrondissement: data.arrondissement,
-          quartier: data.quartier,
         })
         .eq("id", oldContribId);
 
@@ -411,9 +403,6 @@ export async function updatePaidLiquidation(
         .from("contribuables")
         .update({
           telephone: data.phone === "01" ? null : data.phone,
-          commune: normalizeCommune(data.commune),
-          arrondissement: data.arrondissement,
-          quartier: data.quartier,
         })
         .eq("id", finalContribId);
     }
@@ -435,6 +424,9 @@ export async function updatePaidLiquidation(
         is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
         valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
         description: data.typeBien === "BATI" ? (data.description || null) : null,
+        commune: normalizeCommune(data.commune),
+        arrondissement: data.arrondissement,
+        quartier: data.quartier,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       })
@@ -660,20 +652,22 @@ export async function getActiveRole(commune?: string) {
 
 export async function fetchAvisRecouvrementDetails(liquidationId: string): Promise<AvisRecouvrementDetails> {
   const supabase = await createClient();
-  const { data: recouvrement, error: recouvrementError } = await supabase
+  const { data: recouvrementList, error: recouvrementError } = await supabase
     .from("recouvrements")
     .select("id, liquidation_id, role_id, contribuable_id, date_paiement")
-    .eq("liquidation_id", liquidationId)
-    .maybeSingle();
+    .eq("liquidation_id", liquidationId);
 
   if (recouvrementError) throw recouvrementError;
-  if (!recouvrement) {
+  if (!recouvrementList || recouvrementList.length === 0) {
     throw new Error("Avis de recouvrement introuvable pour cette liquidation.");
   }
 
+  const recouvrement = recouvrementList[0];
+  const recouvrementIds = recouvrementList.map((r) => r.id);
+
   const { data: liquidation, error: liquidationError } = await supabase
     .from("liquidations")
-    .select("id, reference_liq, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, status, created_at")
+    .select("id, reference_liq, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, status, created_at")
     .eq("id", liquidationId)
     .maybeSingle();
 
@@ -695,7 +689,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
 
   const { data: contribuable, error: contribuableError } = await supabase
     .from("contribuables")
-    .select("id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier")
+    .select("id, nom_prenoms, ifu_npi, telephone")
     .eq("id", recouvrement.contribuable_id)
     .maybeSingle();
 
@@ -709,7 +703,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
     .select(
       "id, numero_article, exercice, nature_impot, localisation, description, base, taux, droit_simple, penalite, acompte_paye, reste_du"
     )
-    .eq("recouvrement_id", recouvrement.id)
+    .in("recouvrement_id", recouvrementIds)
     .order("numero_article", { ascending: true });
 
   if (articlesError) throw articlesError;
@@ -745,9 +739,9 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
       nom_prenoms: contribuable.nom_prenoms,
       ifu_npi: contribuable.ifu_npi,
       telephone: contribuable.telephone || "",
-      commune: contribuable.commune || "",
-      arrondissement: contribuable.arrondissement || "",
-      quartier: contribuable.quartier || "",
+      commune: liquidation.commune || "",
+      arrondissement: liquidation.arrondissement || "",
+      quartier: liquidation.quartier || "",
     },
     articles: (articles ?? []).map((article) => ({
       id: article.id,
@@ -958,7 +952,7 @@ export async function updateLiquidation(
     // 2. Vérifier que la liquidation est bien en attente
     const { data: currentLiq, error: getError } = await supabase
       .from("liquidations")
-      .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien")
+      .select("status, reference_liq, contribuable_id, superficie, superficie_imposable, valeur_locative, start_year, type_bien, contribuable:contribuables(id, nom_prenoms, ifu_npi)")
       .eq("id", liquidationId)
       .single();
 
@@ -1009,22 +1003,16 @@ export async function updateLiquidation(
           nom_prenoms: data.fullname,
           ifu_npi: data.ifuNpi,
           telephone: data.phone === "01" ? null : data.phone,
-          commune: normalizeCommune(data.commune),
-          arrondissement: data.arrondissement,
-          quartier: data.quartier,
         })
         .eq("id", oldContribId);
 
       if (contribError) return { success: false, error: "Erreur lors de la mise a jour du contribuable." };
     } else {
-      // Mettre à jour les informations du contribuable cible (au cas où d'autres infos auraient changé)
+      // Mettre à jour les informations du contribuable cible
       await supabase
         .from("contribuables")
         .update({
           telephone: data.phone === "01" ? null : data.phone,
-          commune: normalizeCommune(data.commune),
-          arrondissement: data.arrondissement,
-          quartier: data.quartier,
         })
         .eq("id", finalContribId);
     }
@@ -1044,6 +1032,9 @@ export async function updateLiquidation(
         is_loue: data.typeBien === "BATI" ? (data.isLoue ?? false) : false,
         valeur_irf: data.typeBien === "BATI" && data.isLoue ? (Number(data.valeurIrf) || null) : null,
         description: data.typeBien === "BATI" ? (data.description || null) : null,
+        commune: normalizeCommune(data.commune),
+        arrondissement: data.arrondissement,
+        quartier: data.quartier,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       })

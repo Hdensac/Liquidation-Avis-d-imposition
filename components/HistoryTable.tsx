@@ -42,6 +42,7 @@ type Recouvrement = {
   reference_liq: string;
   status: string;
   created_at: string;
+  validated_at?: string;
   download_count?: number;
   superficie?: number;
   superficie_imposable?: number | null;
@@ -334,8 +335,8 @@ export default function HistoryTable() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700/60">
-                <div><span className="font-medium text-gray-700 dark:text-gray-300">Tél:</span> {c.telephone || "-"}</div>
-                <div><span className="font-medium text-gray-700 dark:text-gray-300">Date:</span> {new Date(rec.created_at).toLocaleDateString("fr-FR")}</div>
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Validé le:</span> {rec.validated_at ? new Date(rec.validated_at).toLocaleDateString("fr-FR") : "-"}</div>
+                <div><span className="font-medium text-gray-700 dark:text-gray-300">Créée le:</span> {new Date(rec.created_at).toLocaleDateString("fr-FR")}</div>
               </div>
 
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
@@ -386,7 +387,7 @@ export default function HistoryTable() {
             <tr>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">IFU/NPI</th>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Nom / Prénom</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Téléphone</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Validé le</th>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Référence</th>
               <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Créée le</th>
               <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider">Action</th>
@@ -411,7 +412,9 @@ export default function HistoryTable() {
                 >
                   <td className="px-4 py-2 font-mono text-xs">{c.ifu_npi}</td>
                   <td className="px-4 py-2">{c.nom_prenoms}</td>
-                  <td className="px-4 py-2 text-gray-500">{c.telephone || "-"}</td>
+                  <td className="px-4 py-2 text-xs text-gray-500">
+                    {rec.validated_at ? new Date(rec.validated_at).toLocaleDateString("fr-FR") : "-"}
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs text-indigo-600 dark:text-indigo-400">{rec.reference_liq}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">
                     {new Date(rec.created_at).toLocaleDateString("fr-FR")}

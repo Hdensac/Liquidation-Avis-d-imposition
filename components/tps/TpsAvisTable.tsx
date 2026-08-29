@@ -55,6 +55,10 @@ type LiquidationTps = {
   acomptes_payes: number;
   reste_du: number;
   start_year: number;
+  commune: string;
+  arrondissement: string;
+  quartier: string;
+  localisation: string;
   contribuable: Contribuable;
   articles?: Article[];
   download_count?: number;
@@ -73,10 +77,10 @@ function liqToTpsInput(liq: LiquidationTps): TpsInput {
     nomRaisonSociale: liq.contribuable?.nom_raison_sociale || "",
     ifuNc: liq.contribuable?.ifu_nc || "",
     telephone: liq.contribuable?.telephone || "",
-    commune: liq.contribuable?.commune || "",
-    arrondissement: liq.contribuable?.arrondissement || "",
-    quartier: liq.contribuable?.quartier || "",
-    localisation: liq.contribuable?.localisation || "",
+    commune: liq.commune || "",
+    arrondissement: liq.arrondissement || "",
+    quartier: liq.quartier || "",
+    localisation: liq.localisation || "",
     activite: liq.activite || "",
     montantAutresActivites: liq.montant_autres_activites || 0,
     acomptesPayes: liq.acomptes_payes || 0,
@@ -353,7 +357,7 @@ export default function TpsAvisTable() {
 
               <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-1 border-t border-slate-100">
                 <div><span className="font-medium text-slate-700">Impôt dû:</span> {liq.impot_du.toLocaleString()} FCFA</div>
-                <div><span className="font-medium text-slate-700">Payé:</span> <span className="text-emerald-600 font-semibold">{liq.acomptes_payes.toLocaleString()} FCFA</span></div>
+                <div><span className="font-medium text-slate-700">Validé le:</span> {liq.validated_at ? new Date(liq.validated_at).toLocaleDateString("fr-FR") : "-"}</div>
               </div>
 
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
@@ -407,7 +411,7 @@ export default function TpsAvisTable() {
                 <th className="px-6 py-4 text-left">Raison Sociale</th>
                 <th className="px-6 py-4 text-left">Articles</th>
                 <th className="px-6 py-4 text-right">Impôt dû</th>
-                <th className="px-6 py-4 text-right">Payé</th>
+                <th className="px-6 py-4 text-right">Validé le</th>
                 <th className="px-6 py-4 text-center">Action</th>
               </tr>
             </thead>
@@ -446,8 +450,8 @@ export default function TpsAvisTable() {
                     <td className="px-6 py-4 text-right font-mono font-semibold">
                       {liq.impot_du.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-right font-mono font-semibold text-emerald-600">
-                      {liq.acomptes_payes.toLocaleString()}
+                    <td className="px-6 py-4 text-right text-xs text-slate-500">
+                      {liq.validated_at ? new Date(liq.validated_at).toLocaleDateString("fr-FR") : "-"}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">

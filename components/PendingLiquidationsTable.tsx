@@ -38,35 +38,48 @@ type Liquidation = {
   is_loue?: boolean | null;
   valeur_irf?: number | null;
   description?: string | null;
+  commune?: string | null;
+  arrondissement?: string | null;
+  quartier?: string | null;
   contribuable: Contribuable[] | Contribuable;
 };
 
-function getContribuable(c: Contribuable[] | Contribuable): Contribuable {
-  if (Array.isArray(c)) {
-    return c[0] ?? {
-      nom_prenoms: "-",
-      ifu_npi: "-",
-      telephone: "-",
-      commune: "",
-      arrondissement: "",
-      quartier: "",
-    };
+function getContribuable(liq: Liquidation | (Contribuable[] | Contribuable)): Contribuable {
+  if (!liq) {
+    return { nom_prenoms: "-", ifu_npi: "-", telephone: "-", commune: "", arrondissement: "", quartier: "" };
   }
-  return c;
+  const isLiqObj = typeof liq === "object" && "contribuable" in liq;
+  const rawContrib = isLiqObj ? (liq as Liquidation).contribuable : (liq as Contribuable[] | Contribuable);
+  const c = Array.isArray(rawContrib) ? (rawContrib[0] ?? {}) : (rawContrib ?? {});
+
+  return {
+    nom_prenoms: c.nom_prenoms || "-",
+    ifu_npi: c.ifu_npi || "-",
+    telephone: c.telephone || "-",
+    commune: (isLiqObj && (liq as Liquidation).commune) ? (liq as Liquidation).commune! : (c.commune || ""),
+    arrondissement: (isLiqObj && (liq as Liquidation).arrondissement) ? (liq as Liquidation).arrondissement! : (c.arrondissement || ""),
+    quartier: (isLiqObj && (liq as Liquidation).quartier) ? (liq as Liquidation).quartier! : (c.quartier || ""),
+  };
+}
+
+function getRequiredArticlesCount(liq: Liquidation): number {
+  const typeBien = liq.type_bien || "NON_BATI";
+  if (typeBien === "BATI") {
+    return liq.is_loue ? 3 : 1;
+  }
+  return 4;
 }
 
 function liquidationToFormData(liq: Liquidation): TaxpayerInput {
-  const contribuable = getContribuable(liq.contribuable);
+  const contribuable = getContribuable(liq);
   const isBati = liq.type_bien === "BATI";
-  const comm = contribuable.commune || "";
-  const arr = findMatchingArrondissement(comm, contribuable.arrondissement || "");
   return {
     fullname: contribuable.nom_prenoms || "",
     ifuNpi: contribuable.ifu_npi || "",
     phone: contribuable.telephone || "",
-    commune: comm,
-    arrondissement: arr,
-    quartier: contribuable.quartier || "",
+    commune: liq.commune || contribuable.commune || "",
+    arrondissement: findMatchingArrondissement(liq.commune || contribuable.commune || "", liq.arrondissement || contribuable.arrondissement || ""),
+    quartier: liq.quartier || contribuable.quartier || "",
     typeBien: isBati ? "BATI" : "NON_BATI",
     superficie: Number(liq.superficie) || 0,
     superficieImposable:
@@ -89,6 +102,13 @@ export default function PendingLiquidationsTable() {
 
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
+  const [confirmSplit, setConfirmSplit] = useState<{
+    liqId: string;
+    required: number;
+    placesCurrent: number;
+    placesNext: number;
+    roleNum: number;
+  } | null>(null);
   const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -209,6 +229,25 @@ export default function PendingLiquidationsTable() {
   }, [pdfFormData, pdfTarget, toast]);
 
   const handleValidate = async (id: string) => {
+    const liq = liquidations.find((l) => l.id === id);
+    if (liq) {
+      const c = getContribuable(liq);
+      const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
+      if (activeRole) {
+        const required = getRequiredArticlesCount(liq);
+        if (activeRole.dernier_article + required > 100 && activeRole.dernier_article < 100) {
+          setConfirmSplit({
+            liqId: id,
+            required,
+            placesCurrent: 100 - activeRole.dernier_article,
+            placesNext: required - (100 - activeRole.dernier_article),
+            roleNum: activeRole.numero_role
+          });
+          return;
+        }
+      }
+    }
+
     try {
       await validatePayment(id);
       toast.success("Paiement valide, avis de recouvrement genere.");
@@ -342,30 +381,29 @@ export default function PendingLiquidationsTable() {
       {activeRoles
         .filter((r) => r.dernier_article >= 93)
         .map((r) => {
-          const willExceed = r.dernier_article + 4 > 100;
+          const isBlocked = r.dernier_article >= 100;
           return (
             <div
               key={r.id}
               className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-                willExceed
+                isBlocked
                   ? "bg-red-50 border-red-300 text-red-800 dark:bg-red-950/30 dark:border-red-700 dark:text-red-300"
                   : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300"
               }`}
             >
               <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                {willExceed ? (
+                {isBlocked ? (
                   <>
                     <span className="font-bold">Rôle #{r.numero_role} – {r.commune} bloqué :</span>{" "}
-                    Le numéro d&apos;article actuel est de <strong>{r.dernier_article}/100</strong>.
-                    Une validation TFU crée 4 articles, ce qui dépasserait 100. Vous devez{" "}
-                    <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider.
+                    Le numéro d&apos;article actuel a atteint sa limite de <strong>100/100</strong>.
+                    Vous devez <strong>clôturer ce rôle</strong> et en créer un nouveau avant de pouvoir valider.
                   </>
                 ) : (
                   <>
                     <span className="font-bold">Rôle #{r.numero_role} – {r.commune} :</span>{" "}
                     Il reste seulement <strong>{100 - r.dernier_article} article(s)</strong> disponibles sur 100.
-                    Pensez à clôturer ce rôle bientôt.
+                    Les articles dépassant 100 seront automatiquement transférés vers un nouveau rôle.
                   </>
                 )}
               </div>
@@ -400,9 +438,9 @@ export default function PendingLiquidationsTable() {
       {/* VUE MOBILE (Cartes) */}
       <div className="md:hidden space-y-3">
         {filteredLiquidations.map((liq) => {
-          const c = getContribuable(liq.contribuable);
-          const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
-          const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+          const c = getContribuable(liq);
+          const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === (liq.commune || "").toLowerCase());
+          const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
           return (
             <div
@@ -484,9 +522,9 @@ export default function PendingLiquidationsTable() {
           </thead>
           <tbody>
             {filteredLiquidations.map((liq) => {
-              const c = getContribuable(liq.contribuable);
-              const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === c.commune.toLowerCase());
-              const isBlocked = activeRole && (activeRole.dernier_article + 4 > 100);
+              const c = getContribuable(liq);
+              const activeRole = activeRoles.find((r) => r.commune.toLowerCase() === (liq.commune || "").toLowerCase());
+              const isBlocked = activeRole && activeRole.dernier_article >= 100;
 
               return (
                 <tr
@@ -510,7 +548,7 @@ export default function PendingLiquidationsTable() {
                         }`}
                         title={
                           isBlocked
-                            ? `Le numéro d'article dépasserait 100 (${activeRole.dernier_article} actuels, +4 requis)`
+                            ? "Le rôle actuel est complet (100 articles). Veuillez le clôturer avant de valider."
                             : "Valider la liquidation"
                         }
                       >
@@ -943,6 +981,54 @@ export default function PendingLiquidationsTable() {
           </div>
         </div>
       )}
+      {/* MODAL: CONFIRMATION SPLIT ARTICLES */}
+      {confirmSplit && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-amber-700 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Répartition des articles
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Cette validation va répartir les <strong>{confirmSplit.required}</strong> articles de l'avis :
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>{confirmSplit.placesCurrent} article(s) dans le rôle actuel <strong>#{confirmSplit.roleNum}</strong> (clôturé à 100).</li>
+                <li>{confirmSplit.placesNext} article(s) dans le rôle suivant <strong>#{confirmSplit.roleNum + 1}</strong>.</li>
+              </ul>
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmSplit(null)}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  validatePayment(confirmSplit.liqId).then(() => {
+                    toast.success("Paiement valide, avis de recouvrement généré.");
+                    fetchAllRoles()
+                      .then((roles) => setActiveRoles(roles.filter((r) => r.status === "ACTIF")))
+                      .catch(console.error);
+                    loadData(currentPage);
+                    setConfirmSplit(null);
+                  }).catch(e => {
+                    console.error(e);
+                    toast.error("Erreur lors de la validation.");
+                    setConfirmSplit(null);
+                  });
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+              >
+                Confirmer la validation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
