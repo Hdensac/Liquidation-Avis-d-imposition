@@ -1,9 +1,11 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
   return (
     <div style={{ padding: 32 }}>
       <button
@@ -21,7 +23,7 @@ export default function Home() {
       </button>
       <div style={{ marginTop: 20 }}>
         <button
-          onClick={() => redirect("/dashboard")}
+          onClick={() => router.push("/dashboard")}
           style={{
             padding: "12px 20px",
             borderRadius: 8,
