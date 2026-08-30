@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "../sentry.client.config";
 import "./globals.css";
 import AuthSync from "@/components/AuthSync";
 
