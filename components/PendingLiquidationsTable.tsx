@@ -529,15 +529,15 @@ export default function PendingLiquidationsTable() {
               return (
                 <tr
                   key={liq.id}
-                  className="border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  className="align-top border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 >
                   <td className="px-4 py-2">{c.ifu_npi}</td>
-                  <td className="px-4 py-2">{c.nom_prenoms}</td>
+                  <td className="px-4 py-2 max-w-[260px] truncate" title={c.nom_prenoms}>{c.nom_prenoms}</td>
                   <td className="px-4 py-2">{c.telephone}</td>
                   <td className="px-4 py-2">{liq.reference_liq}</td>
                   <td className="px-4 py-2">{new Date(liq.created_at).toLocaleDateString("fr-FR")}</td>
-                  <td className="px-4 py-2 text-center">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
+                  <td className="px-4 py-2 text-center whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-2 flex-nowrap">
                       <button
                         onClick={() => handleValidate(liq.id)}
                         disabled={isBlocked}

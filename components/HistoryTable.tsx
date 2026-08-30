@@ -404,14 +404,14 @@ export default function HistoryTable() {
               return (
                 <tr
                   key={rec.id}
-                  className={`border-b border-gray-300 dark:border-gray-600 transition ${
+                  className={`align-top border-b border-gray-300 dark:border-gray-600 transition ${
                     hasBeenDownloaded
                       ? "bg-emerald-50/15 hover:bg-emerald-100/30 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 border-l-4 border-l-emerald-500/70"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700"
                   }`}
                 >
                   <td className="px-4 py-2 font-mono text-xs">{c.ifu_npi}</td>
-                  <td className="px-4 py-2">{c.nom_prenoms}</td>
+                  <td className="px-4 py-2 max-w-[260px] truncate" title={c.nom_prenoms}>{c.nom_prenoms}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">
                     {rec.validated_at ? new Date(rec.validated_at).toLocaleDateString("fr-FR") : "-"}
                   </td>
@@ -419,8 +419,8 @@ export default function HistoryTable() {
                   <td className="px-4 py-2 text-xs text-gray-500">
                     {new Date(rec.created_at).toLocaleDateString("fr-FR")}
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-2 flex-nowrap">
                       {/* Bouton Avis PDF */}
                       <button
                         onClick={() => handleDownloadAvis(rec.id, rec.reference_liq)}
