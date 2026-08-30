@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import "../sentry.client.config";
 import "./globals.css";
 import AuthSync from "@/components/AuthSync";
+import SentryInitializer from "@/components/SentryInitializer";
 
 export const metadata: Metadata = {
   title: "Liquidation -  (TFU)",
@@ -17,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="antialiased">
+        <SentryInitializer />
         <AuthSync />
         {children}
       </body>
     </html>
   );
 }
+
