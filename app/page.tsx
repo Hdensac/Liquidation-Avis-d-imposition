@@ -8,12 +8,21 @@ export default function Home() {
 
   const handleTestSentry = () => {
     try {
-      // 1. Capturer une exception de test explicite
+      const client = Sentry.getClient();
+      const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+      
+      console.log("Sentry Client:", client);
+      console.log("Sentry DSN:", dsn);
+
+      if (!client) {
+        alert("Sentry n'est pas initialisé (Client introuvable). Vérifiez si NEXT_PUBLIC_SENTRY_DSN est défini.");
+        return;
+      }
+
       const err = new Error("Test Sentry Exception depuis le bouton d'accueil");
       Sentry.captureException(err);
       
-      // 2. Feedback visuel immédiat pour l'utilisateur
-      alert("Erreur de test Sentry envoyée avec succès ! Vérifiez votre dashboard Sentry.");
+      alert(`Sentry initialisé ! Erreur envoyée.\nDSN présent: ${dsn ? "OUI" : "NON"}`);
     } catch (e) {
       console.error("Erreur test Sentry:", e);
       alert("Erreur lors de l'envoi du test Sentry.");
@@ -54,5 +63,6 @@ export default function Home() {
     </div>
   );
 }
+
 
 
