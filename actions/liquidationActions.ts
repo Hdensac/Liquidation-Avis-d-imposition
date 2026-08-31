@@ -306,7 +306,7 @@ export async function updatePaidLiquidation(
         status, reference_liq, contribuable_id, type_bien,
         superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description, commune, arrondissement, quartier,
         contribuable:contribuables (
-          id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier
+          id, nom_prenoms, ifu_npi, telephone
         )
       `)
       .eq("id", liquidationId)
