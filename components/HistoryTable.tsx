@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useToast, ToastContainer } from "./useToast";
 import {
   fetchAvisRecouvrementDetails,
@@ -14,6 +13,7 @@ import { generateAvisRecouvrementPdf } from "@/utils/avisPdfGenerator";
 import { Download, Loader2, Search, X, Edit, AlertTriangle, Lock } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { TaxpayerInput } from "@/types/liquidation";
 import {
   COMMUNE_OPTIONS,
@@ -99,11 +99,7 @@ function recouvrementToFormData(rec: Recouvrement): TaxpayerInput {
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function HistoryTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const { currentPage, setPage, resetPage } = usePagination();
 
   // ─ État de liste
   const [records, setRecords] = useState<Recouvrement[]>([]);
@@ -168,9 +164,7 @@ export default function HistoryTable() {
 
   // ─── Pagination ──────────────────────────────────────────────────────────
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(page));
-    router.push(`${pathname}?${params.toString()}`);
+    setPage(page);
     setSearchQuery("");
   };
 
@@ -178,9 +172,7 @@ export default function HistoryTable() {
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (currentPage !== 1) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("page", "1");
-      router.push(`${pathname}?${params.toString()}`);
+      resetPage();
     }
   };
 
