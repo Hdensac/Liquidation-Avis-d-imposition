@@ -299,25 +299,22 @@ export async function updatePaidLiquidation(
       return { success: false, error: "Seuls les inspecteurs et administrateurs peuvent modifier une liquidation validée." };
     }
 
-    // 2. Vérifier que la liquidation est bien PAYE et rattachée à un rôle ACTIF
+    // 2. Vérifier que la liquidation est bien PAYE
     const { data: currentLiq, error: getError } = await supabase
       .from("liquidations")
       .select(`
         status, reference_liq, contribuable_id, type_bien,
         superficie, superficie_imposable, valeur_locative, start_year, is_loue, valeur_irf, description, commune, arrondissement, quartier,
         contribuable:contribuables (
-          id, nom_prenoms, ifu_npi, telephone, commune, arrondissement, quartier
-        ),
-        recouvrement:recouvrements (
-          id,
-          role:roles (
-            id,
-            status
-          )
+          id, nom_prenoms, ifu_npi, telephone
         )
       `)
       .eq("id", liquidationId)
-      .single();
+      .maybeSingle();
+
+    if (getError) {
+      console.error("updatePaidLiquidation getError:", getError);
+    }
 
     if (getError || !currentLiq) {
       return { success: false, error: "Liquidation introuvable." };
@@ -327,13 +324,29 @@ export async function updatePaidLiquidation(
       return { success: false, error: "Seules les liquidations payées peuvent être modifiées dans l'historique." };
     }
 
-    const rec = Array.isArray(currentLiq.recouvrement) ? currentLiq.recouvrement[0] : currentLiq.recouvrement;
-    if (!rec || !rec.role) {
+    // Récupérer les recouvrements associés séparément
+    const { data: recs, error: recError } = await supabase
+      .from("recouvrements")
+      .select(`
+        id,
+        role:roles (
+          id,
+          status
+        )
+      `)
+      .eq("liquidation_id", liquidationId);
+
+    if (recError) {
+      console.error("updatePaidLiquidation recError:", recError);
+    }
+
+    if (recError || !recs || recs.length === 0) {
       return { success: false, error: "Recouvrement ou rôle associé introuvable." };
     }
 
+    const rec = recs[0];
     const role = Array.isArray(rec.role) ? rec.role[0] : rec.role;
-    if (role.status !== "ACTIF") {
+    if (!role || role.status !== "ACTIF") {
       return { success: false, error: "Ce rôle est déjà clôturé. Les modifications sont impossibles." };
     }
 
@@ -344,9 +357,9 @@ export async function updatePaidLiquidation(
       fullname: contribData?.nom_prenoms || "",
       ifuNpi: contribData?.ifu_npi || "",
       phone: contribData?.telephone || "",
-      commune: contribData?.commune || "",
-      arrondissement: contribData?.arrondissement || "",
-      quartier: contribData?.quartier || "",
+      commune: currentLiq.commune || "",
+      arrondissement: currentLiq.arrondissement || "",
+      quartier: currentLiq.quartier || "",
       typeBien: currentLiq.type_bien as any,
       superficie: currentLiq.superficie ?? "",
       superficieImposable: currentLiq.superficie_imposable ?? undefined,
