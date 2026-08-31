@@ -321,18 +321,14 @@ export async function updatePaidTpsLiquidation(
         commune, arrondissement, quartier, localisation,
         contribuable:tps_contribuables (
           id, nom_raison_sociale, ifu_nc, telephone
-        ),
-        articles:tps_articles (
-          id,
-          numero_article,
-          role:tps_roles (
-            id,
-            status
-          )
         )
       `)
       .eq("id", liquidationId)
-      .single();
+      .maybeSingle();
+
+    if (getError) {
+      console.error("updateLiquidationTps getError:", getError);
+    }
 
     if (getError || !currentLiq) {
       return { success: false, error: "Liquidation TPS introuvable." };
@@ -342,8 +338,23 @@ export async function updatePaidTpsLiquidation(
       return { success: false, error: "Seules les liquidations validées peuvent être modifiées dans l'historique." };
     }
 
-    const articles = currentLiq.articles || [];
-    if (articles.length === 0) {
+    const { data: articles, error: artError } = await supabase
+      .from("tps_articles")
+      .select(`
+        id,
+        numero_article,
+        role:tps_roles (
+          id,
+          status
+        )
+      `)
+      .eq("liquidation_id", liquidationId);
+
+    if (artError) {
+      console.error("updateLiquidationTps artError:", artError);
+    }
+
+    if (artError || !articles || articles.length === 0) {
       return { success: false, error: "Aucun article de recouvrement associé à cette liquidation." };
     }
 
@@ -351,7 +362,7 @@ export async function updatePaidTpsLiquidation(
     const firstArticle = articles[0];
     const role = Array.isArray(firstArticle.role) ? firstArticle.role[0] : firstArticle.role;
     if (!role || role.status !== "ACTIF") {
-      return { success: false, error: "Ce rôle TPS é déjà clôturé. Les modifications sont impossibles." };
+      return { success: false, error: "Ce rôle TPS est déjà clôturé. Les modifications sont impossibles." };
     }
 
     // Sauvegarder les données avant modification pour le log d'audit
