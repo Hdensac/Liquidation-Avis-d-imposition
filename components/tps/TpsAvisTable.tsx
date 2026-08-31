@@ -432,7 +432,7 @@ export default function TpsAvisTable() {
                 return (
                   <tr
                     key={liq.id}
-                    className={`transition-colors ${
+                    className={`align-top transition-colors ${
                       hasBeenDownloaded
                         ? "bg-emerald-50/15 hover:bg-emerald-100/30 border-l-4 border-l-emerald-500/70"
                         : "hover:bg-slate-50/80"
@@ -441,7 +441,7 @@ export default function TpsAvisTable() {
                     <td className="px-6 py-4 font-mono font-medium text-slate-600">
                       {liq.contribuable?.ifu_nc}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-slate-900">
+                    <td className="px-6 py-4 font-semibold text-slate-900 max-w-[260px] truncate" title={liq.contribuable?.nom_raison_sociale}>
                       {liq.contribuable?.nom_raison_sociale}
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-700">
@@ -453,8 +453,8 @@ export default function TpsAvisTable() {
                     <td className="px-6 py-4 text-right text-xs text-slate-500">
                       {liq.validated_at ? new Date(liq.validated_at).toLocaleDateString("fr-FR") : "-"}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2 flex-nowrap">
                         {/* Bouton PDF */}
                         <button
                           onClick={() => handleDownloadPdf(liq)}
