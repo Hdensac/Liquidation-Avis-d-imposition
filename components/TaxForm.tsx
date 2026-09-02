@@ -122,6 +122,9 @@ export const TaxForm: React.FC<TaxFormProps> = ({
 
   const lastLookedUpRef = useRef<string>("");
 
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   const executeTaxpayerLookup = async (rawIfu: string) => {
     const clean = rawIfu.replace(/\D/g, "");
     if (clean.length < 8 || clean === lastLookedUpRef.current) return;
@@ -132,10 +135,10 @@ export const TaxForm: React.FC<TaxFormProps> = ({
       const res = await lookupTaxpayerByIdentifier(clean);
       if (res && res.fullname) {
         onChange({
-          ...formData,
+          ...formDataRef.current,
           ifuNpi: res.ifuNpi || clean,
           fullname: res.fullname,
-          phone: res.phone || formData.phone,
+          phone: res.phone || formDataRef.current.phone,
         });
         setFoundNotice(`Contribuable existant trouvé (${res.source}) : ${res.fullname}`);
       } else {

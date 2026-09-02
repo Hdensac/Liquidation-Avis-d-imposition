@@ -28,6 +28,9 @@ export const TpsForm: React.FC<TpsFormProps> = ({
 
   const lastLookedUpRef = useRef<string>("");
 
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   const executeTaxpayerLookup = async (rawIfu: string) => {
     const clean = rawIfu.replace(/\D/g, "");
     if (clean.length < 8 || clean === lastLookedUpRef.current) return;
@@ -38,10 +41,10 @@ export const TpsForm: React.FC<TpsFormProps> = ({
       const res = await lookupTaxpayerByIdentifier(clean);
       if (res && res.fullname) {
         onChange({
-          ...formData,
+          ...formDataRef.current,
           ifuNc: res.ifuNpi || clean,
           nomRaisonSociale: res.fullname,
-          telephone: res.phone || formData.telephone,
+          telephone: res.phone || formDataRef.current.telephone,
         });
         setFoundNotice(`Contribuable existant trouvé (${res.source}) : ${res.fullname}`);
       } else {

@@ -134,13 +134,16 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       quartier,
       reference_tps,
       created_at,
-      nom_raison_sociale,
-      ifu_nc,
-      telephone,
       activite,
       montant_autres_activites,
       acomptes_payes,
-      start_year
+      start_year,
+      contribuable:tps_contribuables (
+        id,
+        nom_raison_sociale,
+        ifu_nc,
+        telephone
+      )
     `)
     .order("created_at", { ascending: false });
 
@@ -237,9 +240,10 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
 
   // Traitement TPS
   (tpsData || []).forEach((tps: any) => {
-    const ifu = (tps.ifu_nc || "").trim();
-    const name = (tps.nom_raison_sociale || "Contribuable Inconnu").trim();
-    const phone = (tps.telephone || "").trim();
+    const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
+    const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
+    const name = (contrib?.nom_raison_sociale || tps.nom_raison_sociale || "Contribuable Inconnu").trim();
+    const phone = (contrib?.telephone || tps.telephone || "").trim();
     const commune = (tps.commune || "").trim();
 
     const key = ifu ? `IFU_${normalizeKey(ifu)}` : `NAME_${normalizeKey(name)}`;
@@ -394,9 +398,12 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       start_year,
       reference_tps,
       created_at,
-      nom_raison_sociale,
-      ifu_nc,
-      telephone
+      contribuable:tps_contribuables (
+        id,
+        nom_raison_sociale,
+        ifu_nc,
+        telephone
+      )
     `)
     .order("created_at", { ascending: false });
 
@@ -499,8 +506,10 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
 
   // Filtrer TPS
   (tpsList || []).forEach((tps: any) => {
-    const ifu = (tps.ifu_nc || "").trim();
-    const name = (tps.nom_raison_sociale || "").trim();
+    const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
+    const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
+    const name = (contrib?.nom_raison_sociale || tps.nom_raison_sociale || "").trim();
+    const phone = (contrib?.telephone || tps.telephone || "").trim();
 
     const isMatch = (ifu && normalizeKey(ifu) === normTarget) ||
       (name && normalizeKey(name) === normTarget) ||
@@ -599,72 +608,46 @@ export async function lookupTaxpayerByIdentifier(identifier: string): Promise<{
 
   const supabase = await createClient();
 
-  // 1. Chercher dans contribuables (TFU) par correspondance exacte
-  const { data: contribData } = await supabase
-    .from("contribuables")
-    .select("nom_prenoms, ifu_npi, telephone")
-    .eq("ifu_npi", cleanId)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // 1. Chercher dans contribuables (TFU)
+  try {
+    const { data: contribData } = await supabase
+      .from("contribuables")
+      .select("nom_prenoms, ifu_npi, telephone")
+      .or(`ifu_npi.eq.${cleanId},ifu_npi.ilike.%${cleanId}%`)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-  if (contribData && contribData.length > 0 && contribData[0].nom_prenoms) {
-    return {
-      fullname: contribData[0].nom_prenoms,
-      phone: contribData[0].telephone || "",
-      ifuNpi: contribData[0].ifu_npi || cleanId,
-      source: "TFU",
-    };
+    if (contribData && contribData.length > 0 && contribData[0].nom_prenoms) {
+      return {
+        fullname: contribData[0].nom_prenoms,
+        phone: contribData[0].telephone || "",
+        ifuNpi: contribData[0].ifu_npi || cleanId,
+        source: "TFU",
+      };
+    }
+  } catch (err) {
+    console.error("Erreur lookup contribuables (TFU):", err);
   }
 
-  // Si pas de correspondance exacte, tenter ilike dans contribuables
-  const { data: contribLike } = await supabase
-    .from("contribuables")
-    .select("nom_prenoms, ifu_npi, telephone")
-    .ilike("ifu_npi", `%${cleanId}%`)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // 2. Chercher dans tps_contribuables (TPS)
+  try {
+    const { data: tpsContribData } = await supabase
+      .from("tps_contribuables")
+      .select("nom_raison_sociale, ifu_nc, telephone")
+      .or(`ifu_nc.eq.${cleanId},ifu_nc.ilike.%${cleanId}%`)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-  if (contribLike && contribLike.length > 0 && contribLike[0].nom_prenoms) {
-    return {
-      fullname: contribLike[0].nom_prenoms,
-      phone: contribLike[0].telephone || "",
-      ifuNpi: contribLike[0].ifu_npi || cleanId,
-      source: "TFU",
-    };
-  }
-
-  // 2. Chercher dans tps_liquidations (TPS) par correspondance exacte
-  const { data: tpsData } = await supabase
-    .from("tps_liquidations")
-    .select("nom_raison_sociale, ifu_nc, telephone")
-    .eq("ifu_nc", cleanId)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (tpsData && tpsData.length > 0 && tpsData[0].nom_raison_sociale) {
-    return {
-      fullname: tpsData[0].nom_raison_sociale,
-      phone: tpsData[0].telephone || "",
-      ifuNpi: tpsData[0].ifu_nc || cleanId,
-      source: "TPS",
-    };
-  }
-
-  // Tps ilike
-  const { data: tpsLike } = await supabase
-    .from("tps_liquidations")
-    .select("nom_raison_sociale, ifu_nc, telephone")
-    .ilike("ifu_nc", `%${cleanId}%`)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (tpsLike && tpsLike.length > 0 && tpsLike[0].nom_raison_sociale) {
-    return {
-      fullname: tpsLike[0].nom_raison_sociale,
-      phone: tpsLike[0].telephone || "",
-      ifuNpi: tpsLike[0].ifu_nc || cleanId,
-      source: "TPS",
-    };
+    if (tpsContribData && tpsContribData.length > 0 && tpsContribData[0].nom_raison_sociale) {
+      return {
+        fullname: tpsContribData[0].nom_raison_sociale,
+        phone: tpsContribData[0].telephone || "",
+        ifuNpi: tpsContribData[0].ifu_nc || cleanId,
+        source: "TPS",
+      };
+    }
+  } catch (err) {
+    console.error("Erreur lookup tps_contribuables (TPS):", err);
   }
 
   return null;
