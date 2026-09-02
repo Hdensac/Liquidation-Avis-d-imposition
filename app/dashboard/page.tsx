@@ -255,7 +255,7 @@ export default async function DashboardPortalPage() {
             <div>
               <h3 className="font-bold text-base">Espace Administration & Audit</h3>
               <p className="text-xs text-purple-200 mt-0.5">
-                Gestion des comptes agents, modification des rôles et exportation des journaux d'audit (PDF/TXT).
+                Gestion des comptes agents, modification des rôles et exportation des journaux d'audit (PDF).
               </p>
             </div>
           </div>
