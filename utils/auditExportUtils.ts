@@ -39,28 +39,104 @@ function formatActionLabel(action: string): string {
   }
 }
 
-function summarizeDetails(details: any): string {
+export function summarizeLogDetails(details: any): string {
   if (!details) return "—";
   if (typeof details === "string") return sanitizeText(details);
 
+  // 1. Compare diff objects if present (data_avant/data_apres OR avant/apres)
+  const before = details.data_avant || details.avant;
+  const after = details.data_apres || details.apres;
+
+  if (before && after && typeof before === "object" && typeof after === "object") {
+    const allKeys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+    const fieldLabels: Record<string, string> = {
+      fullname: "Nom Complet",
+      nom_raison_sociale: "Raison Sociale",
+      nom_prenoms: "Nom & Prénoms",
+      ifuNpi: "IFU/NPI",
+      ifu_npi: "IFU/NPI",
+      ifuNc: "IFU/NPI",
+      ifu_nc: "IFU/NPI",
+      phone: "Téléphone",
+      telephone: "Téléphone",
+      commune: "Commune",
+      quartier: "Quartier",
+      localisation: "Localisation",
+      typeBien: "Type de Bien",
+      type_bien: "Type de Bien",
+      superficie: "Superficie",
+      superficieImposable: "Superficie Imposable",
+      superficie_imposable: "Superficie Imposable",
+      valeurLocative: "Valeur Locative",
+      valeur_locative: "Valeur Locative",
+      startYear: "Année Début",
+      start_year: "Année Début",
+      isLoue: "Mis en location",
+      is_loue: "Mis en location",
+      valeurIrf: "Valeur IRF",
+      valeur_irf: "Valeur IRF",
+      description: "Description",
+      activite: "Activité",
+      montantAutresActivites: "Autres Activités",
+      montant_autres_activites: "Autres Activités",
+      acomptesPayes: "Acomptes Payés",
+      acomptes_payes: "Acomptes Payés",
+    };
+
+    const changedFields = allKeys.filter((key) => {
+      if (["reference_liq", "reference_tps", "reference", "id", "user_id", "role"].includes(key)) {
+        return false;
+      }
+      const valBefore = before[key];
+      const valAfter = after[key];
+      const isEmptyBefore = valBefore === undefined || valBefore === null || valBefore === "";
+      const isEmptyAfter = valAfter === undefined || valAfter === null || valAfter === "";
+      if (isEmptyBefore && isEmptyAfter) return false;
+      return JSON.stringify(valBefore) !== JSON.stringify(valAfter);
+    });
+
+    if (changedFields.length > 0) {
+      const labels = changedFields.map((k) => fieldLabels[k] || k);
+      return sanitizeText(`Modif: ${labels.join(", ")}`);
+    } else {
+      return "Modif. enregistrée";
+    }
+  }
+
+  // 2. Standard keys extraction
   const parts: string[] = [];
+
   if (details.commune) parts.push(`Commune: ${details.commune}`);
   if (details.contribuable) {
-    const name = typeof details.contribuable === "object" ? details.contribuable.nom_prenoms || details.contribuable.nom_raison_sociale : details.contribuable;
+    const name = typeof details.contribuable === "object"
+      ? details.contribuable.nom_prenoms || details.contribuable.nom_raison_sociale
+      : details.contribuable;
     if (name) parts.push(`Contrib: ${name}`);
   }
-  if (details.total_droits) parts.push(`Droits: ${details.total_droits} F`);
-  if (details.impot_du) parts.push(`Impôt: ${details.impot_du} F`);
+  if (details.nouveau_numero_role) parts.push(`Rôle N°${details.nouveau_numero_role}`);
+  if (details.total_droits) parts.push(`Droits: ${Number(details.total_droits).toLocaleString("fr-FR")} F`);
+  if (details.impot_du) parts.push(`Impôt: ${Number(details.impot_du).toLocaleString("fr-FR")} F`);
   if (details.reason) parts.push(`Motif: ${details.reason}`);
+  if (details.first_article_num && details.last_article_num) {
+    parts.push(`Art. ${details.first_article_num} à ${details.last_article_num}`);
+  }
 
   if (parts.length > 0) return sanitizeText(parts.join(" | "));
 
-  try {
-    const jsonStr = JSON.stringify(details);
-    return sanitizeText(jsonStr.length > 80 ? jsonStr.substring(0, 77) + "..." : jsonStr);
-  } catch {
-    return "—";
+  // 3. Fallback for other objects: extract keys excluding internal identifiers
+  if (typeof details === "object" && details !== null) {
+    const ignoredKeys = new Set([
+      "reference_liq", "reference_tps", "reference", "liquidation_id",
+      "recouvrement_id", "role_id", "user_id", "role", "id"
+    ]);
+    const cleanEntries = Object.entries(details).filter(([k]) => !ignoredKeys.has(k));
+    if (cleanEntries.length > 0) {
+      const summaryPairs = cleanEntries.map(([k, v]) => `${k}: ${typeof v === "object" ? "..." : String(v)}`);
+      return sanitizeText(summaryPairs.join(" | "));
+    }
   }
+
+  return "—";
 }
 
 /**
@@ -138,7 +214,7 @@ export function generateAuditPdf(
       sanitizeText(log.user_email),
       sanitizeText(log.action),
       sanitizeText(ref),
-      summarizeDetails(log.details)
+      summarizeLogDetails(log.details)
     ];
   });
 

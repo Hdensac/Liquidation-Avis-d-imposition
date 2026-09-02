@@ -25,7 +25,7 @@ import {
   Download
 } from "lucide-react";
 import { fetchAuditLogs, fetchAllAuditLogsForExport, updateUserRole, inviteNewAgent, fetchRoleSettings, fetchCommunesWithRoles, saveRoleSetting, fetchAdminStats } from "@/actions/adminActions";
-import { generateAuditPdf, generateAuditTxt } from "@/utils/auditExportUtils";
+import { generateAuditPdf, summarizeLogDetails } from "@/utils/auditExportUtils";
 import type { UserRole } from "@/types/user";
 import { COMMUNE_OPTIONS } from "@/components/TaxForm";
 
@@ -74,7 +74,6 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
   const [stats, setStats] = useState<any>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isExportingTxt, setIsExportingTxt] = useState(false);
 
   const handleExportLogsPdf = async () => {
     setIsExportingPdf(true);
@@ -98,32 +97,6 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
       setNotification({ type: "error", message: "Erreur lors de la génération du PDF d'audit." });
     } finally {
       setIsExportingPdf(false);
-      setTimeout(() => setNotification(null), 3500);
-    }
-  };
-
-  const handleExportLogsTxt = async () => {
-    setIsExportingTxt(true);
-    try {
-      const res = await fetchAllAuditLogsForExport({
-        search: logSearch,
-        actionFilter,
-        dateFilter,
-      });
-      if (res.success && res.logs && res.logs.length > 0) {
-        generateAuditTxt(res.logs, {
-          search: logSearch,
-          action: actionFilter,
-          date: dateFilter,
-        });
-        setNotification({ type: "success", message: `${res.logs.length} journal(x) d'audit exporté(s) en TXT.` });
-      } else {
-        setNotification({ type: "error", message: res.error || "Aucun journal à exporter." });
-      }
-    } catch (err) {
-      setNotification({ type: "error", message: "Erreur lors de la génération du fichier TXT d'audit." });
-    } finally {
-      setIsExportingTxt(false);
       setTimeout(() => setNotification(null), 3500);
     }
   };
@@ -577,13 +550,15 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                     <th className="py-4 px-6">Utilisateur</th>
                     <th className="py-4 px-6">Action</th>
                     <th className="py-4 px-6">Référence</th>
+                    <th className="py-4 px-6">Description / Détails</th>
                     <th className="py-4 px-6">Date</th>
-                    <th className="py-4 px-6 text-right">Détails</th>
+                    <th className="py-4 px-6 text-right"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/40 text-sm text-slate-700 dark:text-slate-300">
                   {filteredLogs.map((log) => {
                     const ref = log.details?.reference_liq || log.details?.reference_tps;
+                    const detailsSummary = summarizeLogDetails(log.details);
                     return (
                       <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition duration-150">
                         <td className="py-4 px-6 font-medium text-slate-900 dark:text-white">
@@ -609,7 +584,10 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                             <span className="text-slate-400 dark:text-slate-500 italic">—</span>
                           )}
                         </td>
-                        <td className="py-4 px-6 text-slate-500 dark:text-slate-400 text-xs">
+                        <td className="py-4 px-6 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate font-medium" title={detailsSummary}>
+                          {detailsSummary}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
                             {new Date(log.created_at).toLocaleString("fr-FR")}
@@ -619,7 +597,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                           <button
                             onClick={() => setSelectedLog(log)}
                             className="p-1.5 hover:bg-slate-150 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-                            title="Voir les détails"
+                            title="Voir la fiche détaillée"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -629,7 +607,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   })}
                   {filteredLogs.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
                         Aucun log d'audit enregistré ou correspondant.
                       </td>
                     </tr>
