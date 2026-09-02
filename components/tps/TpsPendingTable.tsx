@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   fetchPendingLiquidationsTps,
   validerPaiementTps,
@@ -15,6 +14,7 @@ import { TpsInput } from "@/utils/tpsCalculations";
 import { FileText, Loader2, Search, X, Edit, Trash2, AlertTriangle, CheckSquare } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { usePagination } from "@/hooks/usePagination";
 import { findMatchingArrondissement } from "@/components/TaxForm";
 
 
@@ -50,11 +50,7 @@ type LiquidationTps = {
 };
 
 export default function TpsPendingTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const { currentPage, setPage, resetPage } = usePagination();
 
   const [liquidations, setLiquidations] = useState<LiquidationTps[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -101,18 +97,14 @@ export default function TpsPendingTable() {
   }, [currentPage, loadData]);
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(page));
-    router.push(`${pathname}?${params.toString()}`);
+    setPage(page);
     setSearchQuery("");
   };
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (currentPage !== 1) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("page", "1");
-      router.push(`${pathname}?${params.toString()}`);
+      resetPage();
     }
   };
 

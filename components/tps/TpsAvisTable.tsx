@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { fetchAvisValidesTps, incrementTpsDownloadCount, updatePaidTpsLiquidation } from "@/actions/tpsActions";
 import type { TpsInput } from "@/utils/tpsCalculations";
 import { useToast, ToastContainer } from "@/components/useToast";
@@ -10,6 +9,7 @@ import { generateTpsPdf } from "@/utils/tpsPdfGenerator";
 import { Loader2, Search, X, Download, Edit, Lock, AlertTriangle } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { usePagination } from "@/hooks/usePagination";
 import { createClient } from "@/utils/supabase/client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -91,11 +91,7 @@ function liqToTpsInput(liq: LiquidationTps): TpsInput {
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function TpsAvisTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const { currentPage, setPage, resetPage } = usePagination();
 
   // ─ État liste
   const [avisList, setAvisList] = useState<LiquidationTps[]>([]);
@@ -161,9 +157,7 @@ export default function TpsAvisTable() {
 
   // ─── Pagination ──────────────────────────────────────────────────────────
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(page));
-    router.push(`${pathname}?${params.toString()}`);
+    setPage(page);
     setSearchQuery("");
   };
 
@@ -171,9 +165,7 @@ export default function TpsAvisTable() {
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (currentPage !== 1) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("page", "1");
-      router.push(`${pathname}?${params.toString()}`);
+      resetPage();
     }
   };
 

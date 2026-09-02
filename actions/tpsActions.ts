@@ -4,7 +4,7 @@ import { getRange, PAGE_SIZE } from "@/lib/pagination";
 import { createClient } from "@/utils/supabase/server";
 import { logAction } from "@/actions/auditActions";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
-import { fetchCurrentUserRole } from "@/actions/liquidationActions";
+import { fetchCurrentUserRole, type RoleDetailItem, type RoleCouvertureData, type CouvertureLigneImpot } from "@/actions/liquidationActions";
 import { tpsInputSchema } from "@/lib/schemas";
 import { revalidateTag } from "next/cache";
 
@@ -239,7 +239,12 @@ export async function fetchRolesTps() {
     .select(`
       *,
       tps_articles (
-        numero_article
+        id,
+        numero_article,
+        liquidation_id,
+        liquidation:tps_liquidations (
+          impot_du
+        )
       )
     `)
     .order("commune", { ascending: true })
@@ -250,16 +255,33 @@ export async function fetchRolesTps() {
   return (data || []).map((role: any) => {
     const articles = role.tps_articles || [];
     const dernier_article = articles.reduce((max: number, art: any) => Math.max(max, art.numero_article), 0);
-    // Remove the articles relation to keep the payload clean
+    
+    // Regrouper par liquidation pour calculer nb_recouvrements et total_droits
+    const liqMap = new Map<string, number>();
+    articles.forEach((art: any) => {
+      if (art.liquidation_id && !liqMap.has(art.liquidation_id)) {
+        const liq = Array.isArray(art.liquidation) ? art.liquidation[0] : art.liquidation;
+        liqMap.set(art.liquidation_id, Number(liq?.impot_du) || 0);
+      }
+    });
+
+    const nb_recouvrements = liqMap.size;
+    let total_droits = 0;
+    liqMap.forEach((amount) => {
+      total_droits += amount;
+    });
+
     const { tps_articles, ...roleWithoutArticles } = role;
     return {
       ...roleWithoutArticles,
+      nb_recouvrements,
+      total_droits,
       dernier_article,
     };
   });
 }
 
-export async function fetchRoleDetailsTps(roleId: string) {
+export async function fetchRoleDetailsTps(roleId: string): Promise<RoleDetailItem[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -269,7 +291,135 @@ export async function fetchRoleDetailsTps(roleId: string) {
     .order("numero_article", { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  if (!data) return [];
+
+  const liqGroupMap = new Map<string, {
+    reference: string;
+    ifu_npi: string;
+    destinataire: string;
+    articles: number[];
+    total_droits: number;
+  }>();
+
+  for (const item of data) {
+    const liq = Array.isArray(item.liquidation) ? item.liquidation[0] : item.liquidation;
+    const contrib = liq?.contribuable ? (Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable) : null;
+    const liqId = item.liquidation_id;
+
+    if (!liqGroupMap.has(liqId)) {
+      liqGroupMap.set(liqId, {
+        reference: liq?.reference_tps || "-",
+        ifu_npi: contrib?.ifu_nc || "-",
+        destinataire: contrib?.nom_raison_sociale || "-",
+        articles: [item.numero_article],
+        total_droits: Number(liq?.impot_du) || 0,
+      });
+    } else {
+      liqGroupMap.get(liqId)!.articles.push(item.numero_article);
+    }
+  }
+
+  return Array.from(liqGroupMap.values()).map((group) => {
+    const sortedArt = group.articles.sort((a, b) => a - b);
+    let articlesRange = "-";
+    if (sortedArt.length === 1) {
+      articlesRange = `Art. ${sortedArt[0]}`;
+    } else if (sortedArt.length > 1) {
+      articlesRange = `Art. ${sortedArt[0]} à ${sortedArt[sortedArt.length - 1]}`;
+    }
+
+    return {
+      reference: group.reference,
+      ifu_npi: group.ifu_npi,
+      destinataire: group.destinataire,
+      articles_range: articlesRange,
+      total_droits: group.total_droits,
+    };
+  });
+}
+
+export async function getRoleCouvertureDataTps(roleId: string): Promise<RoleCouvertureData> {
+  const supabase = await createClient();
+
+  const { data: role, error: roleError } = await supabase
+    .from("tps_roles")
+    .select("id, numero_role, commune, annee")
+    .eq("id", roleId)
+    .single();
+
+  if (roleError || !role) throw new Error("Rôle TPS introuvable.");
+
+  const { data: articles, error: articlesError } = await supabase
+    .from("tps_articles")
+    .select(`
+      id,
+      numero_article,
+      liquidation:tps_liquidations (
+        id,
+        tps_calcule,
+        portb,
+        impot_du
+      )
+    `)
+    .eq("role_id", roleId)
+    .order("numero_article", { ascending: true });
+
+  if (articlesError) throw articlesError;
+
+  const allArticles = articles ?? [];
+  let premierArticle = Infinity;
+  let dernierArticle = 0;
+
+  const seenLiqIds = new Set<string>();
+  let totalTpsCalcule = 0;
+  let totalPortb = 0;
+  let totalGeneral = 0;
+
+  for (const art of allArticles) {
+    const numArt = Number(art.numero_article) || 0;
+    if (numArt > 0 && numArt < premierArticle) premierArticle = numArt;
+    if (numArt > dernierArticle) dernierArticle = numArt;
+
+    const liq = Array.isArray(art.liquidation) ? art.liquidation[0] : art.liquidation;
+    if (liq && !seenLiqIds.has(liq.id)) {
+      seenLiqIds.add(liq.id);
+      totalTpsCalcule += Number(liq.tps_calcule) || 0;
+      totalPortb += Number(liq.portb) || 4000;
+      totalGeneral += Number(liq.impot_du) || 0;
+    }
+  }
+
+  const nbCotes = seenLiqIds.size;
+
+  const lignes_impot: CouvertureLigneImpot[] = [
+    {
+      nature_impot: "TAXE PROFESSIONNELLE SYNTHETIQUE (TPS)",
+      nb_cotes: nbCotes,
+      droit_simple: totalTpsCalcule,
+      penalite: 0,
+      total: totalTpsCalcule,
+    },
+    {
+      nature_impot: "PRELEVEMENT ORTB (P-ORTB)",
+      nb_cotes: nbCotes,
+      droit_simple: totalPortb,
+      penalite: 0,
+      total: totalPortb,
+    },
+  ];
+
+  return {
+    commune: role.commune,
+    numero_role: Number(role.numero_role),
+    annee: Number(role.annee),
+    premier_article: premierArticle === Infinity ? 0 : premierArticle,
+    dernier_article: dernierArticle,
+    total_general: totalGeneral,
+    total_droits_simple: totalGeneral,
+    total_penalites: 0,
+    lignes_impot,
+    tax_type: "TPS",
+  };
 }
 
 export async function cloturerRoleTps(commune: string) {
