@@ -245,7 +245,7 @@ export default function TfuRolesTable() {
       ) : (
         <>
           {/* VUE MOBILE (Cartes) */}
-          <div className="block md:hidden space-y-3">
+          <div className="md:hidden space-y-3">
             {roles.map((role) => (
               <div
                 key={role.id}
@@ -284,7 +284,7 @@ export default function TfuRolesTable() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     {role.status === "ACTIF" && (
                       <button
                         onClick={() => setCloseTarget(role)}
@@ -307,6 +307,19 @@ export default function TfuRolesTable() {
                       )}
                       <span>Rapport</span>
                     </button>
+
+                    <button
+                      onClick={() => handleDownloadCouverture(role)}
+                      disabled={downloadingCouvertureId === role.id}
+                      className="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold transition flex items-center gap-1"
+                    >
+                      {downloadingCouvertureId === role.id ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : (
+                        <span className="text-sm">📑</span>
+                      )}
+                      <span>Couverture</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -314,7 +327,7 @@ export default function TfuRolesTable() {
           </div>
 
           {/* VUE DESKTOP (Tableau) */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto min-w-0">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto min-w-0 min-h-[220px]">
             <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -330,94 +343,101 @@ export default function TfuRolesTable() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {roles.map((role) => (
-                  <tr
-                    key={role.id}
-                    className="hover:bg-indigo-50/40 dark:hover:bg-gray-700/30 transition"
-                  >
-                    <td className="px-5 py-4 font-bold text-indigo-600 dark:text-indigo-400">
-                      #{role.numero_role}
-                    </td>
-                    <td className="px-5 py-4 font-medium text-gray-800 dark:text-gray-200">
-                      {role.commune}
-                    </td>
-                    <td className="px-5 py-4 text-gray-600 dark:text-gray-400">{role.annee}</td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={role.status} />
-                    </td>
-                    <td className="px-5 py-4 text-right tabular-nums">{role.nb_recouvrements}</td>
-                    <td className="px-5 py-4 text-right tabular-nums">
-                      {role.dernier_article > 0 ? "#" + role.dernier_article : "-"}
-                    </td>
-                    <td className="px-5 py-4 text-right tabular-nums font-medium">
-                      {formatCurrency(role.total_droits)}
-                    </td>
-                    <td className="px-5 py-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                      {formatDate(role.created_at)}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2" ref={openDropdownId === role.id ? dropdownRef : null}>
-                        {role.status === "ACTIF" && (
-                          <button
-                            onClick={() => setCloseTarget(role)}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition inline-flex items-center gap-1"
-                            title="Clôturer ce rôle actif"
-                          >
-                            <Lock size={12} />
-                            <span>Clôture</span>
-                          </button>
-                        )}
+                {roles.map((role, index) => {
+                  const isNearBottom = index >= roles.length - 2 && roles.length > 2 && index >= 2;
+                  const menuPositionClass = isNearBottom
+                    ? "bottom-full mb-1.5 animate-in fade-in slide-in-from-bottom-2"
+                    : "top-full mt-1.5 animate-in fade-in slide-in-from-top-2";
 
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenDropdownId(openDropdownId === role.id ? null : role.id)}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition inline-flex items-center gap-1.5"
-                            aria-haspopup="true"
-                            aria-expanded={openDropdownId === role.id}
-                          >
-                            <span>Documents</span>
-                            <ChevronDown size={13} className={`transition-transform duration-200 ${openDropdownId === role.id ? "rotate-180" : ""}`} />
-                          </button>
-
-                          {openDropdownId === role.id && (
-                            <div className="absolute right-0 bottom-full mb-1.5 w-52 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xl py-1 z-50 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
-                              <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Exports PDF</p>
-                              </div>
-                              <div className="p-1">
-                                <button
-                                  onClick={() => { handleDownloadReport(role); setOpenDropdownId(null); }}
-                                  disabled={downloadingId === role.id}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition"
-                                >
-                                  {downloadingId === role.id ? (
-                                    <RefreshCw size={14} className="animate-spin text-indigo-500" />
-                                  ) : (
-                                    <FileText size={14} className="text-indigo-500" />
-                                  )}
-                                  <span>Rapport du Rôle</span>
-                                </button>
-
-                                <button
-                                  onClick={() => { handleDownloadCouverture(role); setOpenDropdownId(null); }}
-                                  disabled={downloadingCouvertureId === role.id}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg transition"
-                                >
-                                  {downloadingCouvertureId === role.id ? (
-                                    <RefreshCw size={14} className="animate-spin text-emerald-500" />
-                                  ) : (
-                                    <span className="text-sm">📑</span>
-                                  )}
-                                  <span>État de Couverture</span>
-                                </button>
-                              </div>
-                            </div>
+                  return (
+                    <tr
+                      key={role.id}
+                      className="hover:bg-indigo-50/40 dark:hover:bg-gray-700/30 transition"
+                    >
+                      <td className="px-5 py-4 font-bold text-indigo-600 dark:text-indigo-400">
+                        #{role.numero_role}
+                      </td>
+                      <td className="px-5 py-4 font-medium text-gray-800 dark:text-gray-200">
+                        {role.commune}
+                      </td>
+                      <td className="px-5 py-4 text-gray-600 dark:text-gray-400">{role.annee}</td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={role.status} />
+                      </td>
+                      <td className="px-5 py-4 text-right tabular-nums">{role.nb_recouvrements}</td>
+                      <td className="px-5 py-4 text-right tabular-nums">
+                        {role.dernier_article > 0 ? "#" + role.dernier_article : "-"}
+                      </td>
+                      <td className="px-5 py-4 text-right tabular-nums font-medium">
+                        {formatCurrency(role.total_droits)}
+                      </td>
+                      <td className="px-5 py-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                        {formatDate(role.created_at)}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2" ref={openDropdownId === role.id ? dropdownRef : null}>
+                          {role.status === "ACTIF" && (
+                            <button
+                              onClick={() => setCloseTarget(role)}
+                              className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 font-medium transition inline-flex items-center gap-1"
+                              title="Clôturer ce rôle actif"
+                            >
+                              <Lock size={12} />
+                              <span>Clôture</span>
+                            </button>
                           )}
+
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenDropdownId(openDropdownId === role.id ? null : role.id)}
+                              className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition inline-flex items-center gap-1.5"
+                              aria-haspopup="true"
+                              aria-expanded={openDropdownId === role.id}
+                            >
+                              <span>Documents</span>
+                              <ChevronDown size={13} className={`transition-transform duration-200 ${openDropdownId === role.id ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {openDropdownId === role.id && (
+                              <div className={`absolute right-0 ${menuPositionClass} w-52 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xl py-1 z-50 text-left duration-150`}>
+                                <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Exports PDF</p>
+                                </div>
+                                <div className="p-1">
+                                  <button
+                                    onClick={() => { handleDownloadReport(role); setOpenDropdownId(null); }}
+                                    disabled={downloadingId === role.id}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition"
+                                  >
+                                    {downloadingId === role.id ? (
+                                      <RefreshCw size={14} className="animate-spin text-indigo-500" />
+                                    ) : (
+                                      <FileText size={14} className="text-indigo-500" />
+                                    )}
+                                    <span>Rapport du Rôle</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => { handleDownloadCouverture(role); setOpenDropdownId(null); }}
+                                    disabled={downloadingCouvertureId === role.id}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg transition"
+                                  >
+                                    {downloadingCouvertureId === role.id ? (
+                                      <RefreshCw size={14} className="animate-spin text-emerald-500" />
+                                    ) : (
+                                      <span className="text-sm">📑</span>
+                                    )}
+                                    <span>État de Couverture</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
