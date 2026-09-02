@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, Suspense } from "react";
-import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Menu, X } from "lucide-react";
+import { FilePlus, Clock, History, Briefcase, Settings, Landmark, Users, Menu, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UserNav from "@/components/UserNav";
@@ -34,6 +34,7 @@ function HeaderContent({ user }: HeaderClientProps) {
     { key: "tfu/pending", label: "En attente",       icon: Clock     },
     { key: "tfu/history", label: "Historique",       icon: History   },
     { key: "tfu/roles",   label: "Rôles TFU",        icon: Briefcase },
+    { key: "contribuables", label: "Contribuables",   icon: Users     },
   ];
 
   if (user?.role === "ADMIN") {
@@ -46,6 +47,7 @@ function HeaderContent({ user }: HeaderClientProps) {
     { key: "tps/pending", label: "En attente",          icon: Clock     },
     { key: "tps/avis",    label: "Avis validés",        icon: Landmark  },
     { key: "tps/roles",   label: "Rôles TPS",           icon: Briefcase },
+    { key: "contribuables", label: "Contribuables",     icon: Users     },
   ];
 
   if (user?.role === "ADMIN") {
@@ -54,7 +56,9 @@ function HeaderContent({ user }: HeaderClientProps) {
 
   // Active key detection
   let activeKey = "";
-  if (isAdminSection) {
+  if (pathname.includes("/contribuables")) {
+    activeKey = "contribuables";
+  } else if (isAdminSection) {
     activeKey = isTpsSection ? "admin?from=tps" : "admin?from=tfu";
   } else if (isTpsSection) {
     if (pathname.includes("/tps/pending")) activeKey = "tps/pending";
