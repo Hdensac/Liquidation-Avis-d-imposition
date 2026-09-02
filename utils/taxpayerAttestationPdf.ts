@@ -91,9 +91,10 @@ export function generateTaxpayerAttestationPdf(taxpayer: TaxpayerDetail) {
   doc.text(sanitizeText(taxpayer.phone), margin + 42, currentY + 16);
 
   doc.setFont("helvetica", "bold");
-  doc.text("Commune Principale :", margin + 115, currentY + 16);
+  doc.text("Commune(s) d'implantation :", margin + 105, currentY + 16);
   doc.setFont("helvetica", "normal");
-  doc.text(sanitizeText(taxpayer.commune), margin + 152, currentY + 16);
+  const communesStr = (taxpayer as any).communes?.length > 0 ? (taxpayer as any).communes.join(", ") : taxpayer.commune;
+  doc.text(sanitizeText(communesStr || "Non renseigné"), margin + 152, currentY + 16);
 
   // Ligne 3: Statut fiscal
   const isUpToDate = taxpayer.balanceDue === 0;

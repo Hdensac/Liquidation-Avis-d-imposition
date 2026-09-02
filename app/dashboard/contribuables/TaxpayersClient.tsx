@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { fetchTaxpayers, getTaxpayerDetails, type TaxpayerItem, type TaxpayerDetail } from "@/actions/taxpayerActions";
 import { generateTaxpayerAttestationPdf } from "@/utils/taxpayerAttestationPdf";
+import Pagination from "@/components/Pagination";
 
 export default function TaxpayersClient() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -290,8 +291,12 @@ export default function TaxpayersClient() {
                         <span>{item.phone}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        <MapPin size={13} className="text-slate-400" />
-                        <span>Commune: {item.commune}</span>
+                        <MapPin size={13} className="text-slate-400 flex-shrink-0" />
+                        <span>
+                          {item.communes && item.communes.length > 1
+                            ? `Communes (${item.communes.length}) : ${item.communes.join(", ")}`
+                            : `Commune : ${item.communes?.[0] || item.commune || "—"}`}
+                        </span>
                       </div>
                     </td>
 
@@ -351,6 +356,21 @@ export default function TaxpayersClient() {
             </tbody>
           </table>
         </div>
+
+        {/* Control de Pagination */}
+        {totalCount > 0 && (
+          <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Affichage de <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredTaxpayers.length}</span> sur <span className="font-semibold text-slate-800 dark:text-slate-200">{totalCount}</span> contribuable(s)
+            </div>
+            <Pagination
+              currentPage={page}
+              totalCount={totalCount}
+              pageSize={20}
+              onPageChange={(p) => setPage(p)}
+            />
+          </div>
+        )}
       </div>
 
       {/* MODAL FICHE SYNTHÉTIQUE CONTRIBUABLE */}
@@ -368,12 +388,14 @@ export default function TaxpayersClient() {
                   {detailData ? detailData.name : "Chargement..."}
                 </h2>
                 {detailData && (
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
                     <span className="font-mono bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-800 dark:text-slate-200 font-semibold">
                       IFU: {detailData.ifu}
                     </span>
                     <span>Tél: {detailData.phone}</span>
-                    <span>Commune: {detailData.commune}</span>
+                    <span>
+                      Commune(s) d'implantation: {detailData.communes && detailData.communes.length > 0 ? detailData.communes.join(", ") : detailData.commune}
+                    </span>
                   </div>
                 )}
               </div>

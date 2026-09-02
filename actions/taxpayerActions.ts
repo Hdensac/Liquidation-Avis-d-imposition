@@ -10,6 +10,7 @@ export interface TaxpayerItem {
   name: string;
   phone: string;
   commune: string;
+  communes: string[];
   totalProperties: number;
   totalActivities: number;
   totalLiquidations: number;
@@ -25,6 +26,7 @@ export interface TaxpayerDetail {
   name: string;
   phone: string;
   commune: string;
+  communes: string[];
   arrondissement: string;
   quartier: string;
   properties: Array<{
@@ -151,7 +153,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     ifu: string;
     name: string;
     phone: string;
-    commune: string;
+    communesSet: Set<string>;
     propertiesCount: number;
     activitiesCount: number;
     liquidationsCount: number;
@@ -207,7 +209,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
         ifu: ifu || "N/A",
         name,
         phone,
-        commune,
+        communesSet: new Set(commune ? [commune] : []),
         propertiesCount: 0,
         activitiesCount: 0,
         liquidationsCount: 0,
@@ -220,7 +222,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     } else {
       if (!existing.phone && phone) existing.phone = phone;
       if (!existing.ifu || existing.ifu === "N/A") existing.ifu = ifu || "N/A";
-      if (!existing.commune && commune) existing.commune = commune;
+      if (commune) existing.communesSet.add(commune);
       if (new Date(liq.created_at) > new Date(existing.lastDate)) {
         existing.lastDate = liq.created_at;
       }
@@ -264,7 +266,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
         ifu: ifu || "N/A",
         name,
         phone,
-        commune,
+        communesSet: new Set(commune ? [commune] : []),
         propertiesCount: 0,
         activitiesCount: 0,
         liquidationsCount: 0,
@@ -277,7 +279,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     } else {
       if (!existing.phone && phone) existing.phone = phone;
       if (!existing.ifu || existing.ifu === "N/A") existing.ifu = ifu || "N/A";
-      if (!existing.commune && commune) existing.commune = commune;
+      if (commune) existing.communesSet.add(commune);
       if (new Date(tps.created_at) > new Date(existing.lastDate)) {
         existing.lastDate = tps.created_at;
       }
@@ -292,12 +294,14 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
 
   let allList = Array.from(taxpayersMap.entries()).map(([id, t]) => {
     const balanceDue = Math.max(0, t.totalAmountDues - t.totalPaid);
+    const communesList = Array.from(t.communesSet);
     return {
       id,
       ifu: t.ifu,
       name: t.name,
       phone: t.phone || "—",
-      commune: t.commune || "—",
+      communes: communesList,
+      commune: communesList.length > 0 ? communesList.join(", ") : "—",
       totalProperties: t.propertiesCount,
       totalActivities: t.activitiesCount,
       totalLiquidations: t.liquidationsCount,
@@ -412,6 +416,8 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
   let totalLiquidated = 0;
   let totalPaid = 0;
 
+  const communesSet = new Set<string>();
+
   // Filtrer TFU
   (tfuList || []).forEach((liq: any) => {
     const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
@@ -430,7 +436,7 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchIfu && ifu) matchIfu = ifu;
     if (!matchName && name) matchName = name;
     if (!matchPhone && contrib.telephone) matchPhone = contrib.telephone;
-    if (!matchCommune && liq.commune) matchCommune = liq.commune;
+    if (liq.commune) communesSet.add(liq.commune.trim());
 
     const propKey = `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
     if (!matchedPropertiesMap.has(propKey)) {
@@ -506,7 +512,7 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchIfu && ifu) matchIfu = ifu;
     if (!matchName && name) matchName = name;
     if (!matchPhone && tps.telephone) matchPhone = tps.telephone;
-    if (!matchCommune && tps.commune) matchCommune = tps.commune;
+    if (tps.commune) communesSet.add(tps.commune.trim());
 
     const actKey = `${tps.commune}_${tps.activite}`;
     if (!matchedActivitiesMap.has(actKey)) {
@@ -559,12 +565,14 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
   matchedLiquidations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const balanceDue = Math.max(0, totalLiquidated - totalPaid);
+  const communesList = Array.from(communesSet);
 
   return {
     ifu: matchIfu || "Non renseigné",
     name: matchName || searchClean || "Contribuable",
     phone: matchPhone || "—",
-    commune: matchCommune || "—",
+    communes: communesList,
+    commune: communesList.length > 0 ? communesList.join(", ") : "—",
     arrondissement: "—",
     quartier: "—",
     properties: Array.from(matchedPropertiesMap.values()),
