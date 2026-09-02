@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
+import { buildTpsCalculations } from "@/utils/tpsCalculations";
 
 export interface TaxpayerItem {
   id: string;
@@ -94,13 +96,18 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       id,
       status,
       commune,
+      arrondissement,
+      quartier,
       reference_liq,
-      total_droits,
       created_at,
       type_bien,
       superficie,
       superficie_imposable,
       valeur_locative,
+      start_year,
+      is_loue,
+      valeur_irf,
+      description,
       contribuable:contribuables (
         id,
         nom_prenoms,
@@ -121,13 +128,17 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       id,
       status,
       commune,
+      arrondissement,
+      quartier,
       reference_tps,
-      total_droits,
       created_at,
       nom_raison_sociale,
       ifu_nc,
       telephone,
-      activite
+      activite,
+      montant_autres_activites,
+      acomptes_payes,
+      start_year
     `)
     .order("created_at", { ascending: false });
 
@@ -163,7 +174,30 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     // Clé unique de regroupement: IFU prioritaire, sinon Nom normalisé
     const key = ifu ? `IFU_${normalizeKey(ifu)}` : `NAME_${normalizeKey(name)}`;
 
-    const totalDroits = Number(liq.total_droits) || 0;
+    // Calcul dynamique des droits TFU
+    let totalDroits = 0;
+    try {
+      const calc = buildLiquidationCalculations({
+        fullname: name,
+        ifuNpi: ifu,
+        phone,
+        commune,
+        arrondissement: liq.arrondissement || "",
+        quartier: liq.quartier || "",
+        typeBien: liq.type_bien || "NON_BATI",
+        superficie: Number(liq.superficie) || 0,
+        superficieImposable: liq.superficie_imposable !== null ? Number(liq.superficie_imposable) : "",
+        valeurLocative: Number(liq.valeur_locative) || 0,
+        startYear: Number(liq.start_year) || 2023,
+        isLoue: Boolean(liq.is_loue),
+        valeurIrf: Number(liq.valeur_irf) || "",
+        description: liq.description || "",
+      });
+      totalDroits = calc.totalDu || 0;
+    } catch (e) {
+      console.error("Error calculating TFU droits:", e);
+    }
+
     const isPaid = liq.status === "PAYE";
     const paidAmount = isPaid ? totalDroits : 0;
 
@@ -208,7 +242,19 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
 
     const key = ifu ? `IFU_${normalizeKey(ifu)}` : `NAME_${normalizeKey(name)}`;
 
-    const totalDroits = Number(tps.total_droits) || 0;
+    // Calcul dynamique des droits TPS
+    let totalDroits = 0;
+    try {
+      const calc = buildTpsCalculations({
+        montantAutresActivites: Number(tps.montant_autres_activites) || 0,
+        acomptesPayes: Number(tps.acomptes_payes) || 0,
+        startYear: Number(tps.start_year) || 2024,
+      });
+      totalDroits = calc.impotDu || 0;
+    } catch (e) {
+      console.error("Error calculating TPS droits:", e);
+    }
+
     const isPaid = tps.status === "PAYE" || tps.status === "VALIDE";
     const paidAmount = isPaid ? totalDroits : 0;
 
@@ -267,7 +313,13 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
   // Filtrage
   if (searchQuery.trim()) {
     const q = searchQuery.trim().toLowerCase();
-    allList = allList.filter((item) => item._searchStr.includes(q) || item.name.toLowerCase().includes(q) || item.ifu.toLowerCase().includes(q) || item.phone.includes(q) || item.commune.toLowerCase().includes(q));
+    allList = allList.filter((item) =>
+      item._searchStr.includes(q) ||
+      item.name.toLowerCase().includes(q) ||
+      item.ifu.toLowerCase().includes(q) ||
+      item.phone.includes(q) ||
+      item.commune.toLowerCase().includes(q)
+    );
   }
 
   // Tri par date récents d'abord
@@ -294,7 +346,7 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
   const searchClean = keyOrIfuOrName.replace(/^(IFU_|NAME_)/, "").trim();
 
   // 1. Récupérer toutes les liquidations TFU
-  const { data: tfuList } = await supabase
+  const { data: tfuList, error: tfuErr } = await supabase
     .from("liquidations")
     .select(`
       id,
@@ -307,9 +359,9 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       superficie_imposable,
       valeur_locative,
       is_loue,
+      valeur_irf,
       description,
       start_year,
-      total_droits,
       reference_liq,
       created_at,
       contribuable:contribuables (
@@ -321,8 +373,10 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     `)
     .order("created_at", { ascending: false });
 
+  if (tfuErr) console.error("Error in getTaxpayerDetails TFU:", tfuErr);
+
   // 2. Récupérer toutes les liquidations TPS
-  const { data: tpsList } = await supabase
+  const { data: tpsList, error: tpsErr } = await supabase
     .from("tps_liquidations")
     .select(`
       id,
@@ -332,8 +386,8 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       quartier,
       activite,
       montant_autres_activites,
+      acomptes_payes,
       start_year,
-      total_droits,
       reference_tps,
       created_at,
       nom_raison_sociale,
@@ -341,6 +395,8 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       telephone
     `)
     .order("created_at", { ascending: false });
+
+  if (tpsErr) console.error("Error in getTaxpayerDetails TPS:", tpsErr);
 
   const normTarget = normalizeKey(searchClean);
 
@@ -376,7 +432,6 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchPhone && contrib.telephone) matchPhone = contrib.telephone;
     if (!matchCommune && liq.commune) matchCommune = liq.commune;
 
-    // Ajouter le bien foncier s'il n'est pas déjà enregistré
     const propKey = `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
     if (!matchedPropertiesMap.has(propKey)) {
       matchedPropertiesMap.set(propKey, {
@@ -395,7 +450,29 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       });
     }
 
-    const amount = Number(liq.total_droits) || 0;
+    let amount = 0;
+    try {
+      const calc = buildLiquidationCalculations({
+        fullname: name,
+        ifuNpi: ifu,
+        phone: contrib.telephone || "",
+        commune: liq.commune || "",
+        arrondissement: liq.arrondissement || "",
+        quartier: liq.quartier || "",
+        typeBien: liq.type_bien || "NON_BATI",
+        superficie: Number(liq.superficie) || 0,
+        superficieImposable: liq.superficie_imposable !== null ? Number(liq.superficie_imposable) : "",
+        valeurLocative: Number(liq.valeur_locative) || 0,
+        startYear: Number(liq.start_year) || 2023,
+        isLoue: Boolean(liq.is_loue),
+        valeurIrf: Number(liq.valeur_irf) || "",
+        description: liq.description || "",
+      });
+      amount = calc.totalDu || 0;
+    } catch (e) {
+      console.error("Error calc details TFU:", e);
+    }
+
     const isPaid = liq.status === "PAYE";
 
     totalLiquidated += amount;
@@ -445,7 +522,18 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       });
     }
 
-    const amount = Number(tps.total_droits) || 0;
+    let amount = 0;
+    try {
+      const calc = buildTpsCalculations({
+        montantAutresActivites: Number(tps.montant_autres_activites) || 0,
+        acomptesPayes: Number(tps.acomptes_payes) || 0,
+        startYear: Number(tps.start_year) || 2024,
+      });
+      amount = calc.impotDu || 0;
+    } catch (e) {
+      console.error("Error calc details TPS:", e);
+    }
+
     const isPaid = tps.status === "PAYE" || tps.status === "VALIDE";
 
     totalLiquidated += amount;
@@ -487,3 +575,4 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     balanceDue,
   };
 }
+
