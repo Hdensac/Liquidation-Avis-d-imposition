@@ -208,7 +208,7 @@ export default async function DashboardPortalPage() {
                   className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-600/80 transition group"
                 >
                   <FilePlus className="w-4 h-4 text-emerald-600" />
-                  <span>Nouvelle fiche TPS</span>
+                  <span>Nouvelle fiche</span>
                   <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
 

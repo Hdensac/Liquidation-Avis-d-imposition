@@ -42,7 +42,7 @@ function HeaderContent({ user }: HeaderClientProps) {
 
   // TPS nav items
   const tpsItems = [
-    { key: "tps/new",     label: "Nouvelle fiche TPS", icon: FilePlus  },
+    { key: "tps/new",     label: "Nouvelle fiche", icon: FilePlus  },
     { key: "tps/pending", label: "En attente",          icon: Clock     },
     { key: "tps/avis",    label: "Avis validés",        icon: Landmark  },
     { key: "tps/roles",   label: "Rôles TPS",           icon: Briefcase },

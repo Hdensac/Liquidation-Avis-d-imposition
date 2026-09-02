@@ -514,18 +514,6 @@ export default function HistoryTable() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Nom & Prénom(s) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={editFormData.fullname}
-                      onChange={(e) => setEditFormData({ ...editFormData, fullname: e.target.value })}
-                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                       IFU / NPI *
                     </label>
                     <input
@@ -536,6 +524,18 @@ export default function HistoryTable() {
                         const val = e.target.value.replace(/\D/g, "");
                         setEditFormData({ ...editFormData, ifuNpi: val });
                       }}
+                      className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Nom & Prénom(s) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.fullname}
+                      onChange={(e) => setEditFormData({ ...editFormData, fullname: e.target.value })}
                       className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
