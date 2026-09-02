@@ -503,7 +503,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Rechercher par email..."
+                    placeholder="Rechercher par email, référence, action..."
                     value={logSearch}
                     onChange={(e) => {
                       setLogSearch(e.target.value);
@@ -553,7 +553,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   {isLogsPending ? "Chargement..." : `${logStart}-${logEnd} sur ${logTotal} log(s)`}
                 </div>
 
-                {/* Boutons d'exportation PDF & TXT */}
+                {/* Bouton d'exportation PDF */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -564,16 +564,6 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   >
                     {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
                     <span>PDF</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExportLogsTxt}
-                    disabled={isExportingTxt || logTotal === 0}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Exporter le journal d'audit filtré au format TXT (Système / SIEM)"
-                  >
-                    {isExportingTxt ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    <span>TXT</span>
                   </button>
                 </div>
               </div>
@@ -705,12 +695,13 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
               </div>
               <div>
                 <span className="block text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase mb-1">Détails des Modifications</span>
-                {selectedLog.details && selectedLog.details.data_avant && selectedLog.details.data_apres ? (
-                  <VisualDiffViewer before={selectedLog.details.data_avant} after={selectedLog.details.data_apres} />
+                {selectedLog.details && ((selectedLog.details.data_avant && selectedLog.details.data_apres) || (selectedLog.details.avant && selectedLog.details.apres)) ? (
+                  <VisualDiffViewer 
+                    before={selectedLog.details.data_avant || selectedLog.details.avant} 
+                    after={selectedLog.details.data_apres || selectedLog.details.apres} 
+                  />
                 ) : (
-                  <pre className="bg-slate-900 text-amber-400 font-mono text-xs p-4 rounded-xl overflow-x-auto border border-slate-850 max-h-60">
-                    {JSON.stringify(selectedLog.details, null, 2)}
-                  </pre>
+                  <NonDiffDetailsViewer details={selectedLog.details} />
                 )}
               </div>
             </div>
@@ -725,15 +716,6 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                 >
                   <FileText className="w-3.5 h-3.5" />
                   PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => generateAuditTxt([selectedLog])}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition"
-                  title="Exporter ce log en TXT"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  TXT
                 </button>
               </div>
               <button
@@ -906,13 +888,16 @@ function VisualDiffViewer({ before, after }: { before: any; after: any }) {
     return null;
   }
 
-  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+  const allKeys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
 
   const fieldLabels: Record<string, string> = {
     fullname: "Nom Complet / Raison Sociale",
     nomRaisonSociale: "Nom Complet / Raison Sociale",
+    nom_raison_sociale: "Nom Complet / Raison Sociale",
     ifuNpi: "IFU / NPI",
-    ifuNc: "IFU NC",
+    ifu_npi: "IFU / NPI",
+    ifuNc: "IFU / NPI",
+    ifu_nc: "IFU / NPI",
     phone: "Téléphone",
     telephone: "Téléphone",
     commune: "Commune",
@@ -920,16 +905,24 @@ function VisualDiffViewer({ before, after }: { before: any; after: any }) {
     quartier: "Quartier",
     localisation: "Localisation",
     typeBien: "Type de Bien",
+    type_bien: "Type de Bien",
     superficie: "Superficie (m²)",
     superficieImposable: "Superficie Imposable (m²)",
+    superficie_imposable: "Superficie Imposable (m²)",
     valeurLocative: "Valeur Locative",
+    valeur_locative: "Valeur Locative",
     startYear: "Année de Départ",
+    start_year: "Année de Départ",
     isLoue: "Mis en location",
+    is_loue: "Mis en location",
     valeurIrf: "Valeur IRF / Micro Foncier",
+    valeur_irf: "Valeur IRF / Micro Foncier",
     description: "Description / Détails",
     activite: "Activité principale",
     montantAutresActivites: "Montant Autres Activités",
-    acomptesPayes: "Acomptes Payés"
+    montant_autres_activites: "Montant Autres Activités",
+    acomptesPayes: "Acomptes Payés",
+    acomptes_payes: "Acomptes Payés",
   };
 
   const formatValue = (val: any) => {
@@ -938,46 +931,114 @@ function VisualDiffViewer({ before, after }: { before: any; after: any }) {
     return String(val);
   };
 
+  // Exclude reference keys and unchanged fields
+  const changedKeys = allKeys.filter((key) => {
+    if (["reference_liq", "reference_tps", "reference", "id", "user_id"].includes(key)) {
+      return false;
+    }
+    const valBefore = before[key];
+    const valAfter = after[key];
+
+    const isEmptyBefore = valBefore === undefined || valBefore === null || valBefore === "";
+    const isEmptyAfter = valAfter === undefined || valAfter === null || valAfter === "";
+    if (isEmptyBefore && isEmptyAfter) return false;
+
+    return JSON.stringify(valBefore) !== JSON.stringify(valAfter);
+  });
+
+  if (changedKeys.length === 0) {
+    return (
+      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700/60 text-center text-xs text-slate-500 italic">
+        Aucun champ modifié détecté.
+      </div>
+    );
+  }
+
   return (
     <div className="border border-slate-200 dark:border-slate-700/60 rounded-xl overflow-hidden text-xs">
       <div className="grid grid-cols-3 bg-slate-100 dark:bg-slate-900/60 font-semibold p-2.5 border-b border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400">
-        <div>Champ</div>
+        <div>Champ Modifié</div>
         <div>Ancienne valeur</div>
         <div>Nouvelle valeur</div>
       </div>
       <div className="divide-y divide-slate-150 dark:divide-slate-700/40 max-h-72 overflow-y-auto">
-        {keys.map((key) => {
+        {changedKeys.map((key) => {
           const valBefore = before[key];
           const valAfter = after[key];
-          const isChanged = JSON.stringify(valBefore) !== JSON.stringify(valAfter);
-
-          if ((valBefore === undefined || valBefore === null || valBefore === "") && 
-              (valAfter === undefined || valAfter === null || valAfter === "")) {
-            return null;
-          }
 
           return (
             <div 
               key={key} 
-              className={`grid grid-cols-3 p-2.5 items-center transition duration-150 ${
-                isChanged 
-                  ? "bg-amber-500/5 dark:bg-amber-500/10 text-slate-900 dark:text-slate-100" 
-                  : "text-slate-650 dark:text-slate-450"
-              }`}
+              className="grid grid-cols-3 p-2.5 items-center transition duration-150 bg-amber-500/5 dark:bg-amber-500/10 text-slate-900 dark:text-slate-100"
             >
-              <div className="font-medium text-slate-800 dark:text-slate-350">
+              <div className="font-semibold text-slate-800 dark:text-slate-200">
                 {fieldLabels[key] || key}
               </div>
-              <div className={`font-mono truncate pr-2 ${isChanged ? "text-rose-600 dark:text-rose-400 font-semibold line-through bg-rose-500/10 px-1 py-0.5 rounded" : ""}`}>
+              <div className="font-mono truncate pr-2 text-rose-600 dark:text-rose-400 font-semibold line-through bg-rose-500/10 px-1.5 py-0.5 rounded">
                 {formatValue(valBefore)}
               </div>
-              <div className={`font-mono truncate ${isChanged ? "text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-1 py-0.5 rounded" : ""}`}>
+              <div className="font-mono truncate text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 {formatValue(valAfter)}
               </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function NonDiffDetailsViewer({ details }: { details: any }) {
+  if (!details || typeof details !== "object") {
+    return <span className="text-slate-500 italic">—</span>;
+  }
+
+  const ignoredKeys = new Set([
+    "reference_liq", "reference_tps", "reference", 
+    "liquidation_id", "recouvrement_id", "role_id", "user_id"
+  ]);
+
+  const entries = Object.entries(details).filter(([key]) => !ignoredKeys.has(key));
+
+  if (entries.length === 0) {
+    return (
+      <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-700/50 text-xs text-slate-500 italic">
+        Aucune information supplémentaire.
+      </div>
+    );
+  }
+
+  const labelMap: Record<string, string> = {
+    commune: "Commune",
+    annee: "Année",
+    nouveau_numero_role: "Nouveau N° de Rôle",
+    first_article_num: "Premier Article",
+    last_article_num: "Dernier Article",
+    total_droits: "Total Droits",
+    impot_du: "Impôt Dû",
+    reason: "Motif",
+    contribuable: "Contribuable",
+    role: "Rôle",
+  };
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700/60 p-3 space-y-2 text-xs">
+      {entries.map(([key, val]) => {
+        let formattedVal = String(val);
+        if (val && typeof val === "object") {
+          formattedVal = JSON.stringify(val);
+        }
+        return (
+          <div key={key} className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-800/80 last:border-b-0">
+            <span className="font-semibold text-slate-600 dark:text-slate-400">
+              {labelMap[key] || key}
+            </span>
+            <span className="font-mono text-slate-800 dark:text-slate-200">
+              {formattedVal}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

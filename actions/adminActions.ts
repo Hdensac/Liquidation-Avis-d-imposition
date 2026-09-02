@@ -93,7 +93,9 @@ export async function fetchAuditLogs({
       .select("id, user_id, user_email, action, details, created_at", { count: "exact" });
 
     if (normalizedSearch) {
-      query = query.or(`user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%`);
+      query = query.or(
+        `user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%,details->>reference_liq.ilike.%${normalizedSearch}%,details->>reference_tps.ilike.%${normalizedSearch}%,details->>reference.ilike.%${normalizedSearch}%`
+      );
     }
 
     if (actionFilter) {
@@ -145,7 +147,9 @@ export async function fetchAllAuditLogsForExport({
       .select("id, user_id, user_email, action, details, created_at");
 
     if (normalizedSearch) {
-      query = query.or(`user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%`);
+      query = query.or(
+        `user_email.ilike.%${normalizedSearch}%,action.ilike.%${normalizedSearch}%,details->>reference_liq.ilike.%${normalizedSearch}%,details->>reference_tps.ilike.%${normalizedSearch}%,details->>reference.ilike.%${normalizedSearch}%`
+      );
     }
 
     if (actionFilter) {

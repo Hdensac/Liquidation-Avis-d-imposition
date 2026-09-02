@@ -44,8 +44,6 @@ function summarizeDetails(details: any): string {
   if (typeof details === "string") return sanitizeText(details);
 
   const parts: string[] = [];
-  if (details.reference_liq) parts.push(`Réf: ${details.reference_liq}`);
-  if (details.reference_tps) parts.push(`Réf TPS: ${details.reference_tps}`);
   if (details.commune) parts.push(`Commune: ${details.commune}`);
   if (details.contribuable) {
     const name = typeof details.contribuable === "object" ? details.contribuable.nom_prenoms || details.contribuable.nom_raison_sociale : details.contribuable;
@@ -53,6 +51,7 @@ function summarizeDetails(details: any): string {
   }
   if (details.total_droits) parts.push(`Droits: ${details.total_droits} F`);
   if (details.impot_du) parts.push(`Impôt: ${details.impot_du} F`);
+  if (details.reason) parts.push(`Motif: ${details.reason}`);
 
   if (parts.length > 0) return sanitizeText(parts.join(" | "));
 
