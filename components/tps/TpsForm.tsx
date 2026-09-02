@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
 import { COMMUNE_OPTIONS, ARRONDISSEMENTS_PAR_COMMUNE, getArrondissementsForCommune, findMatchingArrondissement } from "@/components/TaxForm";
-import { User, MapPin, Building, Calendar, RefreshCw, Landmark } from "lucide-react";
+import { User, MapPin, Building, Calendar, RefreshCw, Landmark, Loader2, CheckCircle2 } from "lucide-react";
+import { lookupTaxpayerByIdentifier } from "@/actions/taxpayerActions";
 
 interface TpsFormProps {
   formData: TpsInput;
@@ -22,6 +23,59 @@ export const TpsForm: React.FC<TpsFormProps> = ({
   onCancel,
   isSubmitting = false,
 }) => {
+  const [isSearchingTaxpayer, setIsSearchingTaxpayer] = useState(false);
+  const [foundNotice, setFoundNotice] = useState<string | null>(null);
+
+  const lastLookedUpRef = useRef<string>("");
+
+  const executeTaxpayerLookup = async (rawIfu: string) => {
+    const clean = rawIfu.replace(/\D/g, "");
+    if (clean.length < 8 || clean === lastLookedUpRef.current) return;
+
+    lastLookedUpRef.current = clean;
+    setIsSearchingTaxpayer(true);
+    try {
+      const res = await lookupTaxpayerByIdentifier(clean);
+      if (res && res.fullname) {
+        onChange({
+          ...formData,
+          ifuNc: res.ifuNpi || clean,
+          nomRaisonSociale: res.fullname,
+          telephone: res.phone || formData.telephone,
+        });
+        setFoundNotice(`Contribuable existant trouvé (${res.source}) : ${res.fullname}`);
+      } else {
+        setFoundNotice(null);
+      }
+    } catch (err) {
+      console.error("Erreur lors de la recherche du contribuable:", err);
+    } finally {
+      setIsSearchingTaxpayer(false);
+    }
+  };
+
+  useEffect(() => {
+    const clean = formData.ifuNc.replace(/\D/g, "");
+    if (clean.length < 8) {
+      setFoundNotice(null);
+      lastLookedUpRef.current = "";
+      return;
+    }
+
+    // Déclenchement instantané à 13 chiffres
+    if (clean.length === 13) {
+      executeTaxpayerLookup(clean);
+      return;
+    }
+
+    // Debounce de 2 secondes
+    const timer = setTimeout(() => {
+      executeTaxpayerLookup(clean);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [formData.ifuNc]);
+
   const calculations = buildTpsCalculations({
     montantAutresActivites: formData.montantAutresActivites,
     acomptesPayes: formData.acomptesPayes,
@@ -112,15 +166,34 @@ export const TpsForm: React.FC<TpsFormProps> = ({
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 N° IFU / NC <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="ifuNc"
-                value={formData.ifuNc}
-                onChange={handleChange}
-                required
-                placeholder="Ex: 3201201509900"
-                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="ifuNc"
+                  value={formData.ifuNc}
+                  onChange={handleChange}
+                  onBlur={() => {
+                    const clean = formData.ifuNc.replace(/\D/g, "");
+                    if (clean.length >= 8) {
+                      executeTaxpayerLookup(clean);
+                    }
+                  }}
+                  required
+                  placeholder="Ex: 3201201509900"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {isSearchingTaxpayer && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                  </div>
+                )}
+              </div>
+              {foundNotice && (
+                <div className="mt-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2.5 py-1 flex items-center gap-1.5 font-medium animate-in fade-in">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                  <span>{foundNotice}</span>
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-700 mb-1">

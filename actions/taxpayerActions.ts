@@ -584,3 +584,90 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
   };
 }
 
+/**
+ * Recherche rapide d'un contribuable par IFU/NPI pour pré-remplissage des formulaires TFU & TPS
+ */
+export async function lookupTaxpayerByIdentifier(identifier: string): Promise<{
+  fullname: string;
+  phone: string;
+  ifuNpi: string;
+  source: "TFU" | "TPS";
+} | null> {
+  if (!identifier) return null;
+  const cleanId = identifier.trim().replace(/\D/g, "");
+  if (cleanId.length < 5) return null;
+
+  const supabase = await createClient();
+
+  // 1. Chercher dans contribuables (TFU) par correspondance exacte
+  const { data: contribData } = await supabase
+    .from("contribuables")
+    .select("nom_prenoms, ifu_npi, telephone")
+    .eq("ifu_npi", cleanId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (contribData && contribData.length > 0 && contribData[0].nom_prenoms) {
+    return {
+      fullname: contribData[0].nom_prenoms,
+      phone: contribData[0].telephone || "",
+      ifuNpi: contribData[0].ifu_npi || cleanId,
+      source: "TFU",
+    };
+  }
+
+  // Si pas de correspondance exacte, tenter ilike dans contribuables
+  const { data: contribLike } = await supabase
+    .from("contribuables")
+    .select("nom_prenoms, ifu_npi, telephone")
+    .ilike("ifu_npi", `%${cleanId}%`)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (contribLike && contribLike.length > 0 && contribLike[0].nom_prenoms) {
+    return {
+      fullname: contribLike[0].nom_prenoms,
+      phone: contribLike[0].telephone || "",
+      ifuNpi: contribLike[0].ifu_npi || cleanId,
+      source: "TFU",
+    };
+  }
+
+  // 2. Chercher dans tps_liquidations (TPS) par correspondance exacte
+  const { data: tpsData } = await supabase
+    .from("tps_liquidations")
+    .select("nom_raison_sociale, ifu_nc, telephone")
+    .eq("ifu_nc", cleanId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (tpsData && tpsData.length > 0 && tpsData[0].nom_raison_sociale) {
+    return {
+      fullname: tpsData[0].nom_raison_sociale,
+      phone: tpsData[0].telephone || "",
+      ifuNpi: tpsData[0].ifu_nc || cleanId,
+      source: "TPS",
+    };
+  }
+
+  // Tps ilike
+  const { data: tpsLike } = await supabase
+    .from("tps_liquidations")
+    .select("nom_raison_sociale, ifu_nc, telephone")
+    .ilike("ifu_nc", `%${cleanId}%`)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (tpsLike && tpsLike.length > 0 && tpsLike[0].nom_raison_sociale) {
+    return {
+      fullname: tpsLike[0].nom_raison_sociale,
+      phone: tpsLike[0].telephone || "",
+      ifuNpi: tpsLike[0].ifu_nc || cleanId,
+      source: "TPS",
+    };
+  }
+
+  return null;
+}
+
+

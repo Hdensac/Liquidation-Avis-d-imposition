@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { TaxpayerInput } from "@/types/liquidation";
-import { User, MapPin, Building, Calendar, RefreshCw, Loader2, Home } from "lucide-react";
+import { User, MapPin, Building, Calendar, RefreshCw, Loader2, Home, CheckCircle2 } from "lucide-react";
 import { fetchValeurAdministrative } from "@/actions/liquidationActions";
+import { lookupTaxpayerByIdentifier } from "@/actions/taxpayerActions";
 
 export const COMMUNE_OPTIONS = [
   { value: "ALLADA", label: "ALLADA" },
@@ -116,6 +117,58 @@ export const TaxForm: React.FC<TaxFormProps> = ({
 }) => {
   const [loadingVa, setLoadingVa] = useState(false);
   const [hasExoneration, setHasExoneration] = useState(false);
+  const [isSearchingTaxpayer, setIsSearchingTaxpayer] = useState(false);
+  const [foundNotice, setFoundNotice] = useState<string | null>(null);
+
+  const lastLookedUpRef = useRef<string>("");
+
+  const executeTaxpayerLookup = async (rawIfu: string) => {
+    const clean = rawIfu.replace(/\D/g, "");
+    if (clean.length < 8 || clean === lastLookedUpRef.current) return;
+
+    lastLookedUpRef.current = clean;
+    setIsSearchingTaxpayer(true);
+    try {
+      const res = await lookupTaxpayerByIdentifier(clean);
+      if (res && res.fullname) {
+        onChange({
+          ...formData,
+          ifuNpi: res.ifuNpi || clean,
+          fullname: res.fullname,
+          phone: res.phone || formData.phone,
+        });
+        setFoundNotice(`Contribuable existant trouvé (${res.source}) : ${res.fullname}`);
+      } else {
+        setFoundNotice(null);
+      }
+    } catch (err) {
+      console.error("Erreur lors de la recherche du contribuable:", err);
+    } finally {
+      setIsSearchingTaxpayer(false);
+    }
+  };
+
+  useEffect(() => {
+    const clean = formData.ifuNpi.replace(/\D/g, "");
+    if (clean.length < 8) {
+      setFoundNotice(null);
+      lastLookedUpRef.current = "";
+      return;
+    }
+
+    // Déclenchement instantané à 13 chiffres
+    if (clean.length === 13) {
+      executeTaxpayerLookup(clean);
+      return;
+    }
+
+    // Debounce de 2 secondes
+    const timer = setTimeout(() => {
+      executeTaxpayerLookup(clean);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [formData.ifuNpi]);
 
   const isBati = formData.typeBien === "BATI";
   const superficieTotale =
@@ -246,16 +299,35 @@ export const TaxForm: React.FC<TaxFormProps> = ({
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 N° IFU / NPI <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="ifuNpi"
-                inputMode="numeric"
-                value={formData.ifuNpi}
-                onChange={handleChange}
-                placeholder="Ex: 3201589471203"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                required
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="ifuNpi"
+                  inputMode="numeric"
+                  value={formData.ifuNpi}
+                  onChange={handleChange}
+                  onBlur={() => {
+                    const clean = formData.ifuNpi.replace(/\D/g, "");
+                    if (clean.length >= 8) {
+                      executeTaxpayerLookup(clean);
+                    }
+                  }}
+                  placeholder="Ex: 3201589471203"
+                  className="w-full px-3 py-2 pr-9 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  required
+                />
+                {isSearchingTaxpayer && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  </div>
+                )}
+              </div>
+              {foundNotice && (
+                <div className="mt-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2.5 py-1 flex items-center gap-1.5 font-medium animate-in fade-in">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                  <span>{foundNotice}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
