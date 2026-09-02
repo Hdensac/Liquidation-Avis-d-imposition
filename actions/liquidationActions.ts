@@ -855,6 +855,7 @@ export interface RoleCouvertureData {
   total_droits_simple: number;
   total_penalites: number;
   lignes_impot: CouvertureLigneImpot[];
+  tax_type?: string;
 }
 
 /**

@@ -61,7 +61,7 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
 
   doc.text(`COMMUNE : ${data.commune.toUpperCase()}`, rightX, 25);
   doc.text("IMPOTS LOCAUX", rightX, 38);
-  doc.text("AMR : TFU", rightX, 51);
+  doc.text(`AMR : ${data.tax_type === "TPS" ? "TPS" : "TFU"}`, rightX, 51);
 
   doc.text("SERVICE : GESTION", rightX, 72);
 
@@ -142,7 +142,8 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   const montantLettres = numberToFrenchWords(data.total_general);
   const montantChiffres = formatNumber(data.total_general);
 
-  const prefixeText = `Les avis de mise en recouvrement de la TFU (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${dernierArtPadded} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;
+  const amrLabel = data.tax_type === "TPS" ? "de la TPS" : "de la TFU";
+  const prefixeText = `Les avis de mise en recouvrement ${amrLabel} (Role N°${data.numero_role}/${data.annee}) dont les articles sont compris entre ${premierArtPadded} et ${dernierArtPadded} (commune d’${data.commune.toUpperCase()}), s’élevant à la somme de `;
   const grasText = `${montantLettres} (${montantChiffres}) FCFA`;
   const suffixeText = `, sont rendus exécutoires en vertu des dispositions des articles 596 et 597 du Code général des impôts.`;
 
@@ -164,5 +165,6 @@ export async function generateCouverturePdf(data: RoleCouvertureData): Promise<v
   doc.setFontSize(14);
   doc.text("Honorat  FADJI", pageW / 2, signY + 48, { align: "center" });
 
-  doc.save(`ETAT_Couverture_${data.commune.toUpperCase()}_Role_${data.numero_role}.pdf`);
+  const taxPrefix = data.tax_type === "TPS" ? "TPS_" : "";
+  doc.save(`ETAT_Couverture_${taxPrefix}${data.commune.toUpperCase()}_Role_${data.numero_role}.pdf`);
 }
