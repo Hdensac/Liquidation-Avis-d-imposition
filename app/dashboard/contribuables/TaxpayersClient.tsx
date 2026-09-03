@@ -29,6 +29,9 @@ export default function TaxpayersClient() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [taxpayers, setTaxpayers] = useState<TaxpayerItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [totalUpToDate, setTotalUpToDate] = useState(0);
+  const [totalDebtors, setTotalDebtors] = useState(0);
+  const [totalArrears, setTotalArrears] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
 
@@ -59,6 +62,9 @@ export default function TaxpayersClient() {
       const res = await fetchTaxpayers(debouncedQuery, page, 20);
       setTaxpayers(res.data);
       setTotalCount(res.total);
+      setTotalUpToDate(res.totalUpToDate);
+      setTotalDebtors(res.totalDebtors);
+      setTotalArrears(res.totalArrears);
     } catch (err) {
       console.error("Erreur chargement contribuables:", err);
     } finally {
@@ -96,11 +102,6 @@ export default function TaxpayersClient() {
     if (statusFilter === "DEBITEUR") return t.status === "SOLDE_DEBITEUR";
     return true;
   });
-
-  // Calculs statistiques
-  const totalUpToDate = taxpayers.filter((t) => t.status === "A_JOUR").length;
-  const totalDebtors = taxpayers.filter((t) => t.status === "SOLDE_DEBITEUR").length;
-  const totalArrears = taxpayers.reduce((sum, t) => sum + t.balanceDue, 0);
 
   return (
     <div className="space-y-6">

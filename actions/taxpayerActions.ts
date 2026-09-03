@@ -86,6 +86,9 @@ function normalizeKey(str: string): string {
 export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20): Promise<{
   data: TaxpayerItem[];
   total: number;
+  totalUpToDate: number;
+  totalDebtors: number;
+  totalArrears: number;
   page: number;
   pageSize: number;
 }> {
@@ -334,12 +337,19 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
   allList.sort((a, b) => new Date(b.lastOperationDate).getTime() - new Date(a.lastOperationDate).getTime());
 
   const total = allList.length;
+  const totalUpToDate = allList.filter((t) => t.status === "A_JOUR").length;
+  const totalDebtors = allList.filter((t) => t.status === "SOLDE_DEBITEUR").length;
+  const totalArrears = allList.reduce((sum, t) => sum + t.balanceDue, 0);
+
   const startIndex = (page - 1) * pageSize;
   const paginatedData = allList.slice(startIndex, startIndex + pageSize).map(({ _searchStr, ...rest }) => rest);
 
   return {
     data: paginatedData,
     total,
+    totalUpToDate,
+    totalDebtors,
+    totalArrears,
     page,
     pageSize,
   };
