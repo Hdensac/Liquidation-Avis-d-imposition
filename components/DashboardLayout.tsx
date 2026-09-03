@@ -19,9 +19,17 @@ export default function DashboardLayout({ children }: Props) {
       {/* Top bar */}
       <header className="sticky top-0 z-20 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-white/20 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            CIPE ALLADA  – TFU / FNB
-          </h1>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Logo CIPE"
+              className="h-9 w-9 rounded-xl object-cover shadow-sm ring-2 ring-indigo-500/20"
+              referrerPolicy="no-referrer"
+            />
+            <h1 className="text-2xl sm:text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              CIPE ALLADA – TFU / TPS
+            </h1>
+          </div>
 
           <nav className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-1">

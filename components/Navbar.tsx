@@ -58,13 +58,18 @@ export default function Navbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">AF</div>
+              <img
+                src="/logo.png"
+                alt="Logo Administration Fiscale"
+                className="h-10 w-10 rounded-xl object-cover ring-2 ring-indigo-500/20 shadow-sm"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{brand}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">TFU / FNB</div>
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{brand}</div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">TFU / TPS</div>
             </div>
           </div>
 
