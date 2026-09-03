@@ -100,9 +100,12 @@ function HeaderContent({ user }: HeaderClientProps) {
 
           {/* BRAND LINK TO PORTAL */}
           <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3 flex-shrink-0 group">
-            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow group-hover:scale-105 transition-transform flex-shrink-0">
-              CA
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo CIPE-ALLADA"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-sm ring-2 ring-indigo-500/20 group-hover:scale-105 transition-transform flex-shrink-0"
+              referrerPolicy="no-referrer"
+            />
             <div>
               <div className="hidden min-[380px]:block text-xs sm:text-base font-bold text-gray-800 dark:text-gray-100 leading-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 CIPE-ALLADA
