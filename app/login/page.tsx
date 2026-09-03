@@ -44,8 +44,13 @@ function LoginForm() {
     <div className="w-full max-w-md bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 p-8">
       {/* Header Branding */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 mb-4 shadow-inner">
-          <ShieldCheck size={32} />
+        <div className="inline-flex items-center justify-center mb-4">
+          <img
+            src="/logo.png"
+            alt="Logo Administration Fiscale"
+            className="w-16 h-16 rounded-2xl object-cover shadow-md ring-4 ring-indigo-500/10"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
           Administration Fiscale
