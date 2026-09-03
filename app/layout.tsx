@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AuthSync from "@/components/AuthSync";
 import SentryInitializer from "@/components/SentryInitializer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Liquidation -  (TFU)",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <SentryInitializer />
         <AuthSync />
         {children}
+        <Analytics />
       </body>
     </html>
   );
