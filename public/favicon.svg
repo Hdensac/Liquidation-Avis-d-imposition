@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond contrasté avec coins arrondis pour visibilité maximale -->
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="url(#bgGrad)" stroke="#38bdf8" stroke-width="1"/>
+
+  <!-- Bouclier / Blason Fiscal -->
+  <path d="M16 5.5 L24 8.5 V15.5 C24 20.8 20.5 24.8 16 26.5 C11.5 24.8 8 20.8 8 15.5 V8.5 Z" fill="#ffffff"/>
+
+  <!-- Cœur du Blason aux couleurs nationales / fiscales -->
+  <!-- Moitié gauche verte -->
+  <path d="M16 7.5 L10 9.8 V15.5 C10 19.8 12.8 23.2 16 24.6 Z" fill="#059669"/>
+
+  <!-- Moitié droite or -->
+  <path d="M16 7.5 L22 9.8 V15.5 C22 19.8 19.2 23.2 16 24.6 Z" fill="url(#goldGrad)"/>
+
+  <!-- Colonnes / Symbole Institutionnel central blanc -->
+  <!-- Toit / Fronton -->
+  <path d="M16 10.5 L12.5 12.5 H19.5 Z" fill="#ffffff"/>
+  <!-- Colonnes -->
+  <rect x="13" y="13.5" width="1.5" height="4.5" rx="0.5" fill="#ffffff"/>
+  <rect x="15.25" y="13.5" width="1.5" height="4.5" rx="0.5" fill="#ffffff"/>
+  <rect x="17.5" y="13.5" width="1.5" height="4.5" rx="0.5" fill="#ffffff"/>
+  <!-- Base -->
+  <rect x="12" y="18.5" width="8" height="1.2" rx="0.4" fill="#ffffff"/>
+  
+  <!-- Étoile d'autorité au bas -->
+  <polygon points="16,20.5 16.6,22 18.2,22 16.9,23 17.4,24.5 16,23.5 14.6,24.5 15.1,23 13.8,22 15.4,22" fill="#ffffff"/>
+</svg>
