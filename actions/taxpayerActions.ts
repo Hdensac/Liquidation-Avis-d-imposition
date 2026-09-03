@@ -80,6 +80,30 @@ function normalizeKey(str: string): string {
     .replace(/[^a-z0-9]/gi, "");
 }
 
+class DisjointSet {
+  parent = new Map<string, string>();
+
+  find(i: string): string {
+    if (!this.parent.has(i)) {
+      this.parent.set(i, i);
+      return i;
+    }
+    const p = this.parent.get(i)!;
+    if (p === i) return i;
+    const root = this.find(p);
+    this.parent.set(i, root);
+    return root;
+  }
+
+  union(i: string, j: string) {
+    const rootI = this.find(i);
+    const rootJ = this.find(j);
+    if (rootI !== rootJ) {
+      this.parent.set(rootI, rootJ);
+    }
+  }
+}
+
 /**
  * Récupère la liste agrégrée de tous les contribuables (TFU & TPS)
  */
@@ -154,14 +178,58 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     console.error("Error fetching TPS liquidations for taxpayers:", tpsError);
   }
 
-  // Map pour agréger par IFU ou Nom
+  // Construction du graphe d'équivalence (DisjointSet)
+  const dsu = new DisjointSet();
+
+  // Passe 1 : Lier les IFU et Noms partageant des enregistrements
+  (tfuData || []).forEach((liq: any) => {
+    const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
+    if (!contrib && !liq.reference_liq) return;
+
+    const ifu = (contrib?.ifu_npi || "").trim();
+    const name = (contrib?.nom_prenoms || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+
+    const ifuNode = normIfu ? `IFU_${normIfu}` : "";
+    const nameNode = normName ? `NAME_${normName}` : "";
+
+    if (ifuNode && nameNode) {
+      dsu.union(ifuNode, nameNode);
+    } else if (ifuNode) {
+      dsu.find(ifuNode);
+    } else if (nameNode) {
+      dsu.find(nameNode);
+    }
+  });
+
+  (tpsData || []).forEach((tps: any) => {
+    const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
+    const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
+    const name = (contrib?.nom_raison_sociale || tps.nom_raison_sociale || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+
+    const ifuNode = normIfu ? `IFU_${normIfu}` : "";
+    const nameNode = normName ? `NAME_${normName}` : "";
+
+    if (ifuNode && nameNode) {
+      dsu.union(ifuNode, nameNode);
+    } else if (ifuNode) {
+      dsu.find(ifuNode);
+    } else if (nameNode) {
+      dsu.find(nameNode);
+    }
+  });
+
+  // Map d'agrégation
   const taxpayersMap = new Map<string, {
     ifu: string;
     name: string;
     phone: string;
     communesSet: Set<string>;
-    propertiesCount: number;
-    activitiesCount: number;
+    propertiesMap: Map<string, boolean>;
+    activitiesMap: Map<string, boolean>;
     liquidationsCount: number;
     totalAmountDues: number;
     totalPaid: number;
@@ -169,7 +237,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     keysToMatch: string[];
   }>();
 
-  // Traitement TFU
+  // Passe 2 : Aggrégation TFU
   (tfuData || []).forEach((liq: any) => {
     const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
     if (!contrib && !liq.reference_liq) return;
@@ -179,8 +247,12 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     const phone = (contrib?.telephone || "").trim();
     const commune = (liq.commune || "").trim();
 
-    // Clé unique de regroupement: IFU prioritaire, sinon Nom normalisé
-    const key = ifu ? `IFU_${normalizeKey(ifu)}` : `NAME_${normalizeKey(name)}`;
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+    const node = normIfu ? `IFU_${normIfu}` : normName ? `NAME_${normName}` : "";
+    if (!node) return;
+
+    const key = dsu.find(node);
 
     // Calcul dynamique des droits TFU
     let totalDroits = 0;
@@ -216,8 +288,8 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
         name,
         phone,
         communesSet: new Set(commune ? [commune] : []),
-        propertiesCount: 0,
-        activitiesCount: 0,
+        propertiesMap: new Map<string, boolean>(),
+        activitiesMap: new Map<string, boolean>(),
         liquidationsCount: 0,
         totalAmountDues: 0,
         totalPaid: 0,
@@ -227,21 +299,25 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       taxpayersMap.set(key, existing);
     } else {
       if (!existing.phone && phone) existing.phone = phone;
-      if (!existing.ifu || existing.ifu === "N/A") existing.ifu = ifu || "N/A";
+      if ((!existing.ifu || existing.ifu === "N/A") && ifu) existing.ifu = ifu;
+      if ((existing.name === "Contribuable Inconnu" || !existing.name) && name) existing.name = name;
       if (commune) existing.communesSet.add(commune);
       if (new Date(liq.created_at) > new Date(existing.lastDate)) {
         existing.lastDate = liq.created_at;
       }
       if (liq.reference_liq) existing.keysToMatch.push(liq.reference_liq);
+      if (ifu) existing.keysToMatch.push(ifu);
+      if (name) existing.keysToMatch.push(name);
     }
 
-    existing.propertiesCount += 1;
+    const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
+    existing.propertiesMap.set(propKey, true);
     existing.liquidationsCount += 1;
     existing.totalAmountDues += totalDroits;
     existing.totalPaid += paidAmount;
   });
 
-  // Traitement TPS
+  // Passe 2 : Agrégation TPS
   (tpsData || []).forEach((tps: any) => {
     const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
     const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
@@ -249,7 +325,12 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
     const phone = (contrib?.telephone || tps.telephone || "").trim();
     const commune = (tps.commune || "").trim();
 
-    const key = ifu ? `IFU_${normalizeKey(ifu)}` : `NAME_${normalizeKey(name)}`;
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+    const node = normIfu ? `IFU_${normIfu}` : normName ? `NAME_${normName}` : "";
+    if (!node) return;
+
+    const key = dsu.find(node);
 
     // Calcul dynamique des droits TPS
     let totalDroits = 0;
@@ -274,8 +355,8 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
         name,
         phone,
         communesSet: new Set(commune ? [commune] : []),
-        propertiesCount: 0,
-        activitiesCount: 0,
+        propertiesMap: new Map<string, boolean>(),
+        activitiesMap: new Map<string, boolean>(),
         liquidationsCount: 0,
         totalAmountDues: 0,
         totalPaid: 0,
@@ -285,15 +366,19 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       taxpayersMap.set(key, existing);
     } else {
       if (!existing.phone && phone) existing.phone = phone;
-      if (!existing.ifu || existing.ifu === "N/A") existing.ifu = ifu || "N/A";
+      if ((!existing.ifu || existing.ifu === "N/A") && ifu) existing.ifu = ifu;
+      if ((existing.name === "Contribuable Inconnu" || !existing.name) && name) existing.name = name;
       if (commune) existing.communesSet.add(commune);
       if (new Date(tps.created_at) > new Date(existing.lastDate)) {
         existing.lastDate = tps.created_at;
       }
       if (tps.reference_tps) existing.keysToMatch.push(tps.reference_tps);
+      if (ifu) existing.keysToMatch.push(ifu);
+      if (name) existing.keysToMatch.push(name);
     }
 
-    existing.activitiesCount += 1;
+    const actKey = tps.id || `${tps.commune}_${tps.activite}`;
+    existing.activitiesMap.set(actKey, true);
     existing.liquidationsCount += 1;
     existing.totalAmountDues += totalDroits;
     existing.totalPaid += paidAmount;
@@ -309,8 +394,8 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       phone: t.phone || "—",
       communes: communesList,
       commune: communesList.length > 0 ? communesList.join(", ") : "—",
-      totalProperties: t.propertiesCount,
-      totalActivities: t.activitiesCount,
+      totalProperties: t.propertiesMap.size,
+      totalActivities: t.activitiesMap.size,
       totalLiquidations: t.liquidationsCount,
       totalAmountDues: t.totalAmountDues,
       totalPaid: t.totalPaid,
@@ -419,12 +504,78 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
 
   if (tpsErr) console.error("Error in getTaxpayerDetails TPS:", tpsErr);
 
+  // Construction du graphe d'équivalence (DisjointSet)
+  const dsu = new DisjointSet();
+
+  (tfuList || []).forEach((liq: any) => {
+    const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
+    if (!contrib && !liq.reference_liq) return;
+    const ifu = (contrib?.ifu_npi || "").trim();
+    const name = (contrib?.nom_prenoms || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+    const ifuNode = normIfu ? `IFU_${normIfu}` : "";
+    const nameNode = normName ? `NAME_${normName}` : "";
+
+    if (ifuNode && nameNode) dsu.union(ifuNode, nameNode);
+    else if (ifuNode) dsu.find(ifuNode);
+    else if (nameNode) dsu.find(nameNode);
+  });
+
+  (tpsList || []).forEach((tps: any) => {
+    const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
+    const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
+    const name = (contrib?.nom_raison_sociale || tps.nom_raison_sociale || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
+    const ifuNode = normIfu ? `IFU_${normIfu}` : "";
+    const nameNode = normName ? `NAME_${normName}` : "";
+
+    if (ifuNode && nameNode) dsu.union(ifuNode, nameNode);
+    else if (ifuNode) dsu.find(ifuNode);
+    else if (nameNode) dsu.find(nameNode);
+  });
+
   const normTarget = normalizeKey(searchClean);
+
+  // Trouver le cluster cible
+  let targetRoot = "";
+  if (keyOrIfuOrName.startsWith("IFU_") || keyOrIfuOrName.startsWith("NAME_")) {
+    if (dsu.parent.has(keyOrIfuOrName)) {
+      targetRoot = dsu.find(keyOrIfuOrName);
+    }
+  }
+
+  if (!targetRoot && normTarget) {
+    if (dsu.parent.has(`IFU_${normTarget}`)) {
+      targetRoot = dsu.find(`IFU_${normTarget}`);
+    } else if (dsu.parent.has(`NAME_${normTarget}`)) {
+      targetRoot = dsu.find(`NAME_${normTarget}`);
+    }
+  }
+
+  if (!targetRoot && normTarget) {
+    // Recherche de secours
+    for (const liq of (tfuList || [])) {
+      const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
+      const ifu = (contrib?.ifu_npi || "").trim();
+      const name = (contrib?.nom_prenoms || "").trim();
+      const normIfu = normalizeKey(ifu);
+      const normName = normalizeKey(name);
+
+      if (normIfu === normTarget || normName === normTarget || normIfu.includes(normTarget) || normName.includes(normTarget)) {
+        const node = normIfu ? `IFU_${normIfu}` : normName ? `NAME_${normName}` : "";
+        if (node) {
+          targetRoot = dsu.find(node);
+          break;
+        }
+      }
+    }
+  }
 
   let matchIfu = "";
   let matchName = "";
   let matchPhone = "";
-  let matchCommune = "";
 
   const matchedPropertiesMap = new Map<string, any>();
   const matchedActivitiesMap = new Map<string, any>();
@@ -438,24 +589,27 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
   // Filtrer TFU
   (tfuList || []).forEach((liq: any) => {
     const contrib = Array.isArray(liq.contribuable) ? liq.contribuable[0] : liq.contribuable;
-    if (!contrib) return;
+    if (!contrib && !liq.reference_liq) return;
 
-    const ifu = (contrib.ifu_npi || "").trim();
-    const name = (contrib.nom_prenoms || "").trim();
+    const ifu = (contrib?.ifu_npi || "").trim();
+    const name = (contrib?.nom_prenoms || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
 
-    const isMatch = (ifu && normalizeKey(ifu) === normTarget) ||
-      (name && normalizeKey(name) === normTarget) ||
-      keyOrIfuOrName.includes(normalizeKey(ifu)) ||
-      keyOrIfuOrName.includes(normalizeKey(name));
+    const node = normIfu ? `IFU_${normIfu}` : normName ? `NAME_${normName}` : "";
+    const itemRoot = node ? dsu.find(node) : "";
+
+    const isMatch = (targetRoot && itemRoot === targetRoot) ||
+      (normTarget && (normIfu === normTarget || normName === normTarget));
 
     if (!isMatch) return;
 
     if (!matchIfu && ifu) matchIfu = ifu;
     if (!matchName && name) matchName = name;
-    if (!matchPhone && contrib.telephone) matchPhone = contrib.telephone;
+    if (!matchPhone && contrib?.telephone) matchPhone = contrib.telephone;
     if (liq.commune) communesSet.add(liq.commune.trim());
 
-    const propKey = `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
+    const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
     if (!matchedPropertiesMap.has(propKey)) {
       matchedPropertiesMap.set(propKey, {
         id: liq.id,
@@ -478,7 +632,7 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       const calc = buildLiquidationCalculations({
         fullname: name,
         ifuNpi: ifu,
-        phone: contrib.telephone || "",
+        phone: contrib?.telephone || "",
         commune: liq.commune || "",
         arrondissement: liq.arrondissement || "",
         quartier: liq.quartier || "",
@@ -519,12 +673,14 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     const contrib = Array.isArray(tps.contribuable) ? tps.contribuable[0] : tps.contribuable;
     const ifu = (contrib?.ifu_nc || tps.ifu_nc || "").trim();
     const name = (contrib?.nom_raison_sociale || tps.nom_raison_sociale || "").trim();
-    const phone = (contrib?.telephone || tps.telephone || "").trim();
+    const normIfu = normalizeKey(ifu);
+    const normName = normalizeKey(name);
 
-    const isMatch = (ifu && normalizeKey(ifu) === normTarget) ||
-      (name && normalizeKey(name) === normTarget) ||
-      keyOrIfuOrName.includes(normalizeKey(ifu)) ||
-      keyOrIfuOrName.includes(normalizeKey(name));
+    const node = normIfu ? `IFU_${normIfu}` : normName ? `NAME_${normName}` : "";
+    const itemRoot = node ? dsu.find(node) : "";
+
+    const isMatch = (targetRoot && itemRoot === targetRoot) ||
+      (normTarget && (normIfu === normTarget || normName === normTarget));
 
     if (!isMatch) return;
 
@@ -533,7 +689,7 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchPhone && tps.telephone) matchPhone = tps.telephone;
     if (tps.commune) communesSet.add(tps.commune.trim());
 
-    const actKey = `${tps.commune}_${tps.activite}`;
+    const actKey = tps.id || `${tps.commune}_${tps.activite}`;
     if (!matchedActivitiesMap.has(actKey)) {
       matchedActivitiesMap.set(actKey, {
         id: tps.id,
