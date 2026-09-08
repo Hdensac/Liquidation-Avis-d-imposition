@@ -182,10 +182,12 @@ export async function createLiquidation(data: TaxpayerInput) {
   });
   if (error) throw error;
 
-  // Log de l'action sans inclure d'informations nominatives sensibles ou en les limitant à la référence et commune
-  await logAction("CREATION_LIQUIDATION", {
+  // Log de l'action selon le type de bien (FB ou FNB)
+  const actionType = validatedData.typeBien === "BATI" ? "CREATION_LIQUIDATION_FB" : "CREATION_LIQUIDATION_FNB";
+  await logAction(actionType, {
     reference_liq: result?.reference_liq,
     commune: validatedData.commune,
+    type_bien: validatedData.typeBien || "NON_BATI",
   });
 
   revalidateTag("admin-stats");

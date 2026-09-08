@@ -496,7 +496,9 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                   className="px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 >
                   <option value="">Toutes les actions</option>
-                  <option value="CREATION_LIQUIDATION">Création FNB & FB</option>
+                  <option value="CREATION_LIQUIDATION_FB">Création FB (Foncier Bâti)</option>
+                  <option value="CREATION_LIQUIDATION_FNB">Création FNB (Foncier Non Bâti)</option>
+                  <option value="CREATION_LIQUIDATION">Toutes créations TFU (FB & FNB)</option>
                   <option value="VALIDATION_PAIEMENT">Paiement FNB & FB</option>
                   <option value="MODIFICATION_FINANCIERE_LIQUIDATION_PAYE">Modification FNB & FB</option>
                   <option value="CREATION_LIQUIDATION_TPS">Création TPS</option>
@@ -566,7 +568,7 @@ export default function AdminClient({ initialProfiles, initialLogs, initialLogTo
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold ${
                             log.action === "VALIDATION_PAIEMENT" || log.action === "VALIDATION_PAIEMENT_TPS"
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400"
-                              : log.action === "CREATION_LIQUIDATION" || log.action === "CREATION_LIQUIDATION_TPS"
+                              : log.action.startsWith("CREATION_LIQUIDATION")
                               ? "bg-sky-100 text-sky-800 dark:bg-sky-500/10 dark:text-sky-400"
                               : "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400"
                           }`}>

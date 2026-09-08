@@ -20,6 +20,10 @@ function sanitizeText(value: unknown): string {
 
 function formatActionLabel(action: string): string {
   switch (action) {
+    case "CREATION_LIQUIDATION_FB":
+      return "Création FB";
+    case "CREATION_LIQUIDATION_FNB":
+      return "Création FNB";
     case "CREATION_LIQUIDATION":
       return "Création Foncier";
     case "VALIDATION_PAIEMENT":
