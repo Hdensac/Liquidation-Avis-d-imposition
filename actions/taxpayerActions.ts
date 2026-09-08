@@ -416,7 +416,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       lastOperationDate: t.lastDate,
       _searchStr: t.keysToMatch.join(" ").toLowerCase(),
     };
-  });
+  }).filter((item) => item.totalProperties > 0 || item.totalActivities > 0 || item.totalLiquidations > 0);
 
   // Filtrage
   if (searchQuery.trim()) {
