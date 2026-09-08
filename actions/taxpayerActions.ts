@@ -254,31 +254,35 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
 
     const key = dsu.find(node);
 
+    const isCancelled = liq.status === "ANNULE" || liq.status === "ANNULEE" || liq.status?.startsWith("ANNUL");
+
     // Calcul dynamique des droits TFU
     let totalDroits = 0;
-    try {
-      const calc = buildLiquidationCalculations({
-        fullname: name,
-        ifuNpi: ifu,
-        phone,
-        commune,
-        arrondissement: liq.arrondissement || "",
-        quartier: liq.quartier || "",
-        typeBien: liq.type_bien || "NON_BATI",
-        superficie: Number(liq.superficie) || 0,
-        superficieImposable: liq.superficie_imposable !== null ? Number(liq.superficie_imposable) : "",
-        valeurLocative: Number(liq.valeur_locative) || 0,
-        startYear: Number(liq.start_year) || 2023,
-        isLoue: Boolean(liq.is_loue),
-        valeurIrf: Number(liq.valeur_irf) || "",
-        description: liq.description || "",
-      });
-      totalDroits = calc.totalDu || 0;
-    } catch (e) {
-      console.error("Error calculating TFU droits:", e);
+    if (!isCancelled) {
+      try {
+        const calc = buildLiquidationCalculations({
+          fullname: name,
+          ifuNpi: ifu,
+          phone,
+          commune,
+          arrondissement: liq.arrondissement || "",
+          quartier: liq.quartier || "",
+          typeBien: liq.type_bien || "NON_BATI",
+          superficie: Number(liq.superficie) || 0,
+          superficieImposable: liq.superficie_imposable !== null ? Number(liq.superficie_imposable) : "",
+          valeurLocative: Number(liq.valeur_locative) || 0,
+          startYear: Number(liq.start_year) || 2023,
+          isLoue: Boolean(liq.is_loue),
+          valeurIrf: Number(liq.valeur_irf) || "",
+          description: liq.description || "",
+        });
+        totalDroits = calc.totalDu || 0;
+      } catch (e) {
+        console.error("Error calculating TFU droits:", e);
+      }
     }
 
-    const isPaid = liq.status === "PAYE";
+    const isPaid = !isCancelled && liq.status === "PAYE";
     const paidAmount = isPaid ? totalDroits : 0;
 
     let existing = taxpayersMap.get(key);
@@ -310,11 +314,13 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       if (name) existing.keysToMatch.push(name);
     }
 
-    const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
-    existing.propertiesMap.set(propKey, true);
-    existing.liquidationsCount += 1;
-    existing.totalAmountDues += totalDroits;
-    existing.totalPaid += paidAmount;
+    if (!isCancelled) {
+      const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
+      existing.propertiesMap.set(propKey, true);
+      existing.liquidationsCount += 1;
+      existing.totalAmountDues += totalDroits;
+      existing.totalPaid += paidAmount;
+    }
   });
 
   // Passe 2 : Agrégation TPS
@@ -332,20 +338,24 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
 
     const key = dsu.find(node);
 
+    const isCancelled = tps.status === "ANNULE" || tps.status === "ANNULEE" || tps.status?.startsWith("ANNUL");
+
     // Calcul dynamique des droits TPS
     let totalDroits = 0;
-    try {
-      const calc = buildTpsCalculations({
-        montantAutresActivites: Number(tps.montant_autres_activites) || 0,
-        acomptesPayes: Number(tps.acomptes_payes) || 0,
-        startYear: Number(tps.start_year) || 2024,
-      });
-      totalDroits = calc.impotDu || 0;
-    } catch (e) {
-      console.error("Error calculating TPS droits:", e);
+    if (!isCancelled) {
+      try {
+        const calc = buildTpsCalculations({
+          montantAutresActivites: Number(tps.montant_autres_activites) || 0,
+          acomptesPayes: Number(tps.acomptes_payes) || 0,
+          startYear: Number(tps.start_year) || 2024,
+        });
+        totalDroits = calc.impotDu || 0;
+      } catch (e) {
+        console.error("Error calculating TPS droits:", e);
+      }
     }
 
-    const isPaid = tps.status === "PAYE" || tps.status === "VALIDE";
+    const isPaid = !isCancelled && (tps.status === "PAYE" || tps.status === "VALIDE");
     const paidAmount = isPaid ? totalDroits : 0;
 
     let existing = taxpayersMap.get(key);
@@ -377,11 +387,13 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       if (name) existing.keysToMatch.push(name);
     }
 
-    const actKey = tps.id || `${tps.commune}_${tps.activite}`;
-    existing.activitiesMap.set(actKey, true);
-    existing.liquidationsCount += 1;
-    existing.totalAmountDues += totalDroits;
-    existing.totalPaid += paidAmount;
+    if (!isCancelled) {
+      const actKey = tps.id || `${tps.commune}_${tps.activite}`;
+      existing.activitiesMap.set(actKey, true);
+      existing.liquidationsCount += 1;
+      existing.totalAmountDues += totalDroits;
+      existing.totalPaid += paidAmount;
+    }
   });
 
   let allList = Array.from(taxpayersMap.entries()).map(([id, t]) => {
@@ -404,7 +416,7 @@ export async function fetchTaxpayers(searchQuery = "", page = 1, pageSize = 20):
       lastOperationDate: t.lastDate,
       _searchStr: t.keysToMatch.join(" ").toLowerCase(),
     };
-  });
+  }).filter((item) => item.totalProperties > 0 || item.totalActivities > 0 || item.totalLiquidations > 0);
 
   // Filtrage
   if (searchQuery.trim()) {
@@ -609,22 +621,26 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchPhone && contrib?.telephone) matchPhone = contrib.telephone;
     if (liq.commune) communesSet.add(liq.commune.trim());
 
-    const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
-    if (!matchedPropertiesMap.has(propKey)) {
-      matchedPropertiesMap.set(propKey, {
-        id: liq.id,
-        typeBien: liq.type_bien || "NON_BATI",
-        commune: liq.commune || "—",
-        arrondissement: liq.arrondissement || "—",
-        quartier: liq.quartier || "—",
-        superficie: Number(liq.superficie) || 0,
-        superficieImposable: Number(liq.superficie_imposable) || 0,
-        valeurLocative: Number(liq.valeur_locative) || 0,
-        isLoue: Boolean(liq.is_loue),
-        description: liq.description || "",
-        referenceLiq: liq.reference_liq || "—",
-        created_at: liq.created_at,
-      });
+    const isCancelled = liq.status === "ANNULE" || liq.status === "ANNULEE" || liq.status?.startsWith("ANNUL");
+
+    if (!isCancelled) {
+      const propKey = liq.id || `${liq.commune}_${liq.arrondissement}_${liq.type_bien}_${liq.superficie}_${liq.valeur_locative}`;
+      if (!matchedPropertiesMap.has(propKey)) {
+        matchedPropertiesMap.set(propKey, {
+          id: liq.id,
+          typeBien: liq.type_bien || "NON_BATI",
+          commune: liq.commune || "—",
+          arrondissement: liq.arrondissement || "—",
+          quartier: liq.quartier || "—",
+          superficie: Number(liq.superficie) || 0,
+          superficieImposable: Number(liq.superficie_imposable) || 0,
+          valeurLocative: Number(liq.valeur_locative) || 0,
+          isLoue: Boolean(liq.is_loue),
+          description: liq.description || "",
+          referenceLiq: liq.reference_liq || "—",
+          created_at: liq.created_at,
+        });
+      }
     }
 
     let amount = 0;
@@ -650,10 +666,12 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       console.error("Error calc details TFU:", e);
     }
 
-    const isPaid = liq.status === "PAYE";
+    const isPaid = !isCancelled && liq.status === "PAYE";
 
-    totalLiquidated += amount;
-    if (isPaid) totalPaid += amount;
+    if (!isCancelled) {
+      totalLiquidated += amount;
+      if (isPaid) totalPaid += amount;
+    }
 
     matchedLiquidations.push({
       id: liq.id,
@@ -689,18 +707,22 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
     if (!matchPhone && tps.telephone) matchPhone = tps.telephone;
     if (tps.commune) communesSet.add(tps.commune.trim());
 
-    const actKey = tps.id || `${tps.commune}_${tps.activite}`;
-    if (!matchedActivitiesMap.has(actKey)) {
-      matchedActivitiesMap.set(actKey, {
-        id: tps.id,
-        activite: tps.activite || "Activite non specifiee",
-        commune: tps.commune || "—",
-        arrondissement: tps.arrondissement || "—",
-        quartier: tps.quartier || "—",
-        montantAutresActivites: Number(tps.montant_autres_activites) || 0,
-        referenceTps: tps.reference_tps || "—",
-        created_at: tps.created_at,
-      });
+    const isCancelled = tps.status === "ANNULE" || tps.status === "ANNULEE" || tps.status?.startsWith("ANNUL");
+
+    if (!isCancelled) {
+      const actKey = tps.id || `${tps.commune}_${tps.activite}`;
+      if (!matchedActivitiesMap.has(actKey)) {
+        matchedActivitiesMap.set(actKey, {
+          id: tps.id,
+          activite: tps.activite || "Activite non specifiee",
+          commune: tps.commune || "—",
+          arrondissement: tps.arrondissement || "—",
+          quartier: tps.quartier || "—",
+          montantAutresActivites: Number(tps.montant_autres_activites) || 0,
+          referenceTps: tps.reference_tps || "—",
+          created_at: tps.created_at,
+        });
+      }
     }
 
     let amount = 0;
@@ -715,10 +737,12 @@ export async function getTaxpayerDetails(keyOrIfuOrName: string): Promise<Taxpay
       console.error("Error calc details TPS:", e);
     }
 
-    const isPaid = tps.status === "PAYE" || tps.status === "VALIDE";
+    const isPaid = !isCancelled && (tps.status === "PAYE" || tps.status === "VALIDE");
 
-    totalLiquidated += amount;
-    if (isPaid) totalPaid += amount;
+    if (!isCancelled) {
+      totalLiquidated += amount;
+      if (isPaid) totalPaid += amount;
+    }
 
     matchedLiquidations.push({
       id: tps.id,

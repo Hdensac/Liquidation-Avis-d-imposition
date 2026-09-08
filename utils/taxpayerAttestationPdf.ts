@@ -190,7 +190,11 @@ export function generateTaxpayerAttestationPdf(taxpayer: TaxpayerDetail) {
     l.commune,
     String(l.startYear),
     formatAmount(l.totalDroits),
-    l.status === "PAYE" || l.status === "VALIDE" ? "PAYÉ" : "EN ATTENTE",
+    l.status === "PAYE" || l.status === "VALIDE"
+      ? "PAYÉ"
+      : l.status === "ANNULE" || l.status === "ANNULEE" || l.status?.startsWith("ANNUL")
+      ? "ANNULÉ"
+      : "EN ATTENTE",
   ]);
 
   autoTable(doc, {
@@ -217,6 +221,8 @@ export function generateTaxpayerAttestationPdf(taxpayer: TaxpayerDetail) {
         const text = data.cell.raw;
         if (text === "PAYÉ") {
           data.cell.styles.textColor = [22, 101, 52];
+        } else if (text === "ANNULÉ") {
+          data.cell.styles.textColor = [100, 116, 139];
         } else {
           data.cell.styles.textColor = [185, 28, 28];
         }

@@ -99,7 +99,11 @@ export async function fetchAuditLogs({
     }
 
     if (actionFilter) {
-      query = query.eq("action", actionFilter);
+      if (actionFilter === "CREATION_LIQUIDATION") {
+        query = query.in("action", ["CREATION_LIQUIDATION", "CREATION_LIQUIDATION_FB", "CREATION_LIQUIDATION_FNB"]);
+      } else {
+        query = query.eq("action", actionFilter);
+      }
     }
 
     if (dateFilter && dateFilter !== "all") {
@@ -153,7 +157,11 @@ export async function fetchAllAuditLogsForExport({
     }
 
     if (actionFilter) {
-      query = query.eq("action", actionFilter);
+      if (actionFilter === "CREATION_LIQUIDATION") {
+        query = query.in("action", ["CREATION_LIQUIDATION", "CREATION_LIQUIDATION_FB", "CREATION_LIQUIDATION_FNB"]);
+      } else {
+        query = query.eq("action", actionFilter);
+      }
     }
 
     if (dateFilter && dateFilter !== "all") {
