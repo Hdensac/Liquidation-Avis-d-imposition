@@ -237,7 +237,7 @@ export const TaxForm: React.FC<TaxFormProps> = ({
       value = digits.slice(0, 10);
     }
 
-    if (type === "number") {
+    if (type === "number" || name === "startYear") {
       const numValue = value === "" ? "" : parseFloat(value);
       onChange({ ...formData, [name]: numValue });
     } else {

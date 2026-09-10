@@ -19,7 +19,7 @@ export const taxpayerInputSchema = z.object({
   superficie: z.union([z.number().min(0), z.literal("")]),
   superficieImposable: numericOrEmpty,
   valeurLocative: z.union([z.number().min(0), z.literal("")]),
-  startYear: z.number().int().min(1900).max(2100),
+  startYear: z.coerce.number().int().min(1900).max(2100),
   isLoue: z.boolean().optional(),
   valeurIrf: numericOrEmpty,
   description: z.string().trim().max(1000).optional(),
@@ -36,5 +36,5 @@ export const tpsInputSchema = z.object({
   activite: z.string().trim().min(1, "L'activité est obligatoire").max(255),
   montantAutresActivites: z.number().min(0),
   acomptesPayes: z.number().min(0),
-  startYear: z.number().int().min(1900).max(2100).optional(),
+  startYear: z.coerce.number().int().min(1900).max(2100).optional(),
 });
