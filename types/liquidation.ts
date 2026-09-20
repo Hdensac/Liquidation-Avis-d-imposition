@@ -1,4 +1,4 @@
-﻿export type TaxPropertyType = "NON_BATI" | "BATI";
+export type TaxPropertyType = "NON_BATI" | "BATI";
 
 export interface TaxpayerInput {
   // Infos Contribuable
@@ -25,6 +25,8 @@ export interface TaxpayerInput {
 
   // Annee de depart pour les 4 exercices (FNB) ou exercice principal (FB)
   startYear: number;
+  /** Exercices sélectionnés (FNB) parmi les 4 exercices générés (ex: [2023, 2024, 2025]) */
+  selectedYears?: number[];
 
   // Foncier Bati (FB)
   /** Indique si le bien est mis en location (declenche le calcul IRF + P-ORTB) */

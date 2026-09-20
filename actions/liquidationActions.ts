@@ -163,6 +163,14 @@ export async function createLiquidation(data: TaxpayerInput) {
   }
 
   const superficieImposable = hasExoneration ? validatedData.superficieImposable : null;
+  const selectedYears =
+    Array.isArray(validatedData.selectedYears) && validatedData.selectedYears.length > 0
+      ? validatedData.selectedYears
+      : null;
+
+  if (selectedYears && selectedYears.length !== 4 && !canApplyExoneration(currentRole)) {
+    throw new Error("La modification des exercices FNB est reservee aux inspecteurs et administrateurs.");
+  }
 
   const { error, data: result } = await supabase.rpc("creer_liquidation", {
     p_nom_prenoms: validatedData.fullname,
@@ -179,6 +187,7 @@ export async function createLiquidation(data: TaxpayerInput) {
     p_is_loue: validatedData.typeBien === "BATI" ? (validatedData.isLoue ?? false) : false,
     p_valeur_irf: validatedData.typeBien === "BATI" && validatedData.isLoue ? (Number(validatedData.valeurIrf) || null) : null,
     p_description: validatedData.typeBien === "BATI" ? (validatedData.description || null) : null,
+    p_selected_years: selectedYears,
   });
   if (error) throw error;
 
@@ -200,7 +209,7 @@ export async function fetchPendingLiquidations({ ifu, name }: { ifu?: string; na
   let query = supabase
     .from("liquidations")
     .select(
-      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)"
+      "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, selected_years, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables (nom_prenoms, ifu_npi, telephone)"
     )
     .eq("status", "EN_ATTENTE");
 
@@ -224,7 +233,7 @@ export async function fetchPendingLiquidationsPaginated({
   const [from, to] = getRange(page, PAGE_SIZE);
 
   let selectStr =
-    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone)";
+    "id, reference_liq, status, created_at, superficie, superficie_imposable, valeur_locative, start_year, selected_years, type_bien, is_loue, valeur_irf, description, commune, arrondissement, quartier, contribuable:contribuables!inner (nom_prenoms, ifu_npi, telephone)";
 
   let query = supabase
     .from("liquidations")

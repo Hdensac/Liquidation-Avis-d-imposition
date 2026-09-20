@@ -46,8 +46,13 @@ function buildFnbCalculations(formData: TaxpayerInput): LiquidationCalculations 
       ? formData.startYear
       : 2023;
 
-  for (let i = 0; i < 4; i++) {
-    const year = startYear + i;
+  const candidateYears = [startYear, startYear + 1, startYear + 2, startYear + 3];
+  const activeYears =
+    Array.isArray(formData.selectedYears) && formData.selectedYears.length > 0
+      ? candidateYears.filter((y) => formData.selectedYears!.includes(y))
+      : candidateYears;
+
+  for (const year of activeYears) {
     const taxRule = getTaxRuleForYear(year, formData.typeBien);
     const droitSimple = baseImposable * taxRule.taux;
     totalDu += droitSimple;

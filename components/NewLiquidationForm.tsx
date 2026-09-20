@@ -94,7 +94,7 @@ export default function NewLiquidationForm({ canApplyExoneration }: NewLiquidati
   };
 
   const effectiveFormData = useMemo<TaxpayerInput>(
-    () => (canApplyExoneration ? formData : { ...formData, superficieImposable: "" }),
+    () => (canApplyExoneration ? formData : { ...formData, superficieImposable: "", selectedYears: undefined }),
     [canApplyExoneration, formData]
   );
 

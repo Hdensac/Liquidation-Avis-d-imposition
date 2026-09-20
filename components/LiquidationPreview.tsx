@@ -124,11 +124,11 @@ export const LiquidationPreview: React.FC<LiquidationPreviewProps> = ({
                     {ex.year}
                   </td>
                   <td className="border-r border-b border-black p-2.5 font-bold">{ex.taxNature}</td>
-                  {/* Description : 1 cellule rowSpan pour FNB (4 lignes), cellule fusionnée pour FB affichant la dernière description */}
+                  {/* Description : 1 cellule rowSpan pour FNB, cellule fusionnée pour FB affichant la dernière description */}
                   {!isBati ? (
                     idx === 0 && (
                       <td
-                        rowSpan={4}
+                        rowSpan={preview.exercises.length}
                         className="border-r border-b border-black p-3 text-center align-middle font-bold text-xs leading-relaxed bg-white uppercase whitespace-pre-line"
                       >
                         <span>{ex.description}</span>

@@ -20,6 +20,7 @@ export const taxpayerInputSchema = z.object({
   superficieImposable: numericOrEmpty,
   valeurLocative: z.union([z.number().min(0), z.literal("")]),
   startYear: z.coerce.number().int().min(1900).max(2100),
+  selectedYears: z.array(z.coerce.number().int().min(1900).max(2100)).optional(),
   isLoue: z.boolean().optional(),
   valeurIrf: numericOrEmpty,
   description: z.string().trim().max(1000).optional(),
