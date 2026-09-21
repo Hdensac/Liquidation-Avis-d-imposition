@@ -816,6 +816,59 @@ export default function PendingLiquidationsTable() {
                   )}
                 </div>
 
+                {/* Sélection / Exclusion des exercices FNB par l'Inspecteur (Modale d'édition) */}
+                {editFormData.typeBien === "NON_BATI" && canApplyExo && (() => {
+                  const startYr = typeof editFormData.startYear === "number" && editFormData.startYear > 1900 ? editFormData.startYear : 2023;
+                  const candidateYears = [startYr, startYr + 1, startYr + 2, startYr + 3];
+                  const activeSelected = Array.isArray(editFormData.selectedYears) && editFormData.selectedYears.length > 0
+                    ? editFormData.selectedYears
+                    : candidateYears;
+
+                  return (
+                    <div className="mt-4 p-3.5 rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/40 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300">
+                          Exercices FNB à inclure ({activeSelected.length} sur 4 retenus)
+                        </label>
+                        <span className="text-[11px] text-blue-700 dark:text-blue-400 font-medium">
+                          Inspection : Cliquez sur un exercice pour l&apos;exclure ou le réintégrer
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {candidateYears.map((yr) => {
+                          const isChecked = activeSelected.includes(yr);
+                          return (
+                            <button
+                              key={yr}
+                              type="button"
+                              onClick={() => {
+                                let next: number[];
+                                if (isChecked) {
+                                  if (activeSelected.length <= 1) return;
+                                  next = activeSelected.filter((y) => y !== yr);
+                                } else {
+                                  next = [...activeSelected, yr].sort((a, b) => a - b);
+                                }
+                                setEditFormData({ ...editFormData, selectedYears: next });
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                                isChecked
+                                  ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:border-gray-400"
+                              }`}
+                            >
+                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isChecked ? "bg-white/20 text-white" : "border border-gray-300 text-transparent"}`}>
+                                ✓
+                              </span>
+                              <span>Exercice {yr}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Champs supplémentaires FB */}
                 {editFormData.typeBien === "BATI" && (
                   <div className="mt-4 space-y-3">
