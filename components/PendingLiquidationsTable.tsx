@@ -33,6 +33,7 @@ type Liquidation = {
   superficie_imposable?: number | null;
   valeur_locative: number;
   start_year: number;
+  selected_years?: number[] | null;
   type_bien?: string | null;
   // Champs Foncier Bâti (FB)
   is_loue?: boolean | null;
@@ -67,6 +68,9 @@ function getRequiredArticlesCount(liq: Liquidation): number {
   if (typeBien === "BATI") {
     return liq.is_loue ? 3 : 1;
   }
+  if (Array.isArray(liq.selected_years) && liq.selected_years.length > 0) {
+    return liq.selected_years.length;
+  }
   return 4;
 }
 
@@ -88,6 +92,7 @@ function liquidationToFormData(liq: Liquidation): TaxpayerInput {
         : "",
     valeurLocative: Number(liq.valeur_locative) || 0,
     startYear: Number(liq.start_year) || new Date().getFullYear(),
+    selectedYears: Array.isArray(liq.selected_years) && liq.selected_years.length > 0 ? liq.selected_years : undefined,
     // Champs FB
     isLoue: isBati ? (liq.is_loue ?? false) : false,
     valeurIrf: isBati && liq.valeur_irf ? Number(liq.valeur_irf) : "",
