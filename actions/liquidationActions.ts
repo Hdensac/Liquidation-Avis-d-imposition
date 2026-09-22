@@ -989,6 +989,15 @@ export async function updateLiquidation(
       return { success: false, error: "Seules les liquidations en attente peuvent etre modifiees." };
     }
 
+    const selectedYears =
+      Array.isArray(data.selectedYears) && data.selectedYears.length > 0
+        ? data.selectedYears
+        : null;
+
+    if (selectedYears && selectedYears.length !== 4 && !canApplyExoneration(currentRole)) {
+      return { success: false, error: "La modification des exercices FNB est reservee aux inspecteurs et administrateurs." };
+    }
+
     const superficieImposable = hasExoneration ? data.superficieImposable : null;
     const baseImposable =
       (Number(superficieImposable) || Number(data.superficie) || 0) *
@@ -1051,6 +1060,7 @@ export async function updateLiquidation(
         superficie_imposable: superficieImposable,
         valeur_locative: Number(data.valeurLocative) || 0,
         start_year: Number(data.startYear) || 2023,
+        selected_years: data.typeBien === "NON_BATI" ? selectedYears : null,
         type_bien: data.typeBien || "NON_BATI",
         base_imposable: baseImposable,
         // Champs Foncier Bâti (FB)
