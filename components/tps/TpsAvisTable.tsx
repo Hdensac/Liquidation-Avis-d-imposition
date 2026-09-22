@@ -686,7 +686,7 @@ export default function TpsAvisTable() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Année / Exercice (Fixe - Articles déjà générés)
+                      Exercice (Fixe - Articles déjà générés)
                     </label>
                     <input
                       type="number"
