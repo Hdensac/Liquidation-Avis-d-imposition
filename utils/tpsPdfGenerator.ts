@@ -1,4 +1,4 @@
-﻿import jsPDF from "jspdf";
+import jsPDF from "jspdf";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
 
 // --- Constantes A4 portrait ---
@@ -36,6 +36,15 @@ function drawTableRow(
   pdf.text(value, x + labelColW + valueColW - 2, y + h / 2 + 1.5, { align: "right" });
 }
 
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+  });
+}
+
 // --- Generateur principal TPS ---
 
 /**
@@ -43,13 +52,13 @@ function drawTableRow(
  * Rendu vectoriel jsPDF pur - deterministique quel que soit le navigateur.
  * Pas d'html2canvas, pas de DOM cache.
  */
-export function generateTpsPdf(
+export async function generateTpsPdf(
   formData: TpsInput,
   articleNumbers: string,
   roleNumber: string | number,
   dateStr: string,
   filename: string
-): void {
+): Promise<void> {
   const calc = buildTpsCalculations({
     montantAutresActivites: formData.montantAutresActivites,
     acomptesPayes: formData.acomptesPayes,
@@ -89,10 +98,34 @@ export function generateTpsPdf(
     yl += wl.length * 3.5;
   });
 
-  // Colonne milieu : logo (espace reserve)
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7);
-  pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2, { align: "center" });
+  // Colonne milieu : logo DGI
+  let dgiLogo: HTMLImageElement | null = null;
+  try {
+    dgiLogo = await loadImage("/dgi_lg.png");
+  } catch (err) {
+    console.error("Erreur chargement logo DGI :", err);
+  }
+
+  if (dgiLogo) {
+    const maxW = 22;
+    const maxH = 22;
+    const naturalW = dgiLogo.naturalWidth || dgiLogo.width || maxW;
+    const naturalH = dgiLogo.naturalHeight || dgiLogo.height || maxH;
+    const ratio = naturalW / naturalH;
+    let drawW = maxW;
+    let drawH = maxW / ratio;
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = maxH * ratio;
+    }
+    const boxX = MARGIN_X + leftW + (midW - drawW) / 2;
+    const boxY = y + (headerH - drawH) / 2;
+    pdf.addImage(dgiLogo, "PNG", boxX, boxY, drawW, drawH);
+  } else {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2, { align: "center" });
+  }
 
   // Colonne droite : titre de l'avis
   pdf.setFont("helvetica", "bold");
@@ -108,10 +141,36 @@ export function generateTpsPdf(
   y += headerH + 6;
 
   // 2. Section details : 2 colonnes
-  const sectionH = 38;
   const leftColW = CONTENT_W / 2 - 3;
   const rightColW = CONTENT_W / 2 + 3;
   const rightColX = MARGIN_X + leftColW + 6;
+
+  // Calcul dynamique de la hauteur d'identification et de la position yc pour eviter tout chevauchement
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  const valueColW = rightColW - 40;
+  const lineSpacing = 3.8;
+
+  const contribItems = [
+    { label: "N IFU/NC:", value: formData.ifuNc || "A saisir" },
+    { label: "Nom / Raison Sociale:", value: (formData.nomRaisonSociale || "A saisir").toUpperCase() },
+    { label: "Adresse:", value: `${commune}/${(formData.arrondissement || "").toUpperCase()}/${(formData.quartier || "").toUpperCase()}` },
+    { label: "Tel:", value: formData.telephone || "-" },
+    { label: "Activite:", value: formData.activite || "A saisir" },
+  ];
+
+  let totalContentH = 10;
+  const preparedContrib = contribItems.map((item) => {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    const lines = pdf.splitTextToSize(item.value, valueColW);
+    const lineCount = Math.max(1, lines.length);
+    const fieldH = lineCount * lineSpacing + 0.8;
+    totalContentH += fieldH;
+    return { label: item.label, lines, lineCount };
+  });
+
+  const sectionH = Math.max(38, totalContentH + 2);
 
   // Colonne gauche : dates et articles
   pdf.setFont("helvetica", "normal");
@@ -141,23 +200,17 @@ export function generateTpsPdf(
   pdf.setLineWidth(0.2);
   pdf.line(rightColX, y + 7, rightColX + rightColW, y + 7);
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8);
-  const contrib = [
-    ["N IFU/NC:", formData.ifuNc || "A saisir"],
-    ["Nom / Raison Sociale:", (formData.nomRaisonSociale || "A saisir").toUpperCase()],
-    ["Adresse:", `${commune}/${(formData.arrondissement || "").toUpperCase()}/${(formData.quartier || "").toUpperCase()}`],
-    ["Tel:", formData.telephone || "-"],
-    ["Activite:", formData.activite || "A saisir"],
-  ];
   let yc = y + 11;
-  contrib.forEach(([label, value]) => {
+  preparedContrib.forEach(({ label, lines, lineCount }) => {
     pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
     pdf.text(label, rightColX + 2, yc);
+
     pdf.setFont("helvetica", "normal");
-    const vl = pdf.splitTextToSize(value, rightColW - 40);
-    pdf.text(vl, rightColX + 40, yc);
-    yc += 4.8;
+    pdf.setFontSize(8);
+    pdf.text(lines, rightColX + 40, yc);
+
+    yc += lineCount * lineSpacing + 0.8;
   });
 
   y += sectionH + 6;
@@ -179,12 +232,12 @@ export function generateTpsPdf(
   y += tRowH;
 
   const rows: Array<[string, string, boolean]> = [
-    ["Chiffre d Affaires - Exportation de biens", "0", false],
-    ["Chiffre d Affaires - Vente de biens", "0", false],
-    ["Chiffre d Affaires - Exportation de services", "0", false],
-    ["Chiffre d Affaires - Autres activites", fmt(formData.montantAutresActivites), false],
-    ["Chiffre d Affaires - Transport", "0", false],
-    ["Chiffre d Affaires - Total", fmt(formData.montantAutresActivites), true],
+    ["Chiffre d'Affaires - Exportation de biens", "0", false],
+    ["Chiffre d'Affaires - Vente de biens", "0", false],
+    ["Chiffre d'Affaires - Exportation de services", "0", false],
+    ["Chiffre d'Affaires - Autres activites", fmt(formData.montantAutresActivites), false],
+    ["Chiffre d'Affaires - Transport", "0", false],
+    ["Chiffre d'Affaires - Total", fmt(formData.montantAutresActivites), true],
     ["TPS", fmt(calc.tpsCalcule), true],
     ["PORTB", fmt(calc.portb), false],
     ["Penalites", "0", false],
@@ -204,17 +257,30 @@ export function generateTpsPdf(
 
   // 4. Avis aux contribuables
   pdf.setLineWidth(0.4);
-  pdf.rect(MARGIN_X, y, tableW, 22);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(7.5);
+  const avisParagraphs = [
+    "• Les demandes en décharge ou réduction doivent être adressées au Directeur Général des Impôts dans les trois mois qui suivent la date de mise en recouvrement inscrite sur l’avis. Les demandes en remise ou modération doivent être adressées au Directeur dans le mois de l’événement qui les motive. Celles qui sont motivées par la gêne ou l’indigence peuvent être présentées à toute époque.",
+    "• Tout renseignement sur la nature des impôts faisant l’objet de cet avis d’imposition peut être demandé au service des impôts de la localité.",
+    "• Le paiement des impôts se fait à la caisse du receveur des impôts, soit en numéraires, soit par chèque bancaire barré ou certifié à l’ordre du Receveur des impôts.",
+  ];
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(6.5);
+  const avisLines = avisParagraphs.map((paragraph) => pdf.splitTextToSize(paragraph, tableW - 8));
+  const avisLineH = 3;
+  const avisBoxH = 10 + avisLines.reduce((height, lines) => height + lines.length * avisLineH + 1, 0);
+  pdf.rect(MARGIN_X, y, tableW, avisBoxH);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(7.5);
   pdf.text("AVIS AUX CONTRIBUABLES", MARGIN_X + 2, y + 4);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(6.5);
-  const avisText =
-    "Les demandes en decharge ou reduction doivent etre adressees au Directeur General des Impots dans les trois mois qui suivent la date de mise en recouvrement. Le paiement des impots se fait a la caisse du receveur des impots, soit en numeraires, soit par cheque bancaire barre ou certifie a l ordre du Receveur des impots.";
-  const avisLines = pdf.splitTextToSize(avisText, tableW - 4);
-  pdf.text(avisLines, MARGIN_X + 2, y + 9);
-  y += 26;
+  let avisY = y + 9;
+  avisLines.forEach((lines) => {
+    pdf.text(lines, MARGIN_X + 4, avisY);
+    avisY += lines.length * avisLineH + 1;
+  });
+  y += avisBoxH + 4;
 
   // 5. Mention legale
   pdf.setFont("helvetica", "bold");

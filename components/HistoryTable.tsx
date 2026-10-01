@@ -677,7 +677,7 @@ export default function HistoryTable() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Année / Exercice Principal (Fixe - Articles déjà générés)
+                      Exercice Principal (Fixe - Articles déjà générés)
                     </label>
                     <input
                       type="number"

@@ -229,16 +229,32 @@ export default function TpsAvisTable() {
   useEffect(() => {
     if (!pdfTarget || !pdfFormData) return;
     const filename = `Avis_TPS_${pdfTarget.reference_tps}.pdf`;
-    try {
-      generateTpsPdf(pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, filename);
-      toast.success("Avis de mise en recouvrement téléchargé avec succès.");
-    } catch (error) {
-      console.error("Erreur génération PDF:", error);
-      toast.error("Impossible de générer le PDF de cet avis.");
-    } finally {
-      setPdfLoadingId(null);
-      setPdfTarget(null);
-    }
+    let isMounted = true;
+
+    const downloadPdf = async () => {
+      try {
+        await generateTpsPdf(pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, filename);
+        if (isMounted) {
+          toast.success("Avis de mise en recouvrement téléchargé avec succès.");
+        }
+      } catch (error) {
+        console.error("Erreur génération PDF:", error);
+        if (isMounted) {
+          toast.error("Impossible de générer le PDF de cet avis.");
+        }
+      } finally {
+        if (isMounted) {
+          setPdfLoadingId(null);
+          setPdfTarget(null);
+        }
+      }
+    };
+
+    downloadPdf();
+
+    return () => {
+      isMounted = false;
+    };
   }, [pdfTarget, pdfFormData, pdfArticlesStr, pdfRoleNum, pdfDateStr, toast]);
 
   // ─── Ouvrir la modale d'édition ──────────────────────────────────────────
@@ -686,7 +702,7 @@ export default function TpsAvisTable() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Année / Exercice (Fixe - Articles déjà générés)
+                      Exercice (Fixe - Articles déjà générés)
                     </label>
                     <input
                       type="number"
