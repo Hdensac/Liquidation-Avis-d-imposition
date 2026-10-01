@@ -1,4 +1,4 @@
-﻿import jsPDF from "jspdf";
+import jsPDF from "jspdf";
 import { TpsInput, buildTpsCalculations } from "@/utils/tpsCalculations";
 
 // --- Constantes A4 portrait ---
@@ -36,6 +36,15 @@ function drawTableRow(
   pdf.text(value, x + labelColW + valueColW - 2, y + h / 2 + 1.5, { align: "right" });
 }
 
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+  });
+}
+
 // --- Generateur principal TPS ---
 
 /**
@@ -43,13 +52,13 @@ function drawTableRow(
  * Rendu vectoriel jsPDF pur - deterministique quel que soit le navigateur.
  * Pas d'html2canvas, pas de DOM cache.
  */
-export function generateTpsPdf(
+export async function generateTpsPdf(
   formData: TpsInput,
   articleNumbers: string,
   roleNumber: string | number,
   dateStr: string,
   filename: string
-): void {
+): Promise<void> {
   const calc = buildTpsCalculations({
     montantAutresActivites: formData.montantAutresActivites,
     acomptesPayes: formData.acomptesPayes,
@@ -89,10 +98,34 @@ export function generateTpsPdf(
     yl += wl.length * 3.5;
   });
 
-  // Colonne milieu : logo (espace reserve)
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7);
-  pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2, { align: "center" });
+  // Colonne milieu : logo DGI
+  let dgiLogo: HTMLImageElement | null = null;
+  try {
+    dgiLogo = await loadImage("/dgi_lg.png");
+  } catch (err) {
+    console.error("Erreur chargement logo DGI :", err);
+  }
+
+  if (dgiLogo) {
+    const maxW = 22;
+    const maxH = 22;
+    const naturalW = dgiLogo.naturalWidth || dgiLogo.width || maxW;
+    const naturalH = dgiLogo.naturalHeight || dgiLogo.height || maxH;
+    const ratio = naturalW / naturalH;
+    let drawW = maxW;
+    let drawH = maxW / ratio;
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = maxH * ratio;
+    }
+    const boxX = MARGIN_X + leftW + (midW - drawW) / 2;
+    const boxY = y + (headerH - drawH) / 2;
+    pdf.addImage(dgiLogo, "PNG", boxX, boxY, drawW, drawH);
+  } else {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2, { align: "center" });
+  }
 
   // Colonne droite : titre de l'avis
   pdf.setFont("helvetica", "bold");
