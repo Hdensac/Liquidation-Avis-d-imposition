@@ -98,12 +98,16 @@ export async function generateTpsPdf(
     yl += wl.length * 3.5;
   });
 
-  // Colonne milieu : logo DGI
+  // Charger les images (Logo DGI et QR Code)
   let dgiLogo: HTMLImageElement | null = null;
+  let qrCodeImg: HTMLImageElement | null = null;
   try {
-    dgiLogo = await loadImage("/dgi_lg.png");
+    [dgiLogo, qrCodeImg] = await Promise.all([
+      loadImage("/dgi_lg.png").catch(() => null),
+      loadImage("/qrcode.png").catch(() => null),
+    ]);
   } catch (err) {
-    console.error("Erreur chargement logo DGI :", err);
+    console.error("Erreur chargement des images PDF TPS :", err);
   }
 
   if (dgiLogo) {
@@ -293,7 +297,12 @@ export async function generateTpsPdf(
   );
   y += 10;
 
-  // 6. Footer : date et signature
+  // 6. Footer : QR Code a gauche, date et signature a droite
+  if (qrCodeImg) {
+    const qrSize = 22; // 22 x 22 mm
+    pdf.addImage(qrCodeImg, "PNG", MARGIN_X, y - 2, qrSize, qrSize);
+  }
+
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(8.5);
   pdf.text(`${commune} , le ${dateEmission}`, PAGE_W - MARGIN_X, y, { align: "right" });
