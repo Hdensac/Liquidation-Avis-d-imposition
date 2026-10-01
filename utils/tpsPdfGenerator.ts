@@ -232,12 +232,12 @@ export async function generateTpsPdf(
   y += tRowH;
 
   const rows: Array<[string, string, boolean]> = [
-    ["Chiffre d Affaires - Exportation de biens", "0", false],
-    ["Chiffre d Affaires - Vente de biens", "0", false],
-    ["Chiffre d Affaires - Exportation de services", "0", false],
-    ["Chiffre d Affaires - Autres activites", fmt(formData.montantAutresActivites), false],
-    ["Chiffre d Affaires - Transport", "0", false],
-    ["Chiffre d Affaires - Total", fmt(formData.montantAutresActivites), true],
+    ["Chiffre d'Affaires - Exportation de biens", "0", false],
+    ["Chiffre d'Affaires - Vente de biens", "0", false],
+    ["Chiffre d'Affaires - Exportation de services", "0", false],
+    ["Chiffre d'Affaires - Autres activites", fmt(formData.montantAutresActivites), false],
+    ["Chiffre d'Affaires - Transport", "0", false],
+    ["Chiffre d'Affaires - Total", fmt(formData.montantAutresActivites), true],
     ["TPS", fmt(calc.tpsCalcule), true],
     ["PORTB", fmt(calc.portb), false],
     ["Penalites", "0", false],
