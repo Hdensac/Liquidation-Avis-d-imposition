@@ -122,8 +122,14 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
               </div>
               <div className="pt-1 text-[12.5px] font-bold">Rôle : TPS</div>
             </div>
-            <div className="text-center font-bold text-base pb-1">
-              ARTICLES : {articleNumbers}
+            <div className="space-y-1.5 pt-2">
+              <div className="text-center font-bold text-base">
+                ARTICLES : {articleNumbers}
+              </div>
+              <div className="border border-black bg-white p-1.5 text-[11.5px]">
+                <span className="font-bold">Localisation : </span>
+                <span>{formData.localisation || ""}</span>
+              </div>
             </div>
           </div>
 
@@ -152,7 +158,6 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
                     {formData.commune
                       ? `${formData.commune}/${formData.arrondissement}/${formData.quartier}`
                       : "A saisir"}
-                    {formData.localisation ? ` /${formData.localisation}` : ""}
                   </td>
                 </tr>
                 <tr>

@@ -171,9 +171,9 @@ export async function generateTpsPdf(
     return { label: item.label, lines, lineCount };
   });
 
-  const sectionH = Math.max(38, totalContentH + 2);
+  const sectionH = Math.max(45, totalContentH + 2);
 
-  // Colonne gauche : dates et articles
+  // Colonne gauche : dates, articles et localisation
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8.5);
   const dateFields = [
@@ -189,7 +189,20 @@ export async function generateTpsPdf(
   });
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text(`ARTICLES : ${articleNumbers}`, MARGIN_X, y + sectionH - 4);
+  pdf.text(`ARTICLES : ${articleNumbers}`, MARGIN_X, y + sectionH - 11);
+
+  // Cellule en fond blanc pour Localisation
+  const locY = y + sectionH - 7;
+  const locH = 7;
+  pdf.setLineWidth(0.3);
+  pdf.setDrawColor(0, 0, 0);
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(MARGIN_X, locY, leftColW, locH, "FD");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.text("Localisation : ", MARGIN_X + 2, locY + 4.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(formData.localisation || "", MARGIN_X + 22, locY + 4.5);
 
   // Colonne droite : identification contribuable
   pdf.setLineWidth(0.4);
