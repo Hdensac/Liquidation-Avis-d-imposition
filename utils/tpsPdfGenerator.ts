@@ -284,8 +284,7 @@ export async function generateTpsPdf(
     pdf.text(lines, MARGIN_X + 4, avisY);
     avisY += lines.length * avisLineH + 1;
   });
-  y += avisBoxH + 4;
-
+  y += avisBoxH 
   // 5. Mention legale
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(7.5);
