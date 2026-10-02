@@ -202,7 +202,7 @@ export async function generateTpsPdf(
   pdf.setFontSize(8);
   pdf.text("Localisation : ", MARGIN_X + 2, locY + 4.5);
   pdf.setFont("helvetica", "normal");
-  pdf.text(formData.localisation || "", MARGIN_X + 22, locY + 4.5);
+  pdf.text(formData.localisation || "", MARGIN_X + 22, locY + 4.5, { maxWidth: leftColW - 24 });
 
   // Colonne droite : identification contribuable
   pdf.setLineWidth(0.4);
