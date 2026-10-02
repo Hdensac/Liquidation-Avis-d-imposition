@@ -89,7 +89,7 @@ export async function generateTpsPdf(
     "REPUBLIQUE DU BENIN",
     "MINISTERE DE L ECONOMIE ET DES FINANCES",
     "DIRECTION GENERALE DES IMPOTS",
-    "CENTRE DES IMPOTS DES PETITES ENTREPRISES D ALLADA",
+    " CENTRE DES IMPOTS DES PETITES ENTREPRISES D'ALLADA",
   ];
   let yl = y + 3;
   adminLines.forEach((line) => {
