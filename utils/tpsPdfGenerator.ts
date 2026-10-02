@@ -77,7 +77,7 @@ export async function generateTpsPdf(
   void roleNumber;
 
   // 1. En-tete : 3 colonnes
-  const headerH = 36;
+  const headerH = 30;
   const leftW = 72;
   const rightW = 72;
   const midW = CONTENT_W - leftW - rightW;
@@ -123,12 +123,12 @@ export async function generateTpsPdf(
       drawW = maxH * ratio;
     }
     const boxX = MARGIN_X + leftW + (midW - drawW) / 2;
-    const boxY = y + (headerH - drawH) / 2;
+    const boxY = y + (headerH - drawH) / 2 - 3;
     pdf.addImage(dgiLogo, "PNG", boxX, boxY, drawW, drawH);
   } else {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7);
-    pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2, { align: "center" });
+    pdf.text("[DGI]", MARGIN_X + leftW + midW / 2, y + headerH / 2 - 3, { align: "center" });
   }
 
   // Colonne droite : titre de l'avis
@@ -136,8 +136,8 @@ export async function generateTpsPdf(
   pdf.setFontSize(10);
   pdf.text("Avis de mise en recouvrement TPS", MARGIN_X + leftW + midW + rightW / 2, y + 3, { align: "center" });
   pdf.setFontSize(9);
-  pdf.text(`ANNEE: ${assessmentYear}   EXERCICE: ${calc.startYear}`, MARGIN_X + leftW + midW + rightW / 2, y + 18, { align: "center" });
-  pdf.text(`Commune de: ${commune}`, MARGIN_X + leftW + midW + rightW / 2, y + 25, { align: "center" });
+  pdf.text(`ANNEE: ${assessmentYear}   EXERCICE: ${calc.startYear}`, MARGIN_X + leftW + midW + rightW / 2, y + 12, { align: "center" });
+  pdf.text(`Commune de: ${commune}`, MARGIN_X + leftW + midW + rightW / 2, y + 19, { align: "center" });
 
   y += headerH + 2;
 
@@ -214,7 +214,7 @@ export async function generateTpsPdf(
     yc += lineCount * lineSpacing + 0.8;
   });
 
-  y += sectionH + 8;
+  y += sectionH + 14;
 
   // 3. Tableau des rubriques
   const tableW = CONTENT_W;
