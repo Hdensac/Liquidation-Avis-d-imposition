@@ -126,9 +126,9 @@ export const TpsPreview: React.FC<TpsPreviewProps> = ({
               <div className="text-center font-bold text-base">
                 ARTICLES : {articleNumbers}
               </div>
-              <div className="border border-black bg-white p-1.5 text-[11.5px]">
+              <div className="border border-black bg-white p-1.5 text-[11.5px] break-words">
                 <span className="font-bold">Localisation : </span>
-                <span>{formData.localisation || ""}</span>
+                <span className="break-all font-medium">{formData.localisation || ""}</span>
               </div>
             </div>
           </div>

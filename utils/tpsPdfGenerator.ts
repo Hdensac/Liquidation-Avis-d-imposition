@@ -171,7 +171,18 @@ export async function generateTpsPdf(
     return { label: item.label, lines, lineCount };
   });
 
-  const sectionH = Math.max(45, totalContentH + 2);
+  // Calcul des lignes et de la hauteur requise pour la cellule Localisation
+  const locStr = formData.localisation || "";
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  const locValW = leftColW - 24;
+  const locLines: string[] = locStr ? pdf.splitTextToSize(locStr, locValW) : [""];
+  const locLineCount = Math.max(1, locLines.length);
+  const locLineH = 3.6;
+  const locH = Math.max(7, locLineCount * locLineH + 3.2);
+
+  const leftSideH = 24 + 6 + locH + 2; // Dates (24mm) + Articles (6mm) + Localisation (locH) + Marge
+  const sectionH = Math.max(leftSideH, totalContentH + 2, 40);
 
   // Colonne gauche : dates, articles et localisation
   pdf.setFont("helvetica", "normal");
@@ -189,11 +200,10 @@ export async function generateTpsPdf(
   });
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text(`ARTICLES : ${articleNumbers}`, MARGIN_X, y + sectionH - 11);
+  pdf.text(`ARTICLES : ${articleNumbers}`, MARGIN_X, yd + 2);
 
   // Cellule en fond blanc pour Localisation
-  const locY = y + sectionH - 7;
-  const locH = 7;
+  const locY = yd + 6;
   pdf.setLineWidth(0.3);
   pdf.setDrawColor(0, 0, 0);
   pdf.setFillColor(255, 255, 255);
@@ -202,7 +212,12 @@ export async function generateTpsPdf(
   pdf.setFontSize(8);
   pdf.text("Localisation : ", MARGIN_X + 2, locY + 4.5);
   pdf.setFont("helvetica", "normal");
-  pdf.text(formData.localisation || "", MARGIN_X + 22, locY + 4.5, { maxWidth: leftColW - 24 });
+  pdf.setFontSize(8);
+  let locTextY = locY + 4.5;
+  locLines.forEach((line: string) => {
+    pdf.text(line, MARGIN_X + 22, locTextY);
+    locTextY += locLineH;
+  });
 
   // Colonne droite : identification contribuable
   pdf.setLineWidth(0.4);
