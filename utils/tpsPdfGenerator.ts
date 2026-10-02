@@ -134,15 +134,12 @@ export async function generateTpsPdf(
   // Colonne droite : titre de l'avis
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(10);
-  pdf.text("Avis de mise en recouvrement TPS", MARGIN_X + leftW + midW + rightW / 2, y + 10, { align: "center" });
+  pdf.text("Avis de mise en recouvrement TPS", MARGIN_X + leftW + midW + rightW / 2, y + 3, { align: "center" });
   pdf.setFontSize(9);
   pdf.text(`ANNEE: ${assessmentYear}   EXERCICE: ${calc.startYear}`, MARGIN_X + leftW + midW + rightW / 2, y + 18, { align: "center" });
   pdf.text(`Commune de: ${commune}`, MARGIN_X + leftW + midW + rightW / 2, y + 25, { align: "center" });
 
-  // Ligne separatrice sous en-tete
-  pdf.setLineWidth(0.8);
-  pdf.line(MARGIN_X, y + headerH, PAGE_W - MARGIN_X, y + headerH);
-  y += headerH + 6;
+  y += headerH + 2;
 
   // 2. Section details : 2 colonnes
   const leftColW = CONTENT_W / 2 - 3;
@@ -217,7 +214,7 @@ export async function generateTpsPdf(
     yc += lineCount * lineSpacing + 0.8;
   });
 
-  y += sectionH + 6;
+  y += sectionH + 8;
 
   // 3. Tableau des rubriques
   const tableW = CONTENT_W;
