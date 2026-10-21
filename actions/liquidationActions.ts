@@ -768,36 +768,181 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
     });
   }
 
-  const sections: AvisRecouvrementSection[] = sortedRecs.map((rec) => {
-    const role = rolesMap.get(rec.role_id) || {
-      id: rec.role_id,
-      numero_role: 1,
-      commune: liquidation.commune || "",
-      annee: getCurrentYear(),
-      status: "ACTIF" as const,
-    };
-    const recArticles = (articlesByRecouvrement.get(rec.id) || []).sort(
-      (a, b) => a.numero_article - b.numero_article
-    );
+  // Récupérer tous les articles formatés
+  const allFormattedArticles: AvisRecouvrementArticle[] = (articles ?? []).map((article) => ({
+    id: article.id,
+    numero_article: Number(article.numero_article) || 0,
+    exercice: Number(article.exercice) || getCurrentYear(),
+    nature_impot: article.nature_impot,
+    localisation: article.localisation,
+    description: article.description,
+    base: Number(article.base) || 0,
+    taux: Number(article.taux) || 0,
+    droit_simple: Number(article.droit_simple) || 0,
+    penalite: Number(article.penalite) || 0,
+    acompte_paye: Number(article.acompte_paye) || 0,
+    reste_du: Number(article.reste_du) || 0,
+  }));
 
-    return {
-      recouvrement: {
-        id: rec.id,
-        liquidation_id: rec.liquidation_id,
-        role_id: rec.role_id,
-        contribuable_id: rec.contribuable_id,
-        date_paiement: rec.date_paiement,
-      },
-      role: {
-        id: role.id,
-        numero_role: Number(role.numero_role) || 1,
-        commune: role.commune,
-        annee: Number(role.annee) || getCurrentYear(),
-        status: role.status,
-      },
-      articles: recArticles,
-    };
-  });
+  // Charger tous les rôles de cette commune et année pour résolution garantie des numéros de rôles
+  const primaryRoleRecord = rolesList[0] || {
+    id: recouvrementList[0].role_id,
+    numero_role: 1,
+    commune: liquidation.commune || "",
+    annee: getCurrentYear(),
+    status: "ACTIF" as const,
+  };
+
+  const { data: allCommuneRoles } = await supabase
+    .from("roles")
+    .select("id, numero_role, commune, annee, status")
+    .eq("commune", liquidation.commune || primaryRoleRecord.commune || "")
+    .eq("annee", Number(primaryRoleRecord.annee) || getCurrentYear());
+
+  const communeRolesMap = new Map((allCommuneRoles || []).map((r) => [Number(r.numero_role), r]));
+
+  // Vérifier si recouvrementList a déjà de multiples recouvrements valides avec chacun ses articles
+  const hasMultipleValidRecs =
+    sortedRecs.length > 1 &&
+    sortedRecs.every((r) => (articlesByRecouvrement.get(r.id) || []).length > 0);
+
+  let sections: AvisRecouvrementSection[] = [];
+
+  if (hasMultipleValidRecs) {
+    sections = sortedRecs.map((rec) => {
+      const role = rolesMap.get(rec.role_id) || {
+        id: rec.role_id,
+        numero_role: 1,
+        commune: liquidation.commune || "",
+        annee: getCurrentYear(),
+        status: "ACTIF" as const,
+      };
+      const recArticles = (articlesByRecouvrement.get(rec.id) || []).sort(
+        (a, b) => a.numero_article - b.numero_article
+      );
+
+      return {
+        recouvrement: {
+          id: rec.id,
+          liquidation_id: rec.liquidation_id,
+          role_id: rec.role_id,
+          contribuable_id: rec.contribuable_id,
+          date_paiement: rec.date_paiement,
+        },
+        role: {
+          id: role.id,
+          numero_role: Number(role.numero_role) || 1,
+          commune: role.commune,
+          annee: Number(role.annee) || getCurrentYear(),
+          status: role.status,
+        },
+        articles: recArticles,
+      };
+    });
+  } else {
+    // Découpage intelligent pour les anciens avis concernés (où tous les articles sont dans un seul recouvrement)
+    // On trie les articles par exercice croissant
+    const sortedArticles = [...allFormattedArticles].sort((a, b) => a.exercice - b.exercice);
+
+    // Détection de rupture de rôle
+    // 1) Si le numéro d'article redescend (ex: 100 puis 1)
+    // 2) Ou si le numéro d'article dépasse 100 (ex: 99, 100, 101, 102)
+    const rawGroups: { articles: AvisRecouvrementArticle[] }[] = [];
+    let currentGroup: AvisRecouvrementArticle[] = [];
+
+    for (let i = 0; i < sortedArticles.length; i++) {
+      const art = sortedArticles[i];
+      const prev = sortedArticles[i - 1];
+
+      if (prev) {
+        const isReset = art.numero_article < prev.numero_article;
+        const isExceeding = art.numero_article > 100 && prev.numero_article <= 100;
+
+        if (isReset || isExceeding) {
+          if (currentGroup.length > 0) {
+            rawGroups.push({ articles: currentGroup });
+            currentGroup = [];
+          }
+        }
+      }
+
+      const adjustedNum = art.numero_article > 100 ? art.numero_article - 100 : art.numero_article;
+      currentGroup.push({
+        ...art,
+        numero_article: adjustedNum,
+      });
+    }
+
+    if (currentGroup.length > 0) {
+      rawGroups.push({ articles: currentGroup });
+    }
+
+    if (rawGroups.length > 1) {
+      // Identifier le numéro du rôle de départ
+      const currentRoleNum = Number(primaryRoleRecord.numero_role) || 1;
+      const firstGroupHasHighNums = rawGroups[0].articles.some((a) => a.numero_article >= 80);
+      const secondGroupHasLowNums = rawGroups[1].articles.some((a) => a.numero_article <= 20);
+
+      let startRoleNum = currentRoleNum;
+      // Si le rôle lié est le rôle supérieur (ex: 5) mais que le 1er groupe contient les articles 99/100,
+      // alors le 1er groupe appartient au rôle précédent (Rôle 4)
+      if (firstGroupHasHighNums && secondGroupHasLowNums && currentRoleNum > 1) {
+        if (primaryRoleRecord.status === "ACTIF") {
+          startRoleNum = currentRoleNum - 1;
+        }
+      }
+
+      sections = rawGroups.map((group, gIdx) => {
+        const targetRoleNum = startRoleNum + gIdx;
+        const foundRole = communeRolesMap.get(targetRoleNum) || {
+          id: primaryRoleRecord.id,
+          numero_role: targetRoleNum,
+          commune: primaryRoleRecord.commune,
+          annee: Number(primaryRoleRecord.annee) || getCurrentYear(),
+          status: "ACTIF" as const,
+        };
+
+        return {
+          recouvrement: {
+            id: recouvrementList[0].id,
+            liquidation_id: recouvrementList[0].liquidation_id,
+            role_id: foundRole.id,
+            contribuable_id: recouvrementList[0].contribuable_id,
+            date_paiement: recouvrementList[0].date_paiement,
+          },
+          role: {
+            id: foundRole.id,
+            numero_role: Number(foundRole.numero_role) || targetRoleNum,
+            commune: foundRole.commune,
+            annee: Number(foundRole.annee) || getCurrentYear(),
+            status: foundRole.status,
+          },
+          articles: group.articles.sort((a, b) => a.numero_article - b.numero_article),
+        };
+      });
+    } else {
+      // 1 seul groupe normal
+      sections = [
+        {
+          recouvrement: {
+            id: recouvrementList[0].id,
+            liquidation_id: recouvrementList[0].liquidation_id,
+            role_id: primaryRoleRecord.id,
+            contribuable_id: recouvrementList[0].contribuable_id,
+            date_paiement: recouvrementList[0].date_paiement,
+          },
+          role: {
+            id: primaryRoleRecord.id,
+            numero_role: Number(primaryRoleRecord.numero_role) || 1,
+            commune: primaryRoleRecord.commune,
+            annee: Number(primaryRoleRecord.annee) || getCurrentYear(),
+            status: primaryRoleRecord.status,
+          },
+          articles: allFormattedArticles.sort((a, b) => a.numero_article - b.numero_article),
+        },
+      ];
+    }
+  }
 
   const primarySection = sections[0];
 
