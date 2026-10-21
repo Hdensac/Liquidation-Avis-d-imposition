@@ -4,7 +4,7 @@ import { getRange, PAGE_SIZE } from "@/lib/pagination";
 import { createClient } from "@/utils/supabase/server";
 import { TaxpayerInput } from "@/types/liquidation";
 import { canApplyExoneration, type UserRole } from "@/types/user";
-import type { AvisRecouvrementDetails } from "@/utils/avisPdfGenerator";
+import type { AvisRecouvrementDetails, AvisRecouvrementArticle, AvisRecouvrementSection } from "@/utils/avisPdfGenerator";
 import { logAction } from "@/actions/auditActions";
 import { buildLiquidationCalculations } from "@/utils/liquidationCalculations";
 import { taxpayerInputSchema } from "@/lib/schemas";
@@ -686,7 +686,7 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
     throw new Error("Avis de recouvrement introuvable pour cette liquidation.");
   }
 
-  const recouvrement = recouvrementList[0];
+  const roleIds = Array.from(new Set(recouvrementList.map((r) => r.role_id)));
   const recouvrementIds = recouvrementList.map((r) => r.id);
 
   const { data: liquidation, error: liquidationError } = await supabase
@@ -700,21 +700,22 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
     throw new Error("Liquidation introuvable.");
   }
 
-  const { data: role, error: roleError } = await supabase
+  const { data: rolesList, error: roleError } = await supabase
     .from("roles")
     .select("id, numero_role, commune, annee, status")
-    .eq("id", recouvrement.role_id)
-    .maybeSingle();
+    .in("id", roleIds);
 
   if (roleError) throw roleError;
-  if (!role) {
+  if (!rolesList || rolesList.length === 0) {
     throw new Error("Role de recouvrement introuvable.");
   }
+
+  const rolesMap = new Map(rolesList.map((r) => [r.id, r]));
 
   const { data: contribuable, error: contribuableError } = await supabase
     .from("contribuables")
     .select("id, nom_prenoms, ifu_npi, telephone")
-    .eq("id", recouvrement.contribuable_id)
+    .eq("id", recouvrementList[0].contribuable_id)
     .maybeSingle();
 
   if (contribuableError) throw contribuableError;
@@ -725,49 +726,33 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
   const { data: articles, error: articlesError } = await supabase
     .from("articles_recouvrement")
     .select(
-      "id, numero_article, exercice, nature_impot, localisation, description, base, taux, droit_simple, penalite, acompte_paye, reste_du"
+      "id, recouvrement_id, numero_article, exercice, nature_impot, localisation, description, base, taux, droit_simple, penalite, acompte_paye, reste_du"
     )
     .in("recouvrement_id", recouvrementIds)
     .order("numero_article", { ascending: true });
 
   if (articlesError) throw articlesError;
 
-  return {
-    recouvrement: {
-      id: recouvrement.id,
-      liquidation_id: recouvrement.liquidation_id,
-      role_id: recouvrement.role_id,
-      contribuable_id: recouvrement.contribuable_id,
-      date_paiement: recouvrement.date_paiement,
-    },
-    liquidation: {
-      id: liquidation.id,
-      reference_liq: liquidation.reference_liq,
-      superficie: Number(liquidation.superficie) || 0,
-      superficie_imposable: liquidation.superficie_imposable !== null ? Number(liquidation.superficie_imposable) : null,
-      valeur_locative: Number(liquidation.valeur_locative) || 0,
-      start_year: Number(liquidation.start_year) || getCurrentYear(),
-      type_bien: liquidation.type_bien || "NON_BATI",
-      status: liquidation.status,
-      created_at: liquidation.created_at,
-    },
-    role: {
-      id: role.id,
-      numero_role: Number(role.numero_role) || 1,
-      commune: role.commune,
-      annee: Number(role.annee) || getCurrentYear(),
-      status: role.status,
-    },
-    contribuable: {
-      id: contribuable.id,
-      nom_prenoms: contribuable.nom_prenoms,
-      ifu_npi: contribuable.ifu_npi,
-      telephone: contribuable.telephone || "",
-      commune: liquidation.commune || "",
-      arrondissement: liquidation.arrondissement || "",
-      quartier: liquidation.quartier || "",
-    },
-    articles: (articles ?? []).map((article) => ({
+  // Tri des recouvrements par ordre chronologique de rôle (année croissante, numéro de rôle croissant)
+  const sortedRecs = [...recouvrementList].sort((a, b) => {
+    const roleA = rolesMap.get(a.role_id);
+    const roleB = rolesMap.get(b.role_id);
+    const yearA = Number(roleA?.annee) || 0;
+    const yearB = Number(roleB?.annee) || 0;
+    if (yearA !== yearB) return yearA - yearB;
+    const numA = Number(roleA?.numero_role) || 0;
+    const numB = Number(roleB?.numero_role) || 0;
+    if (numA !== numB) return numA - numB;
+    return 0;
+  });
+
+  const articlesByRecouvrement = new Map<string, AvisRecouvrementArticle[]>();
+  for (const article of articles ?? []) {
+    const recId = (article as any).recouvrement_id;
+    if (!articlesByRecouvrement.has(recId)) {
+      articlesByRecouvrement.set(recId, []);
+    }
+    articlesByRecouvrement.get(recId)!.push({
       id: article.id,
       numero_article: Number(article.numero_article) || 0,
       exercice: Number(article.exercice) || getCurrentYear(),
@@ -780,7 +765,67 @@ export async function fetchAvisRecouvrementDetails(liquidationId: string): Promi
       penalite: Number(article.penalite) || 0,
       acompte_paye: Number(article.acompte_paye) || 0,
       reste_du: Number(article.reste_du) || 0,
-    })),
+    });
+  }
+
+  const sections: AvisRecouvrementSection[] = sortedRecs.map((rec) => {
+    const role = rolesMap.get(rec.role_id) || {
+      id: rec.role_id,
+      numero_role: 1,
+      commune: liquidation.commune || "",
+      annee: getCurrentYear(),
+      status: "ACTIF" as const,
+    };
+    const recArticles = (articlesByRecouvrement.get(rec.id) || []).sort(
+      (a, b) => a.numero_article - b.numero_article
+    );
+
+    return {
+      recouvrement: {
+        id: rec.id,
+        liquidation_id: rec.liquidation_id,
+        role_id: rec.role_id,
+        contribuable_id: rec.contribuable_id,
+        date_paiement: rec.date_paiement,
+      },
+      role: {
+        id: role.id,
+        numero_role: Number(role.numero_role) || 1,
+        commune: role.commune,
+        annee: Number(role.annee) || getCurrentYear(),
+        status: role.status,
+      },
+      articles: recArticles,
+    };
+  });
+
+  const primarySection = sections[0];
+
+  return {
+    recouvrement: primarySection.recouvrement,
+    liquidation: {
+      id: liquidation.id,
+      reference_liq: liquidation.reference_liq,
+      superficie: Number(liquidation.superficie) || 0,
+      superficie_imposable: liquidation.superficie_imposable !== null ? Number(liquidation.superficie_imposable) : null,
+      valeur_locative: Number(liquidation.valeur_locative) || 0,
+      start_year: Number(liquidation.start_year) || getCurrentYear(),
+      type_bien: liquidation.type_bien || "NON_BATI",
+      status: liquidation.status,
+      created_at: liquidation.created_at,
+    },
+    role: primarySection.role,
+    contribuable: {
+      id: contribuable.id,
+      nom_prenoms: contribuable.nom_prenoms,
+      ifu_npi: contribuable.ifu_npi,
+      telephone: contribuable.telephone || "",
+      commune: liquidation.commune || "",
+      arrondissement: liquidation.arrondissement || "",
+      quartier: liquidation.quartier || "",
+    },
+    articles: primarySection.articles,
+    sections,
   };
 }
 /** Types pour le détail des rôles pour le rapport */

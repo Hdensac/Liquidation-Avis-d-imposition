@@ -16,6 +16,26 @@ export type AvisRecouvrementArticle = {
   reste_du: number;
 };
 
+export type AvisRecouvrementRole = {
+  id: string;
+  numero_role: number;
+  commune: string;
+  annee: number;
+  status: string;
+};
+
+export type AvisRecouvrementSection = {
+  recouvrement: {
+    id: string;
+    liquidation_id: string;
+    role_id: string;
+    contribuable_id: string;
+    date_paiement?: string | null;
+  };
+  role: AvisRecouvrementRole;
+  articles: AvisRecouvrementArticle[];
+};
+
 export type AvisRecouvrementDetails = {
   recouvrement: {
     id: string;
@@ -36,13 +56,7 @@ export type AvisRecouvrementDetails = {
     description?: string | null;
     created_at: string;
   };
-  role: {
-    id: string;
-    numero_role: number;
-    commune: string;
-    annee: number;
-    status: string;
-  };
+  role: AvisRecouvrementRole;
   contribuable: {
     id: string;
     nom_prenoms: string;
@@ -53,6 +67,7 @@ export type AvisRecouvrementDetails = {
     quartier?: string;
   };
   articles: AvisRecouvrementArticle[];
+  sections?: AvisRecouvrementSection[];
 };
 
 type AvisTableRow = {
@@ -128,9 +143,9 @@ function sanitizeText(s: unknown) {
     .trim();
 }
 
-function buildRows(details: AvisRecouvrementDetails): AvisTableRow[] {
+function buildRows(details: AvisRecouvrementDetails, sectionArticles?: AvisRecouvrementArticle[]): AvisTableRow[] {
   const baseImposable = getBaseImposable(details);
-  const rows = details.articles || [];
+  const rows = sectionArticles ?? details.articles ?? [];
   return rows.map((article, index) => {
     const base = details.liquidation.type_bien === "BATI" && (article.nature_impot === "TFU/FB" || !article.nature_impot || article.nature_impot.includes("FB")) 
       ? (baseImposable > 0 ? baseImposable : toNumber(article.base, baseImposable))
@@ -283,9 +298,10 @@ function drawStaticHeader(pdf: jsPDF, commune: string, annee: number, dgiLogo: H
   pdf.text("AVIS DE MISE EN RECOUVREMENT", MAIN_X + MAIN_W / 2, 32.8, { align: "center" });
 }
 
-function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails) {
-  const commune = normalizeCommune(details.role.commune);
-  const roleLabel = `Role N${String.fromCharCode(176)}${details.role.numero_role}/${commune}/${details.role.annee}`;
+function drawRecipientBlock(pdf: jsPDF, details: AvisRecouvrementDetails, role?: AvisRecouvrementRole) {
+  const currentRole = role ?? details.role;
+  const commune = normalizeCommune(currentRole.commune);
+  const roleLabel = `Role N${String.fromCharCode(176)}${currentRole.numero_role}/${commune}/${currentRole.annee}`;
   const isBati = details.liquidation.type_bien === "BATI";
   let address = "";
   if (isBati) {
@@ -511,18 +527,46 @@ function drawFooter(pdf: jsPDF, details: AvisRecouvrementDetails, endY: number, 
 }
 
 export async function generateAvisRecouvrementPdf(details: AvisRecouvrementDetails, filename?: string) {
-  const commune = normalizeCommune(details.role.commune) || normalizeCommune(details.contribuable.commune);
-  const annee = toNumber(details.role.annee, new Date().getFullYear());
-  const dateEmission = details.recouvrement.date_paiement ? new Date(details.recouvrement.date_paiement) : new Date();
-  const rows = buildRows(details);
-  const totalDu = rows.reduce((sum, row) => sum + row.reste_du, 0);
+  const sections: AvisRecouvrementSection[] =
+    details.sections && details.sections.length > 0
+      ? details.sections
+      : [
+          {
+            recouvrement: details.recouvrement,
+            role: details.role,
+            articles: details.articles,
+          },
+        ];
+
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   let dgiLogo: HTMLImageElement | null = null;
-  try { dgiLogo = await loadImage("/dgi_lg.png"); } catch (err) { console.error("Erreur logo DGI :", err); }
-  drawStaticSidebar(pdf, commune);
-  drawStaticHeader(pdf, commune, annee, dgiLogo);
-  drawRecipientBlock(pdf, details);
-  const endY = drawArticlesTable(pdf, details, rows);
-  drawFooter(pdf, details, endY, totalDu, dateEmission);
+  try {
+    dgiLogo = await loadImage("/dgi_lg.png");
+  } catch (err) {
+    console.error("Erreur logo DGI :", err);
+  }
+
+  sections.forEach((section, index) => {
+    if (index > 0) {
+      pdf.addPage("a4", "landscape");
+    }
+
+    const commune =
+      normalizeCommune(section.role.commune) || normalizeCommune(details.contribuable.commune);
+    const annee = toNumber(section.role.annee, new Date().getFullYear());
+    const dateEmission = section.recouvrement.date_paiement
+      ? new Date(section.recouvrement.date_paiement)
+      : new Date();
+
+    const rows = buildRows(details, section.articles);
+    const totalDu = rows.reduce((sum, row) => sum + row.reste_du, 0);
+
+    drawStaticSidebar(pdf, commune);
+    drawStaticHeader(pdf, commune, annee, dgiLogo);
+    drawRecipientBlock(pdf, details, section.role);
+    const endY = drawArticlesTable(pdf, details, rows);
+    drawFooter(pdf, details, endY, totalDu, dateEmission);
+  });
+
   pdf.save(filename || `Avis_Recouvrement_${details.liquidation.reference_liq}.pdf`);
 }

@@ -203,7 +203,11 @@ export default function HistoryTable() {
       );
       const details = await fetchAvisRecouvrementDetails(liquidationId);
       await generateAvisRecouvrementPdf(details, `Avis_Recouvrement_${reference}.pdf`);
-      toast.success("Avis PDF généré.");
+      toast.success(
+        details.sections && details.sections.length > 1
+          ? `Avis PDF généré (${details.sections.length} rôles / pages distinctes).`
+          : "Avis PDF généré."
+      );
     } catch (error) {
       console.error(error);
       toast.error("Impossible de générer l'avis PDF.");
